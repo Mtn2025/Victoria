@@ -30,6 +30,7 @@ onnxruntime>=1.15.0
 
 # Monitoring
 prometheus-fastapi-instrumentator>=6.0.0
+sentry-sdk[fastapi]>=1.39.0
 
 # Security & Middlewares
 slowapi>=0.1.7
