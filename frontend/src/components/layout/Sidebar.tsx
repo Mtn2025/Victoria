@@ -12,9 +12,9 @@ import {
     Shield,
     Settings,
     History,
-    Info,
     GitCompare,
     Activity,
+    LogOut,
     LucideIcon,
     Globe
 } from "lucide-react"
@@ -69,6 +69,12 @@ export const Sidebar = () => {
         }
     }
 
+    const handleLogout = () => {
+        localStorage.removeItem('api_key');
+        localStorage.removeItem('apiKey'); // Just in case
+        window.location.href = '/';
+    }
+
     return (
         <nav className="w-16 flex-none bg-slate-950 border-r border-slate-800 flex flex-col items-center py-4 z-30">
             {/* Brand Logo */}
@@ -116,8 +122,12 @@ export const Sidebar = () => {
 
             {/* Bottom Actions */}
             <div className="mt-auto px-2 space-y-2 pt-4">
-                <button className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 transition-all">
-                    <Info size={20} />
+                <button
+                    onClick={handleLogout}
+                    title="Cerrar Sesión"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-red-500 hover:text-red-300 hover:bg-red-500/10 transition-all font-medium"
+                >
+                    <LogOut size={20} />
                 </button>
             </div>
         </nav>
