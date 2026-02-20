@@ -37,13 +37,23 @@ class Settings(BaseSettings):
     @model_validator(mode='after')
     def assemble_db_url(self) -> 'Settings':
         """Assembles database URL from POSTGRES_ variables if DATABASE_URL is not provided directly."""
-        if not self.DATABASE_URL:
-            if self.POSTGRES_USER and self.POSTGRES_SERVER and self.POSTGRES_DB:
-                pwd = f":{self.POSTGRES_PASSWORD}" if self.POSTGRES_PASSWORD else ""
-                self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-            else:
-                # Default fallback
-                self.DATABASE_URL = "sqlite+aiosqlite:///data/victoria.db" if self.ENVIRONMENT == "production" else "sqlite+aiosqlite:///./victoria.db"
+        
+        # If DATABASE_URL is already provided and not empty, we MUST use it directly.
+        if self.DATABASE_URL and self.DATABASE_URL.strip():
+            return self
+
+        # Otherwise, attempt to construct it from separate variables
+        if self.POSTGRES_USER and self.POSTGRES_SERVER and self.POSTGRES_DB:
+            pwd = f":{self.POSTGRES_PASSWORD}" if self.POSTGRES_PASSWORD else ""
+            
+            # Check if POSTGRES_PORT is provided, otherwise fallback to 5432
+            port = self.POSTGRES_PORT if self.POSTGRES_PORT else "5432"
+            
+            self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{port}/{self.POSTGRES_DB}"
+        else:
+            # Default fallback for local development
+            self.DATABASE_URL = "sqlite+aiosqlite:///data/victoria.db" if self.ENVIRONMENT == "production" else "sqlite+aiosqlite:///./victoria.db"
+            
         return self
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
