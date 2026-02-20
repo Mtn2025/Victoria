@@ -17,11 +17,15 @@ services:
       - ENVIRONMENT=production
       # --- REQUIRED API KEYS ---
       - GROQ_API_KEY
+      - GROQ_MODEL
       - AZURE_SPEECH_KEY
       - AZURE_SPEECH_REGION
       - TELNYX_API_KEY
+      - TELNYX_API_BASE
+      - TELNYX_PUBLIC_KEY
       - TWILIO_ACCOUNT_SID
       - TWILIO_AUTH_TOKEN
+      - TELEPHONY_WEBHOOK_SECRET
       - VICTORIA_API_KEY
 
   frontend:
