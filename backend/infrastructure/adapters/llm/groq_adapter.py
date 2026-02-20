@@ -26,7 +26,7 @@ class GroqLLMAdapter(LLMPort):
             logger.warning("Groq API Key missing. Adapter may fail.")
         
         self.client = AsyncGroq(api_key=self.api_key)
-        self.default_model = settings.GROQ_MODEL or "llama3-70b-8192"
+        self.default_model = "llama3-70b-8192" # Fallback if agent.llm_config is missing
 
     async def generate_response(self, conversation: Conversation, agent: Agent) -> str:
         """

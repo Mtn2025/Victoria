@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     Application configuration loaded from environment variables.
     """
     GROQ_API_KEY: Optional[str] = None
-    GROQ_MODEL: str = "llama3-70b-8192"
     ENVIRONMENT: str = "development" # development, staging, production
     
     AZURE_SPEECH_KEY: Optional[str] = None
