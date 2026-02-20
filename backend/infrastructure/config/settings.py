@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     TELNYX_API_KEY: Optional[str] = None
     TELNYX_API_BASE: str = "https://api.telnyx.com/v2"
     TELNYX_PUBLIC_KEY: Optional[str] = None
-    
     # Webhook Security
+    VICTORIA_API_KEY: Optional[str] = None
     # --- Database config (Punto A6) ---
     POSTGRES_USER: Optional[str] = None
     POSTGRES_PASSWORD: Optional[str] = None
@@ -52,10 +52,15 @@ class Settings(BaseSettings):
             self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{port}/{self.POSTGRES_DB}"
         else:
             if self.ENVIRONMENT == "production":
+                missing_vars = []
+                if not self.POSTGRES_USER: missing_vars.append("POSTGRES_USER")
+                if not self.POSTGRES_SERVER: missing_vars.append("POSTGRES_SERVER")
+                if not self.POSTGRES_DB: missing_vars.append("POSTGRES_DB")
+                
                 raise ValueError(
-                    "DATABASE_URL or (POSTGRES_USER, POSTGRES_SERVER, POSTGRES_DB) "
-                    "are strictly required in the 'production' environment. "
-                    "Cannot fallback to SQLite."
+                    f"Production environment requires DATABASE_URL or Postgres variables. "
+                    f"Missing: {', '.join(missing_vars)}. "
+                    f"Cannot fallback to SQLite in production."
                 )
             
             # Default fallback for local development only
