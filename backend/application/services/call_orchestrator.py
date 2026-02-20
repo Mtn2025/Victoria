@@ -138,6 +138,9 @@ class CallOrchestrator:
             )
             logger.info("✅ Call initialized")
             
+            # Capture agent reference immediately for Pipeline and Greeting
+            agent = self.current_call.agent
+            
             # STEP 2: FSM transition to LISTENING
             await self.fsm.transition(ConversationState.LISTENING, "session_started")
             
@@ -184,7 +187,6 @@ class CallOrchestrator:
             
             # STEP 7: Send initial greeting (FASE 3B)
             greeting_audio = None
-            agent = self.current_call.agent
             if agent.first_message and self.synthesize_text_uc and self.tts_port:
                 logger.info(f"👋 Greeting: {agent.first_message[:50]}...")
                 try:
