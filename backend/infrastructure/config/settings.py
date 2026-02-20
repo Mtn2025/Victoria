@@ -51,20 +51,15 @@ class Settings(BaseSettings):
             
             self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{port}/{self.POSTGRES_DB}"
         else:
-            if self.ENVIRONMENT == "production":
-                missing_vars = []
-                if not self.POSTGRES_USER: missing_vars.append("POSTGRES_USER")
-                if not self.POSTGRES_SERVER: missing_vars.append("POSTGRES_SERVER")
-                if not self.POSTGRES_DB: missing_vars.append("POSTGRES_DB")
-                
-                raise ValueError(
-                    f"Production environment requires DATABASE_URL or Postgres variables. "
-                    f"Missing: {', '.join(missing_vars)}. "
-                    f"Cannot fallback to SQLite in production."
-                )
+            missing_vars = []
+            if not self.POSTGRES_USER: missing_vars.append("POSTGRES_USER")
+            if not self.POSTGRES_SERVER: missing_vars.append("POSTGRES_SERVER")
+            if not self.POSTGRES_DB: missing_vars.append("POSTGRES_DB")
             
-            # Default fallback for local development only
-            self.DATABASE_URL = "sqlite+aiosqlite:///./victoria.db"
+            raise ValueError(
+                f"Production environment strictly requires DATABASE_URL or PostgreSQL configuration variables. "
+                f"Missing: {', '.join(missing_vars)}. "
+            )
             
         return self
 
