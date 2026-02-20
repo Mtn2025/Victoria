@@ -24,6 +24,10 @@ azure-cognitiveservices-speech>=1.30.0
 twilio>=8.0.0
 telnyx>=1.0.0
 
+# Audio & Signal Processing
+numpy>=1.24.0
+onnxruntime>=1.15.0
+
 # Monitoring
 prometheus-fastapi-instrumentator>=6.0.0
 
