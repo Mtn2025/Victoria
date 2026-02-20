@@ -19,7 +19,9 @@ class GetTTSOptionsUseCase:
         adapter = self.registry.get_provider_adapter(provider_id)
         langs = []
         if hasattr(adapter, 'get_available_languages'):
-            langs = await adapter.get_available_languages()
+            raw_langs = await adapter.get_available_languages()
+            # The adapter returns strings (locales), but the frontend expects objects: [{id, name}]
+            langs = [{"id": l, "name": l} for l in raw_langs]
             
         # Fallback if no languages returned
         if not langs:
