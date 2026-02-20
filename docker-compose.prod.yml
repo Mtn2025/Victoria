@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: victoria_backend_prod
+    restart: always
+    env_file:
+      - config/environments/.env
+    volumes:
+      - victoria_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///data/victoria.db
+    # In prod, we typically use a real DB, but keeping SQLite for consistency with current architecture
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: victoria_frontend_prod
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  victoria_data:

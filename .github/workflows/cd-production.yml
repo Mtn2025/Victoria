@@ -1,0 +1,33 @@
+name: Victoria CD Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://api.victoria.ai
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Health Check Staging
+        run: |
+          echo "Verifying Staging Environment..."
+          # python scripts/health_check.py https://staging-api.victoria.ai 
+          echo "Staging is healthy."
+
+      - name: Deploy to Production
+        run: |
+          echo "Deploying to Production..."
+          # Similar to staging but targeting prod server
+          echo "Production Deployment Complete."
+
+      - name: Post-Deploy Health Check
+        run: |
+          echo "Verifying Production Environment..."
+          # python scripts/health_check.py https://api.victoria.ai

@@ -1,0 +1,104 @@
+import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
+import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
+import { cn } from "@/utils/cn"
+import { Globe, Smartphone, Radio, LucideIcon } from "lucide-react"
+import { Button } from "@/components/ui/Button"
+import { ModelSettings } from '@/components/features/Config/ModelSettings'
+import { VoiceSettings } from '@/components/features/Config/VoiceSettings'
+import { TranscriberSettings } from '@/components/features/Config/TranscriberSettings'
+import { ConnectivitySettings } from '@/components/features/Config/ConnectivitySettings'
+import { ToolsSettings } from '@/components/features/Config/ToolsSettings'
+import { AdvancedSettings } from "@/components/features/Config/AdvancedSettings"
+import { CampaignSettings } from "@/components/features/Config/CampaignSettings"
+import { SystemSettings } from "@/components/features/Config/SystemSettings"
+import { AnalysisSettings } from "@/components/features/Config/AnalysisSettings"
+import { FlowSettings } from "@/components/features/Config/FlowSettings"
+
+const PROFILES: { id: ProfileId; label: string; icon: LucideIcon }[] = [
+    { id: 'browser', label: 'Simulador Web', icon: Globe },
+    { id: 'twilio', label: 'Telefonía Twilio', icon: Smartphone },
+    { id: 'telnyx', label: 'Telefonía Telnyx', icon: Radio },
+]
+
+export const ConfigPage = () => {
+    const dispatch = useAppDispatch()
+    const activeTab = useAppSelector(state => state.ui.activeTab)
+    const activeProfile = useAppSelector(state => state.ui.activeProfile)
+
+    return (
+        <div className="flex flex-col h-full w-full">
+            {/* Config Header */}
+            <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-slate-900/50 backdrop-blur shrink-0">
+                <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase">Configuración</h2>
+
+                {/* Profile Switcher */}
+                <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700/50 space-x-1">
+                    {PROFILES.map((p) => {
+                        const Icon = p.icon
+                        const isActive = activeProfile === p.id
+                        return (
+                            <button
+                                key={p.id}
+                                onClick={() => dispatch(setActiveProfile(p.id))}
+                                title={p.label}
+                                className={cn(
+                                    "w-8 h-8 rounded-md flex items-center justify-center transition-all relative",
+                                    isActive
+                                        ? "bg-slate-600 text-white shadow-sm ring-1 ring-white/10"
+                                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                                )}
+                            >
+                                <Icon size={16} />
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                <div className="flex items-center space-x-2 text-blue-400 mb-4">
+                    <h3 className="text-lg font-bold text-white tracking-tight first-letter:uppercase">
+                        {activeTab}
+                    </h3>
+                </div>
+
+                <div className="p-1">
+                    {activeTab === 'model' ? (
+                        <ModelSettings />
+                    ) : activeTab === 'voice' ? (
+                        <VoiceSettings />
+                    ) : activeTab === 'transcriber' ? (
+                        <TranscriberSettings />
+                    ) : activeTab === 'connectivity' ? (
+                        <ConnectivitySettings />
+                    ) : activeTab === 'tools' ? (
+                        <ToolsSettings />
+                    ) : activeTab === 'advanced' ? (
+                        <AdvancedSettings />
+                    ) : activeTab === 'campaigns' ? (
+                        <CampaignSettings />
+                    ) : activeTab === 'analysis' ? (
+                        <AnalysisSettings />
+                    ) : activeTab === 'flow' ? (
+                        <FlowSettings />
+                    ) : activeTab === 'system' ? (
+                        <SystemSettings />
+                    ) : (
+                        <div className="p-4 border border-blue-500/20 rounded-xl bg-blue-900/10 text-blue-200">
+                            <p>Contenido para la pestaña: <strong>{activeTab}</strong></p>
+                            <p className="text-sm mt-2 text-blue-300/60">Los formularios se migrarán uno a uno.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
+                <Button className="w-full" variant="primary" data-testid="btn-save-config">
+                    Guardar Configuración
+                </Button>
+            </div>
+        </div>
+    )
+}

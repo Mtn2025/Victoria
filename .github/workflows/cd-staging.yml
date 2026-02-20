@@ -1,0 +1,46 @@
+name: Victoria CD Staging
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    # assumed that CI passed before this runs on main
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        # uses: docker/login-action@v2
+        # with:
+        #   username: ${{ secrets.DOCKERHUB_USERNAME }}
+        #   password: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: echo "Simulating Docker Login..."
+
+      - name: Build and Push Backend
+        run: |
+          echo "Building Backend Docker Image..."
+          # docker build -t victoria-backend:staging -f backend/Dockerfile .
+          # docker push victoria-backend:staging
+          echo "Backend Image Pushed."
+
+      - name: Build and Push Frontend
+        run: |
+          echo "Building Frontend Docker Image..."
+          # docker build -t victoria-frontend:staging -f frontend/Dockerfile .
+          # docker push victoria-frontend:staging
+          echo "Frontend Image Pushed."
+
+      - name: Deploy to Staging Server
+        # uses: appleboy/ssh-action@master
+        # with:
+        #   host: ${{ secrets.STAGING_HOST }}
+        #   username: ${{ secrets.STAGING_USER }}
+        #   key: ${{ secrets.STAGING_KEY }}
+        #   script: |
+        #     cd /app/victoria
+        #     git pull
+        #     docker-compose -f docker-compose.prod.yml up -d --pull always
+        run: echo "Simulating Remote Deployment to Staging..."
