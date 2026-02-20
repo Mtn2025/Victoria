@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.infrastructure.database.session import get_db_session
 from backend.domain.value_objects.voice_config import VoiceConfig
 from backend.domain.ports.persistence_port import AgentRepository
-from backend.domain.ports.tts_port import VoiceMetadata
 from backend.domain.ports.tts_provider_registry import TTSProviderRegistry
+from backend.domain.entities.agent import Agent
 from backend.domain.ports.persistence_port import AgentRepository
 from backend.domain.ports.tts_port import VoiceMetadata
 from backend.interfaces.http.schemas.config_schemas import ConfigUpdate, VoicePreviewRequest
@@ -92,7 +92,7 @@ async def update_agent_config(
     # TODO(INT-05): Update tools_config.
     # Contract: Frontend sends 'tools_config' JSON, Backend persists it.
     if update.tools_config is not None:
-        current.tools = update.tools_config
+        current.tools = [update.tools_config]
         
     # Helper to parse empty strings from frontend safely
     def _parse_val(val, fallback, cast_func=None):
@@ -125,6 +125,11 @@ async def update_agent_config(
     
     # Drop None values so the Domain object can trigger its own defaults
     clean_vc_args = {k: v for k, v in new_vc_args.items() if v is not None}
+    
+    # Ensure 'name' is always present since VoiceConfig requires it without a default
+    if "name" not in clean_vc_args:
+        clean_vc_args["name"] = "es-MX-DaliaNeural"
+        
     current.voice_config = VoiceConfig(**clean_vc_args)
     
     # 3. Save
