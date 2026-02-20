@@ -123,7 +123,9 @@ async def update_agent_config(
         "volume": _parse_val(update.voice_volume, vc.volume, int)
     }
     
-    current.voice_config = VoiceConfig(**new_vc_args)
+    # Drop None values so the Domain object can trigger its own defaults
+    clean_vc_args = {k: v for k, v in new_vc_args.items() if v is not None}
+    current.voice_config = VoiceConfig(**clean_vc_args)
     
     # 3. Save
     await repo.update_agent(current)

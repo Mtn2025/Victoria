@@ -2,7 +2,7 @@
 Configuration Schemas.
 Part of the Interfaces Layer.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Dict, Any
 
 class ConfigUpdate(BaseModel):
@@ -33,3 +33,17 @@ class ConfigUpdate(BaseModel):
     
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def cast_empty_strings_to_none(cls, data: Any) -> Any:
+        """
+        Frontend sometimes sends empty strings `""` for optional numbers.
+        This intercepts the raw JSON Dict and converts `""` to `None` 
+        before Pydantic tries to cast it to Float/Int and crashes.
+        """
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if value == "":
+                    data[key] = None
+        return data
