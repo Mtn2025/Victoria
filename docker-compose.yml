@@ -16,6 +16,15 @@ services:
       - config/environments/.env.local
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./victoria.db
+      - ENVIRONMENT=development
+      # --- REQUIRED API KEYS ---
+      - GROQ_API_KEY
+      - AZURE_SPEECH_KEY
+      - AZURE_SPEECH_REGION
+      - TELNYX_API_KEY
+      - TWILIO_ACCOUNT_SID
+      - TWILIO_AUTH_TOKEN
+      - VICTORIA_API_KEY
     restart: unless-stopped
 
   frontend:
@@ -32,8 +41,9 @@ services:
     env_file:
       - config/environments/.env.local
     environment:
-      - VITE_API_URL=http://localhost:8000/api
-      - VITE_WS_URL=ws://localhost:8000/ws
+      - ENVIRONMENT=development
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
+      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000/ws}
     depends_on:
       - backend
     restart: unless-stopped
