@@ -5,22 +5,22 @@ import { configService } from '@/services/configService'
 // Async Thunks
 export const fetchLanguages = createAsyncThunk(
     'config/fetchLanguages',
-    async () => {
-        return await configService.getLanguages()
+    async (provider: string = 'azure') => {
+        return await configService.getLanguages(provider)
     }
 )
 
 export const fetchVoices = createAsyncThunk(
     'config/fetchVoices',
-    async (language: string | undefined) => {
-        return await configService.getVoices(language)
+    async ({ provider, language }: { provider: string, language?: string }) => {
+        return await configService.getVoices(provider, language)
     }
 )
 
 export const fetchStyles = createAsyncThunk(
     'config/fetchStyles',
-    async (voiceId: string) => {
-        return await configService.getStyles(voiceId)
+    async ({ provider, voiceId }: { provider: string, voiceId: string }) => {
+        return await configService.getStyles(provider, voiceId)
     }
 )
 

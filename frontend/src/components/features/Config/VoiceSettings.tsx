@@ -13,30 +13,43 @@ export const VoiceSettings = () => {
     const { browser, availableLanguages, availableVoices, availableStyles, isLoadingOptions } = useAppSelector(state => state.config)
     const [previewLoading, setPreviewLoading] = useState(false)
 
-    // Initial Load
+    // Initial Load - Fetch Languages for current Provider
     useEffect(() => {
-        if (availableLanguages.length === 0) {
-            dispatch(fetchLanguages())
+        if (browser.voiceProvider) {
+            dispatch(fetchLanguages(browser.voiceProvider))
         }
-    }, [dispatch, availableLanguages.length])
+    }, [dispatch, browser.voiceProvider])
 
-    // Fetch Voices when Language Changes
+    // Fetch Voices when Provider or Language Changes
     useEffect(() => {
-        if (browser.voiceLang) {
-            dispatch(fetchVoices(browser.voiceLang))
+        if (browser.voiceProvider && browser.voiceLang) {
+            dispatch(fetchVoices({ provider: browser.voiceProvider, language: browser.voiceLang }))
         }
-    }, [dispatch, browser.voiceLang])
+    }, [dispatch, browser.voiceProvider, browser.voiceLang])
 
     // Fetch Styles when Voice Changes
     useEffect(() => {
-        if (browser.voiceId) {
-            dispatch(fetchStyles(browser.voiceId))
+        if (browser.voiceProvider && browser.voiceId) {
+            dispatch(fetchStyles({ provider: browser.voiceProvider, voiceId: browser.voiceId }))
         }
-    }, [dispatch, browser.voiceId])
+    }, [dispatch, browser.voiceProvider, browser.voiceId])
 
     const update = (key: keyof BrowserConfig, value: any) => {
-        dispatch(updateBrowserConfig({ [key]: value }))
+        // Cascade Rules for Voice Configuration
+        if (key === 'voiceProvider') {
+            dispatch(updateBrowserConfig({ voiceProvider: value, voiceLang: '', voiceId: '', voiceStyle: '' }))
+        } else if (key === 'voiceLang') {
+            dispatch(updateBrowserConfig({ voiceLang: value, voiceId: '', voiceStyle: '' }))
+        } else if (key === 'voiceId') {
+            dispatch(updateBrowserConfig({ voiceId: value, voiceStyle: '' }))
+        } else {
+            dispatch(updateBrowserConfig({ [key]: value }))
+        }
     }
+
+    // Computed grouping by Gender
+    const femaleVoices = availableVoices.filter(v => v.gender === 'female' || v.gender === 'Mujer' || v.gender === 'Female')
+    const maleVoices = availableVoices.filter(v => v.gender === 'male' || v.gender === 'Hombre' || v.gender === 'Male')
 
     const handlePreview = async () => {
         setPreviewLoading(true)
@@ -118,11 +131,28 @@ export const VoiceSettings = () => {
                             onChange={(e) => update('voiceId', e.target.value)}
                             disabled={isLoadingOptions || availableVoices.length === 0}
                         >
-                            {availableVoices.length === 0 && <option>Cargando voces...</option>}
-                            {availableVoices.map(v => (
-                                <option key={v.id} value={v.id}>
-                                    {v.name} ({v.gender === 'female' ? 'Femenino' : 'Masculino'})
-                                </option>
+                            <option value="" disabled>Seleccionar Voz...</option>
+                            {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
+
+                            {femaleVoices.length > 0 && (
+                                <optgroup label="Femenino">
+                                    {femaleVoices.map(v => (
+                                        <option key={v.id} value={v.id}>{v.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
+
+                            {maleVoices.length > 0 && (
+                                <optgroup label="Masculino">
+                                    {maleVoices.map(v => (
+                                        <option key={v.id} value={v.id}>{v.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
+
+                            {/* Uncategorized (e.g. ElevenLabs fallback) */}
+                            {availableVoices.filter(v => v.gender !== 'female' && v.gender !== 'male' && v.gender !== 'Mujer' && v.gender !== 'Hombre' && v.gender !== 'Female' && v.gender !== 'Male').map(v => (
+                                <option key={v.id} value={v.id}>{v.name}</option>
                             ))}
                         </Select>
                     </div>

@@ -107,20 +107,21 @@ export const configService = {
         return response.models || []
     },
 
-    getLanguages: async (): Promise<Language[]> => {
-        const response = await api.get<{ languages: Language[] }>('/config/options/tts/languages')
+    getLanguages: async (provider: string = 'azure'): Promise<Language[]> => {
+        const response = await api.get<{ languages: Language[] }>('/config/options/tts/languages', { params: { provider } })
         return response.languages || []
     },
 
-    getVoices: async (language?: string): Promise<Voice[]> => {
-        const params = language ? { language } : undefined
+    getVoices: async (provider: string = 'azure', language?: string): Promise<Voice[]> => {
+        const params: any = { provider }
+        if (language) params.language = language
         const response = await api.get<{ voices: Voice[] }>('/config/options/tts/voices', { params })
         return response.voices || []
     },
 
-    getStyles: async (voiceId: string): Promise<VoiceStyle[]> => {
+    getStyles: async (provider: string = 'azure', voiceId: string): Promise<VoiceStyle[]> => {
         if (!voiceId) return []
-        const response = await api.get<{ styles: string[] }>('/config/options/tts/styles', { params: { voice_id: voiceId } })
+        const response = await api.get<{ styles: string[] }>('/config/options/tts/styles', { params: { provider, voice_id: voiceId } })
         // Legacy backend returns strings, frontend expects objects
         return response.styles.map(s => ({ id: s, label: s }))
     },

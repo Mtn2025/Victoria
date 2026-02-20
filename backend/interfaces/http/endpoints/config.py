@@ -8,10 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.infrastructure.database.session import get_db_session
-from backend.infrastructure.database.repositories import SqlAlchemyAgentRepository
-from backend.infrastructure.adapters.tts.azure_tts_adapter import AzureTTSAdapter
-from backend.domain.entities.agent import Agent
 from backend.domain.value_objects.voice_config import VoiceConfig
+from backend.domain.ports.persistence_port import AgentRepository
+from backend.domain.ports.tts_port import VoiceMetadata
+from backend.domain.ports.tts_provider_registry import TTSProviderRegistry
 from backend.domain.ports.persistence_port import AgentRepository
 from backend.domain.ports.tts_port import VoiceMetadata
 from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
@@ -133,34 +133,51 @@ async def update_agent_config(
     return {"status": "updated", "agent_id": agent_id}
 
 # --- Dynamic Options ---
+# --- Dynamic Options ---
 from backend.domain.use_cases.get_tts_options import GetTTSOptionsUseCase
+from backend.infrastructure.adapters.tts.static_registry import StaticTTSRegistryAdapter
 
 @router.get("/options/tts/voices")
-async def get_tts_voices(language: str | None = None):
+async def get_tts_voices(provider: str = "azure", language: str | None = None):
     """
-    Get available TTS voices.
+    Get available TTS voices for a specific provider.
     """
-    # Composition Root: Instantiate Adapter and Use Case
-    adapter = AzureTTSAdapter()
-    use_case = GetTTSOptionsUseCase(adapter)
+    registry = StaticTTSRegistryAdapter()
+    use_case = GetTTSOptionsUseCase(registry)
     
     try:
-        voices = await use_case.get_voices(language)
+        voices = await use_case.get_voices(provider, language)
         return {"voices": [v.__dict__ for v in voices]}
-    finally:
-        # cleanup if needed
-        pass
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/options/tts/languages")
-async def get_tts_languages():
+async def get_tts_languages(provider: str = "azure"):
     """
-    Get available TTS languages.
+    Get available TTS languages for a specific provider.
     """
-    adapter = AzureTTSAdapter()
-    use_case = GetTTSOptionsUseCase(adapter)
+    registry = StaticTTSRegistryAdapter()
+    use_case = GetTTSOptionsUseCase(registry)
     
-    langs = await use_case.get_languages()
-    return {"languages": langs}
+    try:
+        langs = await use_case.get_languages(provider)
+        return {"languages": langs}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/options/tts/styles")
+async def get_tts_styles(voice_id: str, provider: str = "azure"):
+    """
+    Get available emotion styles for a specific voice.
+    """
+    registry = StaticTTSRegistryAdapter()
+    use_case = GetTTSOptionsUseCase(registry)
+    
+    try:
+        styles = await use_case.get_styles(provider, voice_id)
+        return {"styles": styles}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/options/llm/providers")
 async def get_llm_providers():
