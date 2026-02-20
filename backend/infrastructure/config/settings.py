@@ -51,8 +51,15 @@ class Settings(BaseSettings):
             
             self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{port}/{self.POSTGRES_DB}"
         else:
-            # Default fallback for local development
-            self.DATABASE_URL = "sqlite+aiosqlite:///data/victoria.db" if self.ENVIRONMENT == "production" else "sqlite+aiosqlite:///./victoria.db"
+            if self.ENVIRONMENT == "production":
+                raise ValueError(
+                    "DATABASE_URL or (POSTGRES_USER, POSTGRES_SERVER, POSTGRES_DB) "
+                    "are strictly required in the 'production' environment. "
+                    "Cannot fallback to SQLite."
+                )
+            
+            # Default fallback for local development only
+            self.DATABASE_URL = "sqlite+aiosqlite:///./victoria.db"
             
         return self
 
