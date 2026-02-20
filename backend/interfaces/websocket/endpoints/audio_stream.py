@@ -6,6 +6,7 @@ import logging
 import asyncio
 import json
 import base64
+import uuid
 from typing import Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 
@@ -83,17 +84,21 @@ async def audio_stream(
     Supports Twilio, Telnyx, and Browser (Simulator).
     """
     # 1. Handle Browser Context Overrides
-    if client == "browser" and not client_state:
-        context_data = {}
-        if initial_message:
-            context_data["first_message"] = initial_message
-        if initiator:
-            context_data["first_message_mode"] = initiator
-        if voice_style:
-            context_data["voice_style"] = voice_style
+    if client == "browser":
+        if not call_control_id:
+            call_control_id = f"sim-{uuid.uuid4().hex[:8]}"
             
-        if context_data:
-            client_state = base64.b64encode(json.dumps(context_data).encode()).decode()
+        if not client_state:
+            context_data = {}
+            if initial_message:
+                context_data["first_message"] = initial_message
+            if initiator:
+                context_data["first_message_mode"] = initiator
+            if voice_style:
+                context_data["voice_style"] = voice_style
+                
+            if context_data:
+                client_state = base64.b64encode(json.dumps(context_data).encode()).decode()
 
     await websocket.accept()
     logger.info(f"WS Connected: {client}")
@@ -125,7 +130,14 @@ async def audio_stream(
                 event = protocol.parse_message(msg_text)
                 
                 if event["type"] == "start":
-                    stream_id = event.get("stream_id") or stream_id
+                    if client == "browser" and "start" in event:
+                        stream_id = event["start"].get("streamSid") or stream_id
+                    else:
+                        stream_id = event.get("stream_id") or stream_id
+                        
+                    if not stream_id:
+                        stream_id = call_control_id
+                        
                     protocol.set_stream_id(stream_id)
                     await orchestrator.start_session(agent_id=agent_id, stream_id=stream_id)
                     logger.info(f"Session started: {stream_id}")
