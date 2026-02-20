@@ -3,7 +3,7 @@ Conversation Turn Value Object.
 Part of the Domain Layer (Hexagonal Architecture).
 """
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Literal, Dict, List, Any, Optional
 
 Role = Literal["user", "assistant", "system", "tool"]
@@ -18,7 +18,7 @@ class ConversationTurn:
     content: str = ""  # Default empty string instead of using __setattr__ hack
     tool_calls: Optional[List[Dict[str, Any]]] = None
     tool_results: Optional[List[Dict[str, Any]]] = None
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
     def __post_init__(self) -> None:
         if self.role not in ["user", "assistant", "system", "tool"]:

@@ -3,7 +3,7 @@ Call Entity (Aggregate Root).
 Part of the Domain Layer (Hexagonal Architecture).
 """
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
 
@@ -35,7 +35,7 @@ class Call:
     conversation: Conversation
     status: CallStatus = CallStatus.INITIATED
     phone_number: Optional[PhoneNumber] = None
-    start_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    start_time: datetime = field(default_factory=datetime.utcnow)
     end_time: Optional[datetime] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -54,14 +54,14 @@ class Call:
         is_failure = reason.lower() in ["failed", "error", "timeout", "system_error"]
         self.status = CallStatus.FAILED if is_failure else CallStatus.COMPLETED
         
-        self.end_time = datetime.now(timezone.utc)
+        self.end_time = datetime.utcnow()
         self.metadata["termination_reason"] = reason
 
     @property
     def duration_seconds(self) -> float:
         """Calculate call duration in seconds."""
         if not self.end_time:
-             return (datetime.now(timezone.utc) - self.start_time).total_seconds()
+             return (datetime.utcnow() - self.start_time).total_seconds()
         return (self.end_time - self.start_time).total_seconds()
 
     def update_metadata(self, key: str, value: Any) -> None:
