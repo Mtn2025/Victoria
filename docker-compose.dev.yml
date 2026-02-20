@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile.dev
-    container_name: victoria_backend
+    container_name: victoria_backend_dev
     ports:
       - "8000:8000"
     volumes:
@@ -16,13 +16,14 @@ services:
       - config/environments/.env.local
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./victoria.db
+      - ENVIRONMENT=development
     restart: unless-stopped
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile.dev
-    container_name: victoria_frontend
+    container_name: victoria_frontend_dev
     ports:
       - "5173:5173"
     volumes:

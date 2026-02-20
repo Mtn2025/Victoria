@@ -4,19 +4,17 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile.dev
+      dockerfile: backend/Dockerfile
     container_name: victoria_backend
-    ports:
-      - "8000:8000"
+    restart: always
+    expose:
+      - "8000"
     volumes:
-      - ./backend:/app/backend
-      - ./config:/app/config
-      - ./victoria.db:/app/victoria.db
-    env_file:
-      - config/environments/.env.local
+      - victoria_data:/app/data
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./victoria.db
-      - ENVIRONMENT=development
+      # Use SQLite inside the persistent volume, or standard Postgres URL
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///data/victoria.db}
+      - ENVIRONMENT=production
       # --- REQUIRED API KEYS ---
       - GROQ_API_KEY
       - AZURE_SPEECH_KEY
@@ -25,28 +23,22 @@ services:
       - TWILIO_ACCOUNT_SID
       - TWILIO_AUTH_TOKEN
       - VICTORIA_API_KEY
-    restart: unless-stopped
 
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile.dev
+      dockerfile: frontend/Dockerfile
     container_name: victoria_frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - ./frontend/index.html:/app/index.html
-    env_file:
-      - config/environments/.env.local
+    restart: always
+    expose:
+      - "80"
     environment:
-      - ENVIRONMENT=development
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
-      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000/ws}
+      # --- AUTOMATIC COOLIFY INTEGRATION ---
+      # Automatically use the backend URL provided by Coolify
+      - VITE_API_URL=${SERVICE_URL_BACKEND:-http://localhost:8000}/api
+      - VITE_WS_URL=wss://${SERVICE_FQDN_BACKEND:-localhost:8000}/ws
     depends_on:
       - backend
-    restart: unless-stopped
 
 volumes:
-  sqlite_data:
+  victoria_data:
