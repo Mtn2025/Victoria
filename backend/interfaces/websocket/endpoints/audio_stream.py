@@ -62,7 +62,10 @@ async def build_orchestrator(
         start_call_uc=start_call,
         process_audio_uc=process_audio,
         generate_response_uc=generate_response,
-        end_call_uc=end_call
+        end_call_uc=end_call,
+        stt_port=stt_port,
+        llm_port=llm_port,
+        tts_port=tts_port
     )
 
 @router.websocket("/ws/media-stream")
