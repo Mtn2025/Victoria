@@ -94,6 +94,12 @@ async def update_agent_config(
     if update.tools_config is not None:
         current.tools = update.tools_config
         
+    # Helper to parse empty strings from frontend safely
+    def _parse_val(val, fallback, cast_func=None):
+        if val is None or val == "":
+            return fallback
+        return cast_func(val) if cast_func else val
+        
     # JSON LLM Config dict mapping
     if not current.llm_config:
         current.llm_config = {}
@@ -103,19 +109,18 @@ async def update_agent_config(
     if update.llm_model is not None:
         current.llm_config["model"] = update.llm_model
     if update.max_tokens is not None:
-        current.llm_config["max_tokens"] = update.max_tokens
+        current.llm_config["max_tokens"] = _parse_val(update.max_tokens, current.llm_config.get("max_tokens", 1024), int)
     if update.temperature is not None:
-        current.llm_config["temperature"] = update.temperature
+        current.llm_config["temperature"] = _parse_val(update.temperature, current.llm_config.get("temperature", 0.7), float)
         
-    # Voice Config Update
-    # Since VoiceConfig is immutable (frozen), we must replace it
     vc = current.voice_config
+    
     new_vc_args = {
-        "name": update.voice_name if update.voice_name is not None else vc.name,
-        "style": update.voice_style if update.voice_style is not None else vc.style,
-        "speed": update.voice_speed if update.voice_speed is not None else vc.speed,
-        "pitch": int(update.voice_pitch) if update.voice_pitch is not None else vc.pitch,
-        "volume": int(update.voice_volume) if update.voice_volume is not None else vc.volume
+        "name": _parse_val(update.voice_name, vc.name),
+        "style": _parse_val(update.voice_style, vc.style),
+        "speed": _parse_val(update.voice_speed, vc.speed, float),
+        "pitch": _parse_val(update.voice_pitch, vc.pitch, int),
+        "volume": _parse_val(update.voice_volume, vc.volume, int)
     }
     
     current.voice_config = VoiceConfig(**new_vc_args)
