@@ -46,7 +46,7 @@ services:
       # --- AUTOMATIC COOLIFY INTEGRATION ---
       # Automatically use the backend URL provided by Coolify
       - VITE_API_URL=${SERVICE_URL_BACKEND:-http://localhost:8000}/api
-      - VITE_WS_URL=wss://${SERVICE_FQDN_BACKEND:-localhost:8000}/ws
+      - VITE_WS_URL=wss://${SERVICE_FQDN_BACKEND:-localhost:8000}/ws/media-stream
     depends_on:
       - backend
 
