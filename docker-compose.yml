@@ -12,9 +12,13 @@ services:
     volumes:
       - victoria_data:/app/data
     environment:
-      # Use SQLite inside the persistent volume, or standard Postgres URL
-      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///data/victoria.db}
-      - ENVIRONMENT=production
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      # --- REQUIRED DATABASE (Coolify Auto-Injects if PGSQL service attached) ---
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SERVER=${POSTGRES_SERVER:-db}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB}
       # --- REQUIRED API KEYS ---
       # --- REQUIRED API KEYS ---
       - GROQ_API_KEY=${GROQ_API_KEY}
