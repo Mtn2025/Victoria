@@ -49,5 +49,7 @@ project_files.txt
 # Logs y Archivos de Prueba Locales
 *.log
 *.txt
+!requirements.txt
+!backend/requirements.txt
 videos/
 run_test.py

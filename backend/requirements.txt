@@ -1,0 +1,36 @@
+# Core
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+
+# Database
+sqlalchemy>=2.0.0
+aiosqlite>=0.19.0
+
+# Networking
+httpx>=0.24.0
+requests>=2.31.0
+websockets>=11.0
+
+# AI & Speech Services
+groq>=0.4.0
+azure-cognitiveservices-speech>=1.30.0
+# openai>=1.0.0 (if needed later)
+
+# Telephony
+twilio>=8.0.0
+telnyx>=1.0.0
+
+# Monitoring
+prometheus-fastapi-instrumentator>=6.0.0
+
+# Security
+slowapi>=0.1.7
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
