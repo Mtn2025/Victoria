@@ -6,14 +6,14 @@
 - **Policy**: NEVER commit `.env.local` or any file containing real API keys.
 - **Template**: Use `config/environments/.env.example` for structure.
 
-## 2. Staging/Production
-- **Tool**: Platform-native Variable Injection (e.g., Coolify, Docker Secrets, AWS SSM).
-- **Injection**: Environment variables injected at container runtime.
-- **CI/CD**: GitHub Actions Secrets for build-time args (if needed).
+## 2. Staging/Production (e.g., Coolify, Render, AWS)
+- **Tool**: Platform-native Variable Injection (e.g., Coolify Environment Variables Tab).
+- **Injection**: Environment variables injected at container runtime and build time (for Frontend).
+- **Note on Coolify**: Coolify will auto-generate variables like `SERVICE_URL_FRONTEND` or `SERVICE_FQDN_BACKEND`. **DO NOT modify or delete these.** You must add Victoria's own required variables alongside them.
 
 ## 3. Implementation Details
-- **Backend**: Uses `pydantic-settings` to read from `OS ENV` first, then fallback to `.env` file if specific `ENVIRONMENT` is set.
-- **Frontend**: Uses `VITE_*` prefix. Secrets must be injected at build time (or runtime via config endpoint if using strict separation).
+- **Backend**: Uses `pydantic-settings` to read from System Environment (`OS ENV`). If a variable like `GROQ_API_KEY` is set in Coolify, it reads it directly.
+- **Frontend**: Uses `VITE_*` prefix. **CRITICAL:** Variables like `VITE_API_URL` and `VITE_WS_URL` must be injected *at build time*. If you are deploying via Coolify, ensure these are added to the Frontend service's Environment Variables tab *before* triggering the deployment, pointing to the Backend's public URL.
 
 ## 4. Forbidden Practices
 - ❌ Hardcoding API keys in code.

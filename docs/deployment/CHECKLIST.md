@@ -1,13 +1,20 @@
 # Production Deployment Checklist
 
-## 1. Pre-Deployment (Environment)
-- [ ] Ensure all required secrets are set in the production environment (e.g., Coolify, GitHub Secrets).
-    - `DATABASE_URL` (Pointer to Production PostgreSQL/SQLite volume).
-    - `REDIS_URL` (For Caching and Pub/Sub).
-    - `VICTORIA_API_KEY` (Strong randomized key for API access).
-    - Integrations: `GROQ_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `AZURE_SPEECH_KEY`, etc.
-- [ ] Validate Docker images build successfully (`cd-production.yml`).
+## 1. Pre-Deployment (Environment Variables)
+- [ ] Configure the following secrets in your deployment platform (e.g., Coolify, Render, AWS):
+    - **Database & Services**: 
+      - `DATABASE_URL` (Pointer to Production PostgreSQL/SQLite volume).
+      - `REDIS_URL` (For Caching and Pub/Sub).
+    - **Backend API Keys**:
+      - `GROQ_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`, `TELNYX_API_KEY`.
+    - **Frontend Connection to Backend (CRITICAL)**:
+      - `VITE_API_URL` (Must point exactly to your backend public URL, e.g., `https://api.tudominio.com/api` or `http://<coolify-backend-domain>/api`)
+      - `VITE_WS_URL` (For WebSockets, e.g., `wss://api.tudominio.com/ws` or `ws://<coolify-backend-domain>/ws`)
+    - **Security**:
+      - `VICTORIA_API_KEY` (Strong randomized key for Frontend-Backend handshake).
+      - `TELEPHONY_WEBHOOK_SECRET` (For Twilio/Telnyx Webhook validation).
 - [ ] Ensure `SENTRY_DSN` is correctly configured for error tracking.
+- [ ] Validate Docker images build successfully (`cd-production.yml`).
 
 ## 2. Infrastructure Checks
 - [ ] Validate Domain configs (SSL Certificates issued/active).
