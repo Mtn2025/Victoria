@@ -14,7 +14,7 @@ def test_twilio_incoming_call():
     response = client.post("/telephony/twilio/incoming-call", headers={"Host": "testserver"})
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/xml"
-    assert "<Stream url=\"wss://testserver/api/v1/ws/media-stream\" />" in response.text
+    assert "<Stream url=\"wss://testserver/ws/media-stream\" />" in response.text
 
 @patch("backend.interfaces.http.endpoints.telephony.telnyx_adapter")
 def test_telnyx_call_initiated(mock_adapter):
@@ -57,4 +57,4 @@ def test_telnyx_call_answered(mock_adapter):
     mock_adapter.start_streaming.assert_called()
     call_args = mock_adapter.start_streaming.call_args
     assert call_args[0][0] == "call-123"
-    assert "wss://testserver/api/v1/ws/media-stream" in call_args[0][1]
+    assert "wss://testserver/ws/media-stream" in call_args[0][1]

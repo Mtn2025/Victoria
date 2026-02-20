@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     TELNYX_PUBLIC_KEY: Optional[str] = None
     # Webhook Security
     VICTORIA_API_KEY: Optional[str] = None
+    WS_MEDIA_STREAM_PATH: str = "/ws/media-stream"
+    
     # --- Database config (Punto A6) ---
     POSTGRES_USER: Optional[str] = None
     POSTGRES_PASSWORD: Optional[str] = None
@@ -51,15 +53,18 @@ class Settings(BaseSettings):
             
             self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{port}/{self.POSTGRES_DB}"
         else:
-            missing_vars = []
-            if not self.POSTGRES_USER: missing_vars.append("POSTGRES_USER")
-            if not self.POSTGRES_SERVER: missing_vars.append("POSTGRES_SERVER")
-            if not self.POSTGRES_DB: missing_vars.append("POSTGRES_DB")
-            
-            raise ValueError(
-                f"Production environment strictly requires DATABASE_URL or PostgreSQL configuration variables. "
-                f"Missing: {', '.join(missing_vars)}. "
-            )
+            if self.ENVIRONMENT == "production":
+                missing_vars = []
+                if not self.POSTGRES_USER: missing_vars.append("POSTGRES_USER")
+                if not self.POSTGRES_SERVER: missing_vars.append("POSTGRES_SERVER")
+                if not self.POSTGRES_DB: missing_vars.append("POSTGRES_DB")
+                
+                raise ValueError(
+                    f"Production environment strictly requires DATABASE_URL or PostgreSQL configuration variables. "
+                    f"Missing: {', '.join(missing_vars)}. "
+                )
+            # Default fallback for local development and tests
+            self.DATABASE_URL = "sqlite+aiosqlite:///./victoria.db"
             
         return self
 

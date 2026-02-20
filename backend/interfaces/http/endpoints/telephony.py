@@ -28,7 +28,7 @@ async def twilio_incoming_call(request: Request):
     Twilio Webhook. Returns TwiML to connect to WebSocket.
     """
     host = request.headers.get("host") or "localhost"
-    ws_url = f"wss://{host}/api/v1/ws/media-stream"
+    ws_url = f"wss://{host}{settings.WS_MEDIA_STREAM_PATH}"
     
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -68,7 +68,7 @@ async def telnyx_call_control(
             host = request.headers.get("host") or "localhost"
             ws_scheme = "wss" if proto == "https" else "ws"
             
-            ws_url = f"{ws_scheme}://{host}/api/v1/ws/media-stream?client=telnyx&call_control_id={call_control_id}"
+            ws_url = f"{ws_scheme}://{host}{settings.WS_MEDIA_STREAM_PATH}?client=telnyx&call_control_id={call_control_id}"
             
             if client_state:
                 ws_url += f"&client_state={client_state}"

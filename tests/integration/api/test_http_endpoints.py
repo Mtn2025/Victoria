@@ -153,7 +153,7 @@ class TestTelephonyEndpoints:
         response = client.post("/telephony/twilio/incoming-call", headers={"Host": "testserver"})
         assert response.status_code == 200
         assert "application/xml" in response.headers["content-type"]
-        assert "<Stream url=\"wss://testserver/api/v1/ws/media-stream\" />" in response.text
+        assert "<Stream url=\"wss://testserver/ws/media-stream\" />" in response.text
 
     def test_telnyx_webhook_initiated(self, client, mock_telnyx_adapter):
         """Test Telnyx call.initiated event triggers answer."""
