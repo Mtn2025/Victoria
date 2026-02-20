@@ -16,6 +16,7 @@ from backend.domain.ports.persistence_port import AgentRepository
 from backend.domain.ports.tts_port import VoiceMetadata
 from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
 from backend.domain.use_cases.get_llm_options import GetLLMOptionsUseCase
+from backend.infrastructure.adapters.llm.static_registry import StaticLLMRegistryAdapter
 
 router = APIRouter(prefix="/config", tags=["config"])
 logger = logging.getLogger(__name__)
@@ -157,13 +158,15 @@ async def get_tts_languages():
 @router.get("/options/llm/providers")
 async def get_llm_providers():
     """Get available LLM providers."""
-    use_case = GetLLMOptionsUseCase()
+    adapter = StaticLLMRegistryAdapter()
+    use_case = GetLLMOptionsUseCase(adapter)
     providers = await use_case.get_providers()
     return {"providers": providers}
 
 @router.get("/options/llm/models")
 async def get_llm_models(provider: str):
     """Get available LLM models for a given provider."""
-    use_case = GetLLMOptionsUseCase()
+    adapter = StaticLLMRegistryAdapter()
+    use_case = GetLLMOptionsUseCase(adapter)
     models = await use_case.get_models(provider)
     return {"models": models}
