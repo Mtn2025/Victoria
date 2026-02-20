@@ -16,11 +16,11 @@ export const ConnectivitySettings = () => {
     const [testTarget, setTestTarget] = useState('')
     const [callStatus, setCallStatus] = useState<string | null>(null)
 
-    const updateTwilio = (key: keyof TwilioConfig, value: any) => {
+    const updateTwilio = <K extends keyof TwilioConfig>(key: K, value: TwilioConfig[K]) => {
         dispatch(updateTwilioConfigState({ [key]: value }))
     }
 
-    const updateTelnyx = (key: keyof TelnyxConfig, value: any) => {
+    const updateTelnyx = <K extends keyof TelnyxConfig>(key: K, value: TelnyxConfig[K]) => {
         dispatch(updateTelnyxConfigState({ [key]: value }))
     }
 
@@ -34,8 +34,8 @@ export const ConnectivitySettings = () => {
             } else {
                 setCallStatus(`Error: ${res.detail}`)
             }
-        } catch (e: any) {
-            setCallStatus(`Fail: ${e.message}`)
+        } catch (e: unknown) {
+            setCallStatus(`Fail: ${(e as Error).message}`)
         }
     }
 
@@ -61,7 +61,7 @@ export const ConnectivitySettings = () => {
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setSubTab(tab.id as any)}
+                        onClick={() => setSubTab(tab.id as 'keys' | 'sip' | 'features')}
                         className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${subTab === tab.id
                             ? 'bg-slate-700 text-white shadow'
                             : 'text-slate-500 hover:text-slate-300'
@@ -203,7 +203,7 @@ export const ConnectivitySettings = () => {
                                     <Select
                                         aria-label="Twilio Geo Region"
                                         value={twilio.geoRegionPhone}
-                                        onChange={(e) => updateTwilio('geoRegionPhone', e.target.value)}
+                                        onChange={(e) => updateTwilio('geoRegionPhone', e.target.value as 'us-east-1' | 'us-west-1' | 'eu-west-1')}
                                         className="text-xs"
                                     >
                                         <option value="us-east-1">US East (N. Virginia)</option>
@@ -248,7 +248,7 @@ export const ConnectivitySettings = () => {
                                     <Select
                                         aria-label="Telnyx Geo Region"
                                         value={telnyx.geoRegionTelnyx}
-                                        onChange={(e) => updateTelnyx('geoRegionTelnyx', e.target.value)}
+                                        onChange={(e) => updateTelnyx('geoRegionTelnyx', e.target.value as 'us-central' | 'us-east' | 'global')}
                                         className="text-xs"
                                     >
                                         <option value="us-central">US Central (Chicago)</option>
@@ -291,7 +291,7 @@ export const ConnectivitySettings = () => {
                                 <Select
                                     aria-label="Twilio Recording Channels"
                                     value={twilio.recordingChannelsPhone}
-                                    onChange={(e) => updateTwilio('recordingChannelsPhone', e.target.value)}
+                                    onChange={(e) => updateTwilio('recordingChannelsPhone', e.target.value as 'mono' | 'dual')}
                                     className="h-8 text-[10px] w-32"
                                 >
                                     <option value="mono">Mono</option>
@@ -314,7 +314,7 @@ export const ConnectivitySettings = () => {
                                 <Select
                                     aria-label="Telnyx Recording Channels"
                                     value={telnyx.recordingChannelsTelnyx}
-                                    onChange={(e) => updateTelnyx('recordingChannelsTelnyx', e.target.value)}
+                                    onChange={(e) => updateTelnyx('recordingChannelsTelnyx', e.target.value as 'mono' | 'dual')}
                                     className="h-8 text-[10px] w-32"
                                 >
                                     <option value="mono">Mono</option>
@@ -366,7 +366,7 @@ export const ConnectivitySettings = () => {
                                     <Select
                                         aria-label="Telnyx AMD Config"
                                         value={telnyx.amdConfig}
-                                        onChange={(e) => updateTelnyx('amdConfig', e.target.value)}
+                                        onChange={(e) => updateTelnyx('amdConfig', e.target.value as 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end')}
                                         className="h-8 text-[10px]"
                                     >
                                         <option value="disabled">Disabled</option>

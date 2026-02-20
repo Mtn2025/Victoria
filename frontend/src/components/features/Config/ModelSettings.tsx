@@ -34,7 +34,7 @@ export const ModelSettings = () => {
     const dispatch = useAppDispatch()
     const config = useAppSelector(state => state.config.browser)
 
-    const handleChange = (field: keyof typeof config, value: any) => {
+    const handleChange = <K extends keyof typeof config>(field: K, value: typeof config[K]) => {
         dispatch(updateBrowserConfig({ [field]: value }))
     }
 
@@ -292,7 +292,7 @@ export const ModelSettings = () => {
                         <Label>Modo Inicio</Label>
                         <Select
                             value={config.mode}
-                            onChange={(e) => handleChange('mode', e.target.value as any)}
+                            onChange={(e) => handleChange('mode', e.target.value as 'speak-first' | 'listen-first')}
                         >
                             <option value="speak-first">Hablar Primero (Agente Saluda)</option>
                             <option value="listen-first">Escuchar Primero (Usuario Habla)</option>

@@ -12,7 +12,7 @@ export const AnalysisSettings = () => {
     const { browser } = useAppSelector(state => state.config)
     const [activeTab, setActiveTab] = useState<AnalysisTab>('prompt')
 
-    const update = (key: keyof BrowserConfig, value: any) => {
+    const update = <K extends keyof BrowserConfig>(key: K, value: BrowserConfig[K]) => {
         dispatch(updateBrowserConfig({ [key]: value }))
     }
 

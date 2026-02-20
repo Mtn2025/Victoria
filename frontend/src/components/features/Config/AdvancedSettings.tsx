@@ -18,7 +18,7 @@ export const AdvancedSettings = () => {
         setPatience(browser.sttSilenceTimeout / 1000)
     }, [browser.sttSilenceTimeout])
 
-    const update = (key: keyof BrowserConfig, value: any) => {
+    const update = <K extends keyof BrowserConfig>(key: K, value: BrowserConfig[K]) => {
         dispatch(updateBrowserConfig({ [key]: value }))
     }
 

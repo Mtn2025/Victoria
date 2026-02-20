@@ -18,7 +18,7 @@ export const CampaignSettings = () => {
     const [isUploading, setIsUploading] = useState(false)
 
     // Config Updates (Integrations)
-    const update = (key: keyof BrowserConfig, value: any) => {
+    const update = <K extends keyof BrowserConfig>(key: K, value: BrowserConfig[K]) => {
         dispatch(updateBrowserConfig({ [key]: value }))
     }
 
