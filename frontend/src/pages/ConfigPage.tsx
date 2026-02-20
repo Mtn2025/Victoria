@@ -2,7 +2,7 @@ import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
 import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
 import { saveBrowserConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
-import { Globe, Smartphone, Radio, LucideIcon } from "lucide-react"
+import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
 import { VoiceSettings } from '@/components/features/Config/VoiceSettings'
@@ -26,6 +26,15 @@ export const ConfigPage = () => {
     const activeTab = useAppSelector(state => state.ui.activeTab)
     const activeProfile = useAppSelector(state => state.ui.activeProfile)
     const { browser, isLoadingOptions } = useAppSelector(state => state.config)
+
+    // Form Validation Logic
+    const missingFields = []
+    if (!browser.provider) missingFields.push("Proveedor LLM")
+    if (!browser.model) missingFields.push("Modelo LLM")
+    if (!browser.voiceId) missingFields.push("Voz (TTS)")
+
+    const isBrowserValid = missingFields.length === 0
+    const isValid = activeProfile === 'browser' ? isBrowserValid : true
 
     const handleSave = async () => {
         if (activeProfile === 'browser') {
@@ -105,13 +114,22 @@ export const ConfigPage = () => {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
+            <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50 space-y-3">
+
+                {/* Validation Warning */}
+                {activeProfile === 'browser' && missingFields.length > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 p-2 rounded-md">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>Faltan campos obligatorios para guardar: {missingFields.join(", ")}</span>
+                    </div>
+                )}
+
                 <Button
                     className="w-full"
                     variant="primary"
                     data-testid="btn-save-config"
                     onClick={handleSave}
-                    disabled={isLoadingOptions}
+                    disabled={isLoadingOptions || !isValid}
                 >
                     {isLoadingOptions ? "Guardando..." : "Guardar Configuración"}
                 </Button>
