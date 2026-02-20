@@ -27,8 +27,16 @@ telnyx>=1.0.0
 # Monitoring
 prometheus-fastapi-instrumentator>=6.0.0
 
-# Security
+# Security & Middlewares
 slowapi>=0.1.7
+asgi-correlation-id>=4.3.0
+
+# Cache & Message Broker
+redis>=5.0.0
+
+# Production Database (PostgreSQL)
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
 
 # Testing
 pytest>=7.0.0
