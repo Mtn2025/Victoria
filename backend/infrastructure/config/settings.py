@@ -25,8 +25,6 @@ class Settings(BaseSettings):
     TELNYX_PUBLIC_KEY: Optional[str] = None
     
     # Webhook Security
-    TELEPHONY_WEBHOOK_SECRET: str = "victoria-secret-key-change-me"
-    
     # --- Database config (Punto A6) ---
     POSTGRES_USER: Optional[str] = None
     POSTGRES_PASSWORD: Optional[str] = None

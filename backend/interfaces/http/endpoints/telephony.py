@@ -41,20 +41,11 @@ async def twilio_incoming_call(request: Request):
 @router.post("/telnyx/call-control")
 async def telnyx_call_control(
     request: Request, 
-    background_tasks: BackgroundTasks,
-    x_victoria_key: Optional[str] = Header(None)
+    background_tasks: BackgroundTasks
 ):
     """
     Telnyx Call Control Webhook.
-    Protected by simple X-Victoria-Key if configured.
     """
-    # Simple Auth Check (DT-INT-002)
-    expected_key = settings.TELEPHONY_WEBHOOK_SECRET
-    if expected_key and expected_key != "victoria-secret-key-change-me":
-         if x_victoria_key != expected_key:
-             logger.warning(f"⛔ Unauthorized Webhook Attempt: {x_victoria_key}")
-             return Response(status_code=401, content="Unauthorized")
-
     try:
         event = await request.json()
         data = event.get("data", {})

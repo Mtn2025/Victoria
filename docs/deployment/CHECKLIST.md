@@ -12,7 +12,6 @@
       - `VITE_WS_URL` (For WebSockets, e.g., `wss://api.tudominio.com/ws` or `ws://<coolify-backend-domain>/ws`)
     - **Security**:
       - `VICTORIA_API_KEY` (Strong randomized key for Frontend-Backend handshake).
-      - `TELEPHONY_WEBHOOK_SECRET` (For Twilio/Telnyx Webhook validation).
 - [ ] Ensure `SENTRY_DSN` is correctly configured for error tracking.
 - [ ] Validate Docker images build successfully (`cd-production.yml`).
 
