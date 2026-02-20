@@ -50,11 +50,7 @@ def create_app() -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
     
     # CORS: Load from settings in prod
-    origins = ["http://localhost:5173", "http://localhost:3000"]
-    # Add production domain if configured
-    if settings.ENVIRONMENT == "production":
-         # origins = ["https://app.victoria.ai"] # TODO: Configure real domain
-         pass
+    origins = settings.CORS_ORIGINS.split(",")
 
     app.add_middleware(
         CORSMiddleware,

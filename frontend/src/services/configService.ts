@@ -133,8 +133,9 @@ export const configService = {
         voice_volume: number
         voice_style?: string
         voice_style_degree?: number
+        provider: string
     }) => {
-        const response = await api.post('/config/api/voice/preview', params, { responseType: 'blob' })
+        const response = await api.post('/config/options/tts/preview', params, { responseType: 'blob' })
         return response
     }
 }

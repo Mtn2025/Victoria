@@ -60,7 +60,8 @@ export const VoiceSettings = () => {
                 voice_pitch: browser.voicePitch,
                 voice_volume: browser.voiceVolume,
                 voice_style: browser.voiceStyle,
-                voice_style_degree: browser.voiceStyleDegree
+                voice_style_degree: browser.voiceStyleDegree,
+                provider: browser.voiceProvider
             })
 
             const url = URL.createObjectURL(blob as Blob)

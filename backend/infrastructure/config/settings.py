@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     """
     GROQ_API_KEY: Optional[str] = None
     ENVIRONMENT: str = "development" # development, staging, production
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     
     AZURE_SPEECH_KEY: Optional[str] = None
     AZURE_SPEECH_REGION: str = "eastus"

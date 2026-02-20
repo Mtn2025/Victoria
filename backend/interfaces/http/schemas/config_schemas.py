@@ -47,3 +47,16 @@ class ConfigUpdate(BaseModel):
                 if value == "":
                     data[key] = None
         return data
+
+class VoicePreviewRequest(BaseModel):
+    """
+    Schema for voice preview synthesis.
+    """
+    voice_name: str
+    voice_speed: float = 1.0
+    voice_pitch: int = 0
+    voice_volume: int = 100
+    voice_style: Optional[str] = None
+    voice_style_degree: Optional[float] = 1.0
+    provider: str = "azure"
+

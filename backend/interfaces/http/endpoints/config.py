@@ -14,7 +14,7 @@ from backend.domain.ports.tts_port import VoiceMetadata
 from backend.domain.ports.tts_provider_registry import TTSProviderRegistry
 from backend.domain.ports.persistence_port import AgentRepository
 from backend.domain.ports.tts_port import VoiceMetadata
-from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
+from backend.interfaces.http.schemas.config_schemas import ConfigUpdate, VoicePreviewRequest
 from backend.domain.use_cases.get_llm_options import GetLLMOptionsUseCase
 from backend.infrastructure.adapters.llm.static_registry import StaticLLMRegistryAdapter
 
@@ -178,6 +178,48 @@ async def get_tts_styles(voice_id: str, provider: str = "azure"):
         return {"styles": styles}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+from fastapi.responses import Response
+from backend.domain.value_objects.audio_format import AudioFormat
+
+@router.post("/options/tts/preview")
+async def preview_tts_voice(request: VoicePreviewRequest):
+    """
+    Generate an audio preview for a specific voice configuration.
+    """
+    registry = StaticTTSRegistryAdapter()
+    
+    try:
+        adapter = registry.get_provider_adapter(request.provider)
+        
+        # Build VoiceConfig domain object
+        vc = VoiceConfig(
+            name=request.voice_name,
+            speed=request.voice_speed,
+            pitch=request.voice_pitch,
+            volume=request.voice_volume,
+            style=request.voice_style or "default",
+            style_degree=request.voice_style_degree or 1.0
+        )
+        
+        # Request Web-compatible format for browser HTML5 Audio playback (WAV)
+        format_obj = AudioFormat(encoding="pcm", sample_rate=16000, channels=1)
+        
+        # We need a generic sample text for the language
+        sample_text = "Hola, esta es una prueba de voz para comprobar la configuración."
+        if request.provider == "elevenlabs" and "multilingual" not in getattr(vc, 'locale', ''):
+             # Elevenlabs default preview.
+             sample_text = "Hello, this is a voice test to check the current configuration."
+             
+        audio_bytes = await adapter.synthesize(text=sample_text, voice=vc, format=format_obj)
+        
+        return Response(content=audio_bytes, media_type="audio/wav")
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Text-to-Speech synthesis failed: {e}")
+        raise HTTPException(status_code=500, detail="Voice synthesis failed")
 
 @router.get("/options/llm/providers")
 async def get_llm_providers():
