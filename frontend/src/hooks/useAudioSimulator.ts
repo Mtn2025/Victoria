@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { WS_BASE_URL } from '../utils/constants';
 
 export interface TranscriptMessage {
     role: 'user' | 'assistant' | 'system';
@@ -138,11 +139,9 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
             setTranscripts([]);
             addDebugLog('SYSTEM', { event: 'START_TEST_INIT', config });
 
-            // Note: In development using proxy, path might need adjustment.
-            // Assuming /api/v1/ws/... is proxied to backend:8000/ws/...
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // Use window.location.host since frontend acts as proxy or CORS is handled
-            const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/media-stream?client=browser` +
+            // Note: WS_BASE_URL is injected by Nginx/envsubst or Vite fallback 
+            // e.g. wss://api.victoria.com/ws/media-stream
+            const wsUrl = `${WS_BASE_URL}?client=browser` +
                 `&initial_message=${encodeURIComponent(config.initialMsg)}` +
                 `&initiator=${encodeURIComponent(config.initiator)}` +
                 `&voice_style=${encodeURIComponent(config.voiceStyle)}`;
