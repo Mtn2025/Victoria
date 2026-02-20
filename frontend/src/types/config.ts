@@ -12,6 +12,16 @@ export interface Language {
     name: string
 }
 
+export interface LLMProvider {
+    id: string
+    name: string
+}
+
+export interface LLMModel {
+    id: string
+    name: string
+}
+
 export interface VoiceStyle {
     id: string
     label: string
@@ -24,7 +34,7 @@ export interface BrowserConfig {
     temp: number
     tokens: number
     msg: string
-    mode: 'markdown' | 'text'
+    mode: 'markdown' | 'text' | 'speak-first' | 'listen-first'
     prompt: string
 
     // Conversation Style
@@ -249,6 +259,8 @@ export interface ConfigState {
     availableLanguages: Language[]
     availableVoices: Voice[]
     availableStyles: VoiceStyle[]
+    availableLLMProviders: LLMProvider[]
+    availableLLMModels: LLMModel[]
 
     // UI State
     isLoadingOptions: boolean

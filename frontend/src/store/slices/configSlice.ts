@@ -24,6 +24,27 @@ export const fetchStyles = createAsyncThunk(
     }
 )
 
+export const fetchLLMProviders = createAsyncThunk(
+    'config/fetchLLMProviders',
+    async () => {
+        return await configService.getLLMProviders()
+    }
+)
+
+export const fetchLLMModels = createAsyncThunk(
+    'config/fetchLLMModels',
+    async (provider: string) => {
+        return await configService.getLLMModels(provider)
+    }
+)
+
+export const saveBrowserConfig = createAsyncThunk(
+    'config/saveBrowserConfig',
+    async (config: Partial<BrowserConfig>) => {
+        return await configService.updateBrowserConfig(config)
+    }
+)
+
 const initialState: ConfigState = {
     browser: {
         provider: 'groq',
@@ -204,6 +225,8 @@ const initialState: ConfigState = {
     availableLanguages: [],
     availableVoices: [],
     availableStyles: [],
+    availableLLMProviders: [],
+    availableLLMModels: [],
 
     isLoadingOptions: false
 }
@@ -253,6 +276,41 @@ export const configSlice = createSlice({
         // Styles
         builder.addCase(fetchStyles.fulfilled, (state, action) => {
             state.availableStyles = action.payload
+        })
+
+        // LLM Providers
+        builder.addCase(fetchLLMProviders.pending, (state) => {
+            state.isLoadingOptions = true
+        })
+        builder.addCase(fetchLLMProviders.fulfilled, (state, action) => {
+            state.availableLLMProviders = action.payload
+            state.isLoadingOptions = false
+        })
+        builder.addCase(fetchLLMProviders.rejected, (state) => {
+            state.isLoadingOptions = false
+        })
+
+        // LLM Models
+        builder.addCase(fetchLLMModels.pending, (state) => {
+            state.isLoadingOptions = true
+        })
+        builder.addCase(fetchLLMModels.fulfilled, (state, action) => {
+            state.availableLLMModels = action.payload
+            state.isLoadingOptions = false
+        })
+        builder.addCase(fetchLLMModels.rejected, (state) => {
+            state.isLoadingOptions = false
+        })
+
+        // Save Browser Config
+        builder.addCase(saveBrowserConfig.pending, (state) => {
+            state.isLoadingOptions = true
+        })
+        builder.addCase(saveBrowserConfig.fulfilled, (state) => {
+            state.isLoadingOptions = false
+        })
+        builder.addCase(saveBrowserConfig.rejected, (state) => {
+            state.isLoadingOptions = false
         })
     }
 })

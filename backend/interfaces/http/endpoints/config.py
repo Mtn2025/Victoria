@@ -15,6 +15,7 @@ from backend.domain.value_objects.voice_config import VoiceConfig
 from backend.domain.ports.persistence_port import AgentRepository
 from backend.domain.ports.tts_port import VoiceMetadata
 from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
+from backend.domain.use_cases.get_llm_options import GetLLMOptionsUseCase
 
 router = APIRouter(prefix="/config", tags=["config"])
 logger = logging.getLogger(__name__)
@@ -55,7 +56,8 @@ async def get_agent_config(
         },
         "silence_timeout_ms": agent.silence_timeout_ms,
         # TODO(INT-05): Verify if tools_config should be exposed here.
-        "tools_config": agent.tools if hasattr(agent, "tools") else {}
+        "tools_config": agent.tools if hasattr(agent, "tools") else {},
+        "llm_config": agent.llm_config if hasattr(agent, "llm_config") else {}
     }
 
 @router.patch("/")
@@ -90,6 +92,19 @@ async def update_agent_config(
     # Contract: Frontend sends 'tools_config' JSON, Backend persists it.
     if update.tools_config is not None:
         current.tools = update.tools_config
+        
+    # JSON LLM Config dict mapping
+    if not current.llm_config:
+        current.llm_config = {}
+        
+    if update.llm_provider is not None:
+        current.llm_config["provider"] = update.llm_provider
+    if update.llm_model is not None:
+        current.llm_config["model"] = update.llm_model
+    if update.max_tokens is not None:
+        current.llm_config["max_tokens"] = update.max_tokens
+    if update.temperature is not None:
+        current.llm_config["temperature"] = update.temperature
         
     # Voice Config Update
     # Since VoiceConfig is immutable (frozen), we must replace it
@@ -138,3 +153,17 @@ async def get_tts_languages():
     
     langs = await use_case.get_languages()
     return {"languages": langs}
+
+@router.get("/options/llm/providers")
+async def get_llm_providers():
+    """Get available LLM providers."""
+    use_case = GetLLMOptionsUseCase()
+    providers = await use_case.get_providers()
+    return {"providers": providers}
+
+@router.get("/options/llm/models")
+async def get_llm_models(provider: str):
+    """Get available LLM models for a given provider."""
+    use_case = GetLLMOptionsUseCase()
+    models = await use_case.get_models(provider)
+    return {"models": models}

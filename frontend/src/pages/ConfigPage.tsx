@@ -1,5 +1,6 @@
 import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
 import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
+import { saveBrowserConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
 import { Globe, Smartphone, Radio, LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -24,6 +25,16 @@ export const ConfigPage = () => {
     const dispatch = useAppDispatch()
     const activeTab = useAppSelector(state => state.ui.activeTab)
     const activeProfile = useAppSelector(state => state.ui.activeProfile)
+    const { browser, isLoadingOptions } = useAppSelector(state => state.config)
+
+    const handleSave = async () => {
+        if (activeProfile === 'browser') {
+            await dispatch(saveBrowserConfig(browser)).unwrap()
+            // Could add a toast notification here
+        } else {
+            alert("El guardado para telefonía (Twilio/Telnyx) aún no está implementado")
+        }
+    }
 
     return (
         <div className="flex flex-col h-full w-full">
@@ -95,8 +106,14 @@ export const ConfigPage = () => {
 
             {/* Footer Actions */}
             <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
-                <Button className="w-full" variant="primary" data-testid="btn-save-config">
-                    Guardar Configuración
+                <Button
+                    className="w-full"
+                    variant="primary"
+                    data-testid="btn-save-config"
+                    onClick={handleSave}
+                    disabled={isLoadingOptions}
+                >
+                    {isLoadingOptions ? "Guardando..." : "Guardar Configuración"}
                 </Button>
             </div>
         </div>

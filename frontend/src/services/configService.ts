@@ -1,5 +1,5 @@
 import { api } from './api'
-import { BrowserConfig, TwilioConfig, TelnyxConfig, Voice, Language, VoiceStyle } from '@/types/config'
+import { BrowserConfig, TwilioConfig, TelnyxConfig, Voice, Language, VoiceStyle, LLMProvider, LLMModel } from '@/types/config'
 
 // Backend Schema Interface (Partial)
 interface BackendConfigUpdate {
@@ -96,6 +96,17 @@ export const configService = {
     },
 
     // Options / Catalogs
+    getLLMProviders: async (): Promise<LLMProvider[]> => {
+        const response = await api.get<{ providers: LLMProvider[] }>('/config/options/llm/providers')
+        return response.providers || []
+    },
+
+    getLLMModels: async (provider: string): Promise<LLMModel[]> => {
+        if (!provider) return []
+        const response = await api.get<{ models: LLMModel[] }>('/config/options/llm/models', { params: { provider } })
+        return response.models || []
+    },
+
     getLanguages: async (): Promise<Language[]> => {
         const response = await api.get<{ languages: Language[] }>('/config/options/tts/languages')
         return response.languages || []

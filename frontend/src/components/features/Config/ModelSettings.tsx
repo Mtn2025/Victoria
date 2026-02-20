@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux"
-import { updateBrowserConfig } from "@/store/slices/configSlice"
+import { updateBrowserConfig, fetchLLMProviders, fetchLLMModels } from "@/store/slices/configSlice"
 import { Label } from "@/components/ui/Label"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
@@ -7,32 +8,22 @@ import { Textarea } from "@/components/ui/Textarea"
 import { Card, CardContent } from "@/components/ui/Card"
 import { AlertTriangle, Brain, MessageSquare, Shield } from "lucide-react"
 
-const PROVIDERS = [
-    { value: 'groq', label: 'Groq' },
-    { value: 'azure', label: 'Azure OpenAI' },
-    { value: 'openai', label: 'OpenAI' },
-]
-
-// Mock models - normally fetched from backend
-const MODELS_BY_PROVIDER: Record<string, { id: string, name: string }[]> = {
-    groq: [
-        { id: 'llama3-8b-8192', name: 'Llama 3 8B' },
-        { id: 'llama3-70b-8192', name: 'Llama 3 70B' },
-        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
-    ],
-    azure: [
-        { id: 'gpt-4o', name: 'GPT-4o' },
-        { id: 'gpt-35-turbo', name: 'GPT-3.5 Turbo' },
-    ],
-    openai: [
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-    ],
-}
-
 export const ModelSettings = () => {
     const dispatch = useAppDispatch()
     const config = useAppSelector(state => state.config.browser)
+    const { availableLLMProviders, availableLLMModels, isLoadingOptions } = useAppSelector(state => state.config)
+
+    useEffect(() => {
+        if (availableLLMProviders.length === 0) {
+            dispatch(fetchLLMProviders())
+        }
+    }, [dispatch, availableLLMProviders.length])
+
+    useEffect(() => {
+        if (config.provider) {
+            dispatch(fetchLLMModels(config.provider))
+        }
+    }, [dispatch, config.provider])
 
     const handleChange = <K extends keyof typeof config>(field: K, value: typeof config[K]) => {
         dispatch(updateBrowserConfig({ [field]: value }))
@@ -46,15 +37,17 @@ export const ModelSettings = () => {
                     <Label>Proveedor LLM</Label>
                     <Select
                         value={config.provider}
+                        disabled={isLoadingOptions}
                         onChange={(e) => {
                             const newProvider = e.target.value
                             handleChange('provider', newProvider)
-                            // Reset model when provider changes
-                            handleChange('model', MODELS_BY_PROVIDER[newProvider]?.[0]?.id || '')
+                            // We do not reset the model synchronously because models need to be fetched first.
+                            // However, we clear the model until the new ones arrive or let the backend/thunk handle default.
+                            handleChange('model', '')
                         }}
                     >
-                        {PROVIDERS.map(p => (
-                            <option key={p.value} value={p.value}>{p.label}</option>
+                        {availableLLMProviders.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
                     </Select>
                 </div>
@@ -62,9 +55,11 @@ export const ModelSettings = () => {
                     <Label>Modelo LLM</Label>
                     <Select
                         value={config.model}
+                        disabled={isLoadingOptions}
                         onChange={(e) => handleChange('model', e.target.value)}
                     >
-                        {MODELS_BY_PROVIDER[config.provider]?.map(m => (
+                        <option value="" disabled>Seleccionar Modelo...</option>
+                        {availableLLMModels.map(m => (
                             <option key={m.id} value={m.id}>{m.name}</option>
                         ))}
                     </Select>
