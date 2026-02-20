@@ -39,9 +39,6 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-      args:
-        - VITE_API_URL=${SERVICE_URL_BACKEND}/api
-        - VITE_WS_URL=wss://${SERVICE_FQDN_BACKEND}/ws/media-stream
     container_name: victoria_frontend
     restart: always
     expose:

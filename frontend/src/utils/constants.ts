@@ -1,5 +1,5 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL;
-export const WS_BASE_URL = import.meta.env.VITE_WS_URL;
+export const API_BASE_URL = window.__ENV__?.VITE_API_URL ?? import.meta.env.VITE_API_URL;
+export const WS_BASE_URL = window.__ENV__?.VITE_WS_URL ?? import.meta.env.VITE_WS_URL;
 
 export const CALL_STATUS = {
     PENDING: 'pending',

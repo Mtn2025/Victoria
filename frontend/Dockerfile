@@ -8,19 +8,18 @@ RUN npm ci
 
 COPY frontend/ .
 
-ARG VITE_API_URL
-ARG VITE_WS_URL
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_WS_URL=$VITE_WS_URL
-
 RUN npm run build
 
 # Serve Stage
 FROM nginx:alpine
 
+# Add bash for the startup script
+RUN apk add --no-cache bash
+
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/public/env.js /usr/share/nginx/html/env.js.template
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/bin/sh", "-c", "envsubst < /usr/share/nginx/html/env.js.template > /usr/share/nginx/html/env.js && nginx -g 'daemon off;'"]
