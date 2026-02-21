@@ -92,3 +92,8 @@ class AgentRepository(ABC):
     async def delete_agent(self, agent_uuid: str) -> None:
         """Permanently delete an agent by UUID. Does not check active status."""
         pass
+
+    @abstractmethod
+    async def get_active_agent(self) -> Optional[Agent]:
+        """Return the agent whose is_active flag is True, or None if no agent is active."""
+        pass

@@ -25,40 +25,60 @@ class StartCallUseCase:
         self.agent_repo = agent_repository
 
     async def execute(
-        self, 
-        agent_id: str, 
-        call_id_value: str, 
-        from_number: Optional[str] = None, 
+        self,
+        agent_id: str,
+        call_id_value: str,
+        from_number: Optional[str] = None,
         to_number: Optional[str] = None
     ) -> Call:
         """
         Initialize a new call session.
-        
+
+        Agent resolution order:
+          1. If agent_id is non-empty → look up by UUID first, then by name (legacy).
+          2. If agent_id is empty or not found → fall back to the active agent
+             (is_active=True). This makes the Simulator work without hardcoding
+             any agent identifier: it always uses whichever agent is marked active.
+
         Args:
-            agent_id: Identifier for the AI agent configuration.
+            agent_id: UUID or name of the agent. Pass "" to use the active agent.
             call_id_value: Unique identifier for the call (stream_id).
             from_number: Caller's number (E.164).
             to_number: Called number (E.164).
-            
+
         Returns:
             Initialized Call entity.
-            
+
         Raises:
-            ValueError: If agent not found.
+            ValueError: If no suitable agent is found.
         """
-        # 1. Load Agent Configuration
-        agent = await self.agent_repo.get_agent(agent_id)
+        agent = None
+
+        # --- Try explicit agent_id first ---
+        if agent_id:
+            # Try UUID lookup (preferred, unambiguous)
+            agent = await self.agent_repo.get_agent_by_uuid(agent_id)
+            if not agent:
+                # Fallback: legacy name-based lookup
+                agent = await self.agent_repo.get_agent(agent_id)
+
+        # --- Fall back to active agent ---
         if not agent:
-            raise ValueError(f"Agent not found: {agent_id}")
+            agent = await self.agent_repo.get_active_agent()
+
+        if not agent:
+            raise ValueError(
+                "No agent found. "
+                "Either provide a valid agent_id or activate an agent from the /agents panel."
+            )
 
         # 2. Create Value Objects
         call_id = CallId(call_id_value)
         phone = PhoneNumber(from_number) if from_number else None
-        # Note: We might want to store to_number as well in the future
 
         # 3. Create Entities
         conversation = Conversation()
-        
+
         call = Call(
             id=call_id,
             agent=agent,

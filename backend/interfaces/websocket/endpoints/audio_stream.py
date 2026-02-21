@@ -72,7 +72,7 @@ async def build_orchestrator(
 async def audio_stream(
     websocket: WebSocket,
     client: str = "twilio",
-    agent_id: str = "default",
+    agent_id: str = "",           # empty = use active agent (resolved in StartCallUseCase)
     call_control_id: Optional[str] = None,
     client_state: Optional[str] = None,
     # Browser Overrides

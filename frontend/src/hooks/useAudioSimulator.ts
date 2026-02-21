@@ -141,7 +141,11 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
             // Note: WS_BASE_URL is injected by Nginx/envsubst or Vite fallback 
             // e.g. wss://api.victoria.com/ws/media-stream
+            // agent_id = active agent UUID from Redux (empty → backend falls back to active agent)
+            const { store } = await import('../store/store')
+            const agentUuid = store.getState().agents.activeAgent?.agent_uuid ?? ''
             const wsUrl = `${WS_BASE_URL}?client=browser` +
+                (agentUuid ? `&agent_id=${encodeURIComponent(agentUuid)}` : '') +
                 `&initial_message=${encodeURIComponent(config.initialMsg)}` +
                 `&initiator=${encodeURIComponent(config.initiator)}` +
                 `&voice_style=${encodeURIComponent(config.voiceStyle)}`;

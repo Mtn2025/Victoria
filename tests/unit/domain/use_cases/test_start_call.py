@@ -40,6 +40,19 @@ class TestStartCallUseCase:
     async def test_start_call_agent_not_found(self, mock_repos):
         call_repo, agent_repo = mock_repos
         uc = StartCallUseCase(call_repo, agent_repo)
-        
-        with pytest.raises(ValueError, match="Agent not found"):
-            await uc.execute(agent_id="unknown", call_id_value="call-123")
+
+        # Unknown UUID/name with no active agent → should raise
+        with pytest.raises(ValueError, match="No agent found"):
+            await uc.execute(agent_id="unknown-uuid", call_id_value="call-123")
+
+    @pytest.mark.asyncio
+    async def test_start_call_uses_active_agent_when_no_id(self, mock_repos):
+        """When agent_id is empty, StartCallUseCase must use the active agent."""
+        call_repo, agent_repo = mock_repos
+        # Mark the seeded agent as active
+        agent_repo.agents["agent-1"].is_active = True
+        uc = StartCallUseCase(call_repo, agent_repo)
+
+        call = await uc.execute(agent_id="", call_id_value="call-active")
+        assert call is not None
+        assert call.agent.name == "agent-1"

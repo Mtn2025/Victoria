@@ -175,3 +175,12 @@ class SqlAlchemyAgentRepository(AgentRepository):
             sa_delete(AgentModel).where(AgentModel.agent_uuid == agent_uuid)
         )
         await self.session.commit()
+
+    async def get_active_agent(self) -> Optional[Agent]:
+        """Return the agent with is_active=True, or None."""
+        stmt = select(AgentModel).where(AgentModel.is_active == True)  # noqa: E712
+        result = await self.session.execute(stmt)
+        agent_model = result.scalar_one_or_none()
+        if not agent_model:
+            return None
+        return _model_to_agent(agent_model)

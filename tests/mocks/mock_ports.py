@@ -73,6 +73,12 @@ class MockAgentRepository(AgentRepository):
         if agent:
             del self.agents[agent.name]
 
+    async def get_active_agent(self) -> Optional[Agent]:
+        for agent in self.agents.values():
+            if getattr(agent, 'is_active', False):
+                return agent
+        return None
+
 class MockSTTPort(STTPort):
     async def transcribe(self, audio: bytes, format, language="es-MX") -> str:
         return "mock transcription"
