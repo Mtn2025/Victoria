@@ -53,29 +53,45 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
         }
     }, []);
 
+    // Keep a ref to the latest onDebugLog so that logging functions can
+    // read it without being listed as a dependency (which would cascade into
+    // stopTest/startTest recreations and trigger useEffect cleanup on re-renders).
+    const onDebugLogRef = useRef(onDebugLog);
+    useEffect(() => { onDebugLogRef.current = onDebugLog; }, [onDebugLog]);
+
     const addDebugLog = useCallback((type: string, data: any) => {
-        if (onDebugLog) {
+        if (onDebugLogRef.current) {
             const log: DebugLog = {
                 type,
                 ...data,
-                timestamp: new Date().toISOString().split('T')[1].slice(0, -1) // HH:mm:ss.sss
-            }
-            onDebugLog(log);
+                timestamp: new Date().toISOString().split('T')[1].slice(0, -1)
+            };
+            onDebugLogRef.current(log);
         }
-    }, [onDebugLog]);
+    }, []); // stable — reads onDebugLog via ref
 
-    // Stop Test
-    // IMPORTANT: defined with useCallback but also stored in a ref so that
-    // useEffect cleanup and startTest can always call the *latest* version
-    // without listing stopTest as a dependency (which would cause the useEffect
-    // cleanup to fire on every re-render that recreates stopTest, closing the WS).
+    // stopTest is intentionally defined with EMPTY deps [] so its identity is
+    // stable across ALL re-renders. It reads onDebugLog via onDebugLogRef,
+    // and setState dispatchers (setSimState, setIsAgentSpeaking) are guaranteed
+    // stable by React. All other targets are refs.
+    //
+    // WHY: If stopTest had any non-ref dependency (e.g. addDebugLog), it would
+    // re-create on every render that changes that dep. The component receives
+    // the new stopTest, and useEffect(cleanup, [stopTest]) fires its cleanup,
+    // calling stopTest() and closing the WebSocket mid-session.
     const stopTest = useCallback(() => {
-        // DIAG: log a stack trace every time stopTest is called so we can identify
-        // which code path is closing the WebSocket.
         console.warn('[DIAG] stopTest() CALLED FROM:', new Error().stack);
         console.log('Stopping simulator test...');
         setSimState('ready');
-        addDebugLog('SYSTEM', { event: 'STOP_TEST' });
+        // Inline the debug log using the ref directly (not addDebugLog) to
+        // avoid any closure or dependency issue.
+        if (onDebugLogRef.current) {
+            onDebugLogRef.current({
+                type: 'SYSTEM',
+                event: 'STOP_TEST',
+                timestamp: new Date().toISOString().split('T')[1].slice(0, -1)
+            });
+        }
 
         if (ws.current) {
             ws.current.onclose = null;
@@ -102,12 +118,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
         analyser.current = null;
         outputAnalyser.current = null;
         setIsAgentSpeaking(false);
-    }, [addDebugLog]);
-
-    // Stable ref — always points to the latest stopTest without changing identity.
-    // Used by useEffect cleanup and startTest so they don't need stopTest as a dep.
-    const stopTestRef = useRef(stopTest);
-    useEffect(() => { stopTestRef.current = stopTest; }, [stopTest]);
+    }, []); // stable — all reads go through refs or stable dispatchers
 
     const playAudio = useCallback((base64Data: string) => {
         if (!base64Data || !audioContext.current) return;
@@ -257,19 +268,16 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
         } catch (e) {
             console.error('Connection failed', e);
-            stopTestRef.current();
+            stopTest();
         }
-    }, [simState, initAudioContext, playAudio, onTranscript, addDebugLog]);
+    }, [simState, initAudioContext, stopTest, playAudio, onTranscript, addDebugLog]);
 
     // Cleanup on true unmount only.
-    // deps = [] ensures this cleanup runs ONLY when the component unmounts,
-    // NOT on every re-render that changes stopTest identity.
-    // We use stopTestRef.current so we always call the latest version.
+    // deps = [] is correct: stopTest is now identity-stable (empty deps useCallback),
+    // so React will not re-run this effect on re-renders.
     useEffect(() => {
-        return () => {
-            stopTestRef.current();
-        };
-    }, []);
+        return () => { stopTest(); };
+    }, [stopTest]);
 
     const initMicrophone = async () => {
         try {
