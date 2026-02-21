@@ -12,6 +12,6 @@ def test_health_check():
 def test_router_mounting():
     # Check if routes are registered
     routes = [route.path for route in app.routes]
-    assert "/api/config/{agent_id}" in routes or "/api/config/{agent_id}/" in routes
+    assert "/api/agents" in routes or "/api/agents/" in routes
     assert "/api/history/rows" in routes
     assert "/telephony/twilio/incoming-call" in routes
