@@ -140,7 +140,7 @@ class LLMFallbackAdapter(LLMPort):
         """
         return await self.primary.get_available_models()
 
-    async def is_model_safe_for_voice(self, model: str) -> bool:
+    def is_model_safe_for_voice(self, model: str) -> bool:
         """
         Verificar si modelo es seguro para voz del proveedor primario.
         
@@ -150,4 +150,4 @@ class LLMFallbackAdapter(LLMPort):
         Returns:
             True si el modelo es seguro para uso en voz
         """
-        return await self.primary.is_model_safe_for_voice(model)
+        return self.primary.is_model_safe_for_voice(model)

@@ -12,6 +12,7 @@ from backend.domain.ports.llm_port import LLMPort, LLMRequest, LLMResponseChunk
 from backend.domain.entities.conversation import Conversation
 from backend.domain.entities.agent import Agent
 from backend.infrastructure.config.settings import settings
+from backend.infrastructure.config.llm_models import SUPPORTED_LLM_MODELS
 
 logger = logging.getLogger(__name__)
 
@@ -102,27 +103,19 @@ class GroqLLMAdapter(LLMPort):
 
     async def get_available_models(self) -> List[str]:
         """
-        Get list of available Groq models.
+        Get list of available Groq models dynamically from SSoT.
         """
-        # Groq models as of current knowledge
-        # TODO: Fetch dynamically from Groq API when available
-        return [
-            "llama-3.3-70b-versatile",
-            "llama-3.1-8b-instant",
-            "mixtral-8x7b-32768",
-            "gemma2-9b-it",
-        ]
+        models = SUPPORTED_LLM_MODELS.get("groq", [])
+        return [m["id"] for m in models]
 
     def is_model_safe_for_voice(self, model: str) -> bool:
         """
         Check if model is suitable for voice applications.
-        
         Voice requires low latency and conversational quality.
+        Dynamically reads from SSoT.
         """
-        # Fast models suitable for voice
-        voice_safe_models = [
-            "llama-3.3-70b-versatile",  # Good balance of speed and quality
-            "llama-3.1-8b-instant",   # Faster but lower quality
-            "mixtral-8x7b-32768",  # Good quality, acceptable latency
-        ]
-        return model in voice_safe_models
+        models = SUPPORTED_LLM_MODELS.get("groq", [])
+        for m in models:
+            if m["id"] == model:
+                return bool(m.get("voice_safe", False))
+        return False

@@ -5,6 +5,7 @@ Implements the LLMProviderRegistry port.
 """
 from typing import List, Dict
 from backend.domain.ports.llm_provider_registry import LLMProviderRegistry
+from backend.infrastructure.config.llm_models import SUPPORTED_LLM_MODELS
 
 class StaticLLMRegistryAdapter(LLMProviderRegistry):
     """
@@ -19,19 +20,5 @@ class StaticLLMRegistryAdapter(LLMProviderRegistry):
         ]
 
     async def get_models(self, provider_id: str) -> List[Dict[str, str]]:
-        models_by_provider = {
-            "groq": [
-                {"id": "llama-3.1-8b-instant", "name": "Llama 3.1 8B"},
-                {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B"},
-                {"id": "mixtral-8x7b-32768", "name": "Mixtral 8x7B"},
-            ],
-            "azure": [
-                {"id": "gpt-4o", "name": "GPT-4o"},
-                {"id": "gpt-35-turbo", "name": "GPT-3.5 Turbo"}
-            ],
-            "openai": [
-                {"id": "gpt-4-turbo", "name": "GPT-4 Turbo"},
-                {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo"}
-            ]
-        }
-        return models_by_provider.get(provider_id, [])
+        models = SUPPORTED_LLM_MODELS.get(provider_id, [])
+        return [{"id": m["id"], "name": m["name"]} for m in models]
