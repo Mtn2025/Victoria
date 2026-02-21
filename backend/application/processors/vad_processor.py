@@ -101,11 +101,22 @@ class VADProcessor(FrameProcessor):
             else:
                 audio_vad = audio_float32
 
+            logger.info(
+                f"[VAD DEBUG] chunk_samples={len(audio_vad)} "
+                f"sr_vad=16000 "
+                f"min={float(audio_vad.min()):.4f} "
+                f"max={float(audio_vad.max()):.4f} "
+                f"rms={float(np.sqrt(np.mean(audio_vad**2))):.4f}"
+            )
+
             try:
                 confidence = self.vad_adapter(audio_vad, target_sr)
             except Exception as e:
                 logger.error(f"VAD Inference Error: {e}")
                 confidence = 0.0
+
+            logger.info(f"[VAD CONFIDENCE] conf={confidence:.4f} "
+                        f"threshold={self.threshold_start}")
 
             # Smart Turn Logic
             if confidence > self.threshold_start:
