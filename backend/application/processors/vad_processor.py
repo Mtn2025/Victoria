@@ -71,9 +71,18 @@ class VADProcessor(FrameProcessor):
         # Use frame sample rate instead of hardcoded target_sr
         sample_rate = frame.sample_rate
 
-        # 2. Process in correct chunk sizes
-        # Silero chunks: 8000Hz -> 256 samples, 16000Hz/24000Hz -> 512 samples
-        required_samples = 256 if sample_rate == 8000 else 512
+        # 2. Process in correct chunk sizes (32ms of audio)
+        # 8000Hz -> 256 samples | 16000Hz -> 512 samples | 24000Hz -> 768 samples
+        if sample_rate == 24000:
+            required_samples = 768
+            target_sr = 16000
+        elif sample_rate == 8000:
+            required_samples = 256
+            target_sr = 8000
+        else:
+            required_samples = 512
+            target_sr = 16000
+
         chunk_size = required_samples * 2 # 16-bit = 2 bytes
 
         while len(self.buffer) >= chunk_size:
@@ -85,8 +94,15 @@ class VADProcessor(FrameProcessor):
             # Normalize to -1.0 to 1.0
             audio_float32 = audio_int16.astype(np.float32) / 32768.0
 
+            # Resample 24k to 16k for Silero
+            if sample_rate == 24000:
+                indices = np.arange(0, len(audio_float32), 1.5).astype(int)
+                audio_vad = audio_float32[indices]
+            else:
+                audio_vad = audio_float32
+
             try:
-                confidence = self.vad_adapter(audio_float32, sample_rate)
+                confidence = self.vad_adapter(audio_vad, target_sr)
             except Exception as e:
                 logger.error(f"VAD Inference Error: {e}")
                 confidence = 0.0
