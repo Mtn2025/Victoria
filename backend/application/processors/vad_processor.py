@@ -62,6 +62,13 @@ class VADProcessor(FrameProcessor):
             await self.push_frame(frame, direction)
 
     async def _process_audio(self, frame: AudioFrame):
+        logger.info(
+            f"[VAD ENTRY] buffer_before={len(self.buffer)} "
+            f"frame_data={len(frame.data)} "
+            f"vad_adapter={'OK' if self.vad_adapter else 'NONE'} "
+            f"sample_rate={frame.sample_rate}"
+        )
+
         if not self.vad_adapter:
             return
 
