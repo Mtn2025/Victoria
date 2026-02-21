@@ -145,10 +145,10 @@ class TTSProcessor(FrameProcessor):
         client_type = get_cfg('client_type', 'browser')  # browser=24kHz PCM; twilio=8kHz mulaw
         audio_format = AudioFormat.for_client(client_type)
         
-        logger.info(f"Synthesizing: {text[:30]}... (Voice: {voice_config.name})")
+        logger.info(f"Synthesizing FULL TEXT: {text!r} (Voice: {voice_config.name})")
         # [PIPE-9] TTS synthesis starting
         logger.info(
-            f"[PIPE-9/TTS] Synthesizing: {text[:50]!r} "
+            f"[PIPE-9/TTS] Synthesizing: {text!r} "
             f"voice={voice_config.name} fmt=sr={audio_format.sample_rate}"
         )
 
