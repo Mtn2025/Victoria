@@ -217,11 +217,8 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
                     const bytes = new Uint8Array(data.buffer);
                     let binary = '';
-                    const CHUNK = 0x8000;
-                    for (let i = 0; i < bytes.byteLength; i += CHUNK) {
-                        binary += String.fromCharCode.apply(
-                            null, Array.from(bytes.subarray(i, i + CHUNK))
-                        );
+                    for (let i = 0; i < bytes.byteLength; i++) {
+                        binary += String.fromCharCode(bytes[i]);
                     }
                     const b64 = window.btoa(binary);
                     console.log('[MIC CHUNK SENT]', bytes.byteLength, 'bytes');
