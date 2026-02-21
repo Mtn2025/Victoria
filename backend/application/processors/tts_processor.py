@@ -133,7 +133,7 @@ class TTSProcessor(FrameProcessor):
             style_degree=float(get_cfg('voice_style_degree', 1.0))   
         )
         
-        client_type = get_cfg('client_type', 'twilio')
+        client_type = get_cfg('client_type', 'browser')  # browser=24kHz PCM; twilio=8kHz mulaw
         audio_format = AudioFormat.for_client(client_type)
         
         logger.info(f"Synthesizing: {text[:30]}... (Voice: {voice_config.name})")

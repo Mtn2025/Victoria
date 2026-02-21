@@ -73,16 +73,11 @@ class SileroVadAdapter:
         # Silero V5 specific window sizes
         num_samples = 512 if sr == 16000 else 256
 
-        if np.shape(x)[[-1]] != [num_samples]: # Fix: strict comparison
-             # But legacy code used np.shape(x)[-1] != num_samples
-             # If exact match required:
-             pass 
-
+        # Strict window size validation (Silero V5 requires exact chunk size)
         if np.shape(x)[-1] != num_samples:
-             # Just warn or return 0? Use strict logic from before.
-             # Legacy raised ValueError.
-             raise ValueError(
-                f"Provided number of samples is {np.shape(x)[-1]} (Required: 256 for 8khz, 512 for 16khz)"
+            raise ValueError(
+                f"Provided number of samples is {np.shape(x)[-1]} "
+                f"(Required: 256 for 8kHz, 512 for 16kHz)"
             )
 
         batch_size = np.shape(x)[0]
