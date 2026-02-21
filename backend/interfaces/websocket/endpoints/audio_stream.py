@@ -194,6 +194,10 @@ async def audio_stream(
                         except Exception:
                             raw_bytes = raw_b64.encode() if isinstance(raw_b64, str) else raw_b64
 
+                        logger.info(f"[B64 CHECK] input_chars={len(raw_b64)} "
+                                    f"decoded_bytes={len(raw_bytes)} "
+                                    f"expected={len(raw_b64)*3//4}")
+
                         logger.info(f"[WS] decoded audio bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
 
                         if orchestrator.pipeline:

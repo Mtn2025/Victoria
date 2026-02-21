@@ -289,6 +289,22 @@ class CallOrchestrator:
         self.last_interaction_time = time.time()
         logger.info(f"[AUDIO] Frame received: {len(raw_audio)} bytes | sr={sample_rate} | ch={channels}")
 
+        # SAFE MODE: log audio stats sin procesar
+        if len(raw_audio) > 0:
+            # Contar samples válidos (PCM16 = 2 bytes cada uno)
+            sample_count = len(raw_audio) // 2
+            if sample_count > 0:
+                audio_int16 = __import__('numpy').frombuffer(
+                    raw_audio, dtype='int16')
+                rms = float(__import__('numpy').sqrt(
+                    __import__('numpy').mean(
+                        audio_int16.astype('float32')**2)))
+                logger.info(
+                    f"[SAFE MODE] samples={sample_count} "
+                    f"rms={rms:.1f} "
+                    f"{'VOZ DETECTADA' if rms > 100 else 'silencio'}"
+                )
+
         from backend.application.processors.frames import AudioFrame, FrameDirection
 
         frame = AudioFrame(
