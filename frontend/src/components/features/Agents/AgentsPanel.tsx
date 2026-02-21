@@ -56,26 +56,28 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
         if (!name.trim()) { setNameError('El nombre no puede estar vacío'); return }
         if (name.trim() === agent.name) { setEditingName(false); return }
         setSaving(true)
-        const result = await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: name.trim() }))
-        setSaving(false)
-        if ((result as any).error) {
-            setNameError('Error al guardar el nombre')
-        } else {
+        try {
+            await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: name.trim() })).unwrap()
             setEditingName(false)
             setNameError('')
+        } catch {
+            setNameError('Error al guardar el nombre')
+        } finally {
+            setSaving(false)
         }
     }
 
     const handleDelete = async () => {
         setDeleting(true)
         setDeleteError('')
-        const result = await dispatch(deleteAgent(agent.agent_uuid))
-        setDeleting(false)
-        if ((result as any).error) {
+        try {
+            await dispatch(deleteAgent(agent.agent_uuid)).unwrap()
+            onClose()
+        } catch {
             setDeleteError('No se pudo eliminar. ¿Es el agente activo?')
             setConfirmDelete(false)
-        } else {
-            onClose()
+        } finally {
+            setDeleting(false)
         }
     }
 

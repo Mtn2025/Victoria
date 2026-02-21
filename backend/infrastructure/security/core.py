@@ -10,28 +10,22 @@ from backend.infrastructure.config.settings import settings
 # 1. Rate Limiting
 limiter = Limiter(key_func=get_remote_address)
 
-# 2. Authentication
+# 2. Authentication — X-API-Key header only (no query string: would expose key in logs/URLs)
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
-api_key_query = APIKeyQuery(name="api_key", auto_error=False)
 
 async def get_api_key(
     api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
 ):
     """
-    Validate API Key from query or header.
-    To be used as a dependency in protected routes.
+    Validate API Key from X-API-Key header.
+    Used as a FastAPI dependency in all protected routes.
     """
-    # In Dev, allow generic access if no key set, or use a default
     expected_key = getattr(settings, "VICTORIA_API_KEY", "dev-secret-key")
-    
-    # Check header first, then query parameter
-    active_key = api_key_header or api_key_query
-    
-    if active_key == expected_key:
-        return active_key
-        
+
+    if api_key_header == expected_key:
+        return api_key_header
+
     raise HTTPException(
         status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
     )

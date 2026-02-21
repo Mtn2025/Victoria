@@ -38,8 +38,12 @@ export const agentService = {
     getActiveAgent: async (): Promise<ActiveAgentResponse | null> => {
         try {
             return await api.get<ActiveAgentResponse>('/agents/active')
-        } catch (err: any) {
-            if (err?.response?.status === 404) return null
+        } catch (err: unknown) {
+            // 404 = no active agent (expected when none has been activated yet)
+            if (err && typeof err === 'object' && 'response' in err) {
+                const response = (err as { response?: { status?: number } }).response
+                if (response?.status === 404) return null
+            }
             throw err
         }
     },

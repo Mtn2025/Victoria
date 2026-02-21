@@ -1,7 +1,7 @@
 import React from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { HistoryCall, TranscriptLine } from '@/types/history'
-import { Clock, Calendar, Phone, Activity, User, Bot, FileText, X } from 'lucide-react'
+import { Clock, Calendar, Phone, Activity, User, Bot, FileText } from 'lucide-react'
 
 interface CallDetailModalProps {
     call: HistoryCall | null

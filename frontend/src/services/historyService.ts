@@ -1,5 +1,5 @@
 import { api } from './api'
-import { CallDetail, HistoryResponse, HistoryCall, HistoryBackendResponse } from '@/types/history'
+import { CallDetail, HistoryResponse, HistoryCall, HistoryBackendResponse, CallDetailBackendResponse } from '@/types/history'
 
 export const historyService = {
     // Get paginated history from Real Backend
@@ -31,9 +31,9 @@ export const historyService = {
     },
 
     getCallDetail: async (id: string): Promise<CallDetail> => {
-        const response = await api.get<any>(`/history/${id}/detail`)
+        const response = await api.get<CallDetailBackendResponse>(`/history/${id}/detail`)
 
-        // Map backend "duration" to frontend "duration_seconds"
+        // Map backend fields to frontend types
         return {
             call: {
                 id: response.call.id,
@@ -41,10 +41,10 @@ export const historyService = {
                 end_time: response.call.end_time || null,
                 client_type: response.call.client_type,
                 status: response.call.status,
-                duration_seconds: response.call.duration,
-                extracted_data: response.call.extracted_data
+                duration_seconds: response.call.duration,  // duration -> duration_seconds
+                extracted_data: response.call.extracted_data,
             },
-            transcripts: response.transcripts
+            transcripts: response.transcripts,
         }
     },
 

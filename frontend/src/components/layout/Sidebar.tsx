@@ -31,15 +31,20 @@ interface NavItem {
     path?: string        // For page items
 }
 
+// Tabs completamente conectados al backend
+const ACTIVE_TABS = new Set(['model', 'voice', 'transcriber'])
+
 const NAV_ITEMS: NavItem[] = [
     // --- Pages ---
     { type: 'page', path: '/simulator', label: 'Simulador', icon: Globe }, // Main view
     { type: 'page', path: '/agents', label: 'Agentes', icon: Bot },
 
-    // --- Config Tabs (Update Redux + Ensure on Simulator) ---
+    // --- Config Tabs (solo estos 3 tienen conexión real al backend) ---
     { type: 'config', id: 'model', label: 'Modelo', icon: Cpu },
     { type: 'config', id: 'voice', label: 'Voz', icon: Mic },
     { type: 'config', id: 'transcriber', label: 'Oído', icon: Ear },
+
+    // --- Config Tabs en reconstrucción (stub) ---
     { type: 'config', id: 'tools', label: 'Herramientas', icon: Briefcase },
     { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone },
     { type: 'config', id: 'flow', label: 'Flujo', icon: GitCompare },
@@ -108,10 +113,16 @@ export const Sidebar = () => {
                                     "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 relative group-hover:scale-105",
                                     isActive
                                         ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                                        : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                                        : item.type === 'config' && !ACTIVE_TABS.has(item.id!)
+                                            ? "text-slate-600 hover:text-slate-400 hover:bg-slate-800/30"
+                                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
                                 )}
                             >
                                 <Icon size={20} />
+                                {/* Dot indicator for stub tabs */}
+                                {item.type === 'config' && !ACTIVE_TABS.has(item.id!) && (
+                                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500/60" />
+                                )}
                             </button>
 
                             {/* Active agent name shown below Bot icon */}

@@ -5,6 +5,8 @@ import { ConfigPage } from '../../pages/ConfigPage'
 import SimulatorPage from '../../pages/SimulatorPage'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import { setSidebarWidth } from '@/store/slices/uiSlice'
+import { fetchActiveAgent } from '@/store/slices/agentsSlice'
+import { FeatureGate } from '../ui/FeatureGate'
 
 /**
  * MainLayout — Restores the original three-panel design:
@@ -62,6 +64,12 @@ export const MainLayout = () => {
         }
     }, [resize, stopResizing])
 
+    // Fetch global active agent on mount so ConfigPage doesn't redirect
+    // to frozen /agents panel.
+    useEffect(() => {
+        dispatch(fetchActiveAgent())
+    }, [dispatch])
+
     // Routes that take the full width (no split layout)
     const isFullScreenRoute = ['/history'].includes(location.pathname)
 
@@ -101,7 +109,9 @@ export const MainLayout = () => {
                  * remounting SimulatorPage or losing its WebSocket state.
                  */}
                 {isSimulatorRoute ? (
-                    <ConfigPage />
+                    <FeatureGate feature="SIMULATOR_CONFIG">
+                        <ConfigPage />
+                    </FeatureGate>
                 ) : (
                     <Outlet />
                 )}
@@ -109,7 +119,9 @@ export const MainLayout = () => {
 
             {/* RIGHT PANEL — always SimulatorPage */}
             <div className="flex-1 overflow-hidden bg-slate-950 relative min-w-0">
-                <SimulatorPage />
+                <FeatureGate feature="SIMULATOR_PANEL">
+                    <SimulatorPage />
+                </FeatureGate>
             </div>
         </DashboardLayout>
     )

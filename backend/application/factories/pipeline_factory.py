@@ -84,7 +84,8 @@ class PipelineFactory:
         fsm: Optional[ConversationFSM] = None,
         handle_barge_in_uc: Optional[HandleBargeInUseCase] = None,
         stream_id: Optional[str] = None,
-        output_callback = None,    # async def cb(audio_bytes: bytes) -> None
+        output_callback = None,          # async def cb(audio_bytes: bytes) -> None
+        transcript_callback = None,      # async def cb(role: str, text: str) -> None
     ) -> ProcessorChain:
         """
         Create and wire processors into a chain.
@@ -139,7 +140,8 @@ class PipelineFactory:
             config=config,
             conversation_history=conversation_history,
             execute_tool_use_case=execute_tool,
-            handle_barge_in_uc=handle_barge_in_uc  # FASE 2.6 integration
+            handle_barge_in_uc=handle_barge_in_uc,  # FASE 2.6 integration
+            transcript_callback=transcript_callback, # -> Simulator real-time panel
         )
 
         # TTS with output_callback — routes synthesized audio back to transport.

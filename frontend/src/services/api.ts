@@ -23,22 +23,17 @@ export const api = {
 }
 
 async function request<T>(method: string, url: string, body?: any, config: any = {}): Promise<T> {
+    // Read API key from localStorage — stored by LoginPage as 'api_key'
+    const apiKey = localStorage.getItem('api_key')
+
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...config.headers
+        ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+        ...config.headers,
     }
 
     const query = config.params ? '?' + new URLSearchParams(config.params).toString() : ''
-
-    // Add API Key if present
-    const apiKey = localStorage.getItem('api_key') || localStorage.getItem('apiKey')
-    let fullUrl = '/api' + url + query
-
-    // Append API key to query if not present (Legacy support)
-    if (apiKey) {
-        const separator = fullUrl.includes('?') ? '&' : '?'
-        fullUrl += `${separator}api_key=${apiKey}`
-    }
+    const fullUrl = '/api' + url + query
 
     const response = await fetch(fullUrl, {
         method,

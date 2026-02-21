@@ -33,6 +33,11 @@ class Agent:
     tools: List[Dict[str, Any]] = field(default_factory=list)
     llm_config: Dict[str, Any] = field(default_factory=dict)
 
+    # Extended JSON blobs: stt_config, voice_config_json.
+    # Declared explicitly (not injected ad-hoc) so every Agent instance
+    # has the full contract — regardless of whether it came from the repository.
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
     # Agent management fields
     agent_uuid: Optional[str] = None       # Public UUID — exposed to frontend
     is_active: bool = False                # Only one agent active at a time

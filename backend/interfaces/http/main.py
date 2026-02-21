@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting Victoria Voice Orchestrator (New Architecture)...")
     
-    # Ensure DB tables exist (Pragmatic approach for sqlite)
+    # Ensure DB tables exist on startup (idempotent — safe to run always)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         

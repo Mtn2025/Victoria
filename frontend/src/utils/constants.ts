@@ -1,6 +1,8 @@
-// WS_BASE_URL is the only URL that needs to be absolute (WebSocket requires ws:// or wss://).
-// All HTTP calls use relative paths (/api/...) via api.ts — no base URL needed.
-export const WS_BASE_URL = window.__ENV__?.VITE_WS_URL ?? import.meta.env.VITE_WS_URL;
+// WebSocket URL derived from window.location — same host as the app, no env vars needed.
+// Protocol: wss:// in production (https), ws:// in local dev (http).
+// Path must match audio_stream.py router: /ws/media-stream
+const _wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+export const WS_BASE_URL = `${_wsProtocol}//${window.location.host}/ws/media-stream`
 
 export const CALL_STATUS = {
     PENDING: 'pending',

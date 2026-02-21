@@ -1,23 +1,17 @@
 import { api } from './api'
-import { BrowserConfig, TwilioConfig, TelnyxConfig, Voice, Language, VoiceStyle, LLMProvider, LLMModel } from '@/types/config'
+import { BrowserConfig, Voice, Language, VoiceStyle, LLMProvider, LLMModel } from '@/types/config'
 
-// Backend Schema Interface (Partial)
+// Backend Schema Interface — mirrors ConfigUpdate in config_schemas.py
+// One source of truth for the PATCH /agents/{uuid} payload.
 interface BackendConfigUpdate {
-    // Not sent in body for new /agents/{uuid}/ endpoint — kept optional for legacy compat
-    agent_id?: string
+    // LLM — canonical keys (always llm_provider / llm_model, never 'provider'/'model')
     llm_provider?: string
     llm_model?: string
     max_tokens?: number
     temperature?: number
     system_prompt?: string
     first_message?: string
-    voice_name?: string
-    voice_style?: string
-    voice_speed?: number
-    voice_pitch?: number
-    voice_volume?: number
-    silence_timeout_ms?: number
-    // Additional JSON Fields (LLM, Voice, STT)
+    // Extended LLM
     responseLength?: string
     conversationTone?: string
     conversationFormality?: string
@@ -30,44 +24,50 @@ interface BackendConfigUpdate {
     dynamicVars?: string
     mode?: string
     hallucination_blacklist?: string
-
+    // Voice
+    voice_name?: string
+    voice_style?: string
+    voice_speed?: number
+    voice_pitch?: number
+    voice_volume?: number
     voiceStyleDegree?: number
     voiceBgSound?: string
     voiceBgUrl?: string
-
+    // STT
     sttProvider?: string
     sttModel?: string
     sttLang?: string
     sttKeywords?: string
     interruption_threshold?: number
     vadSensitivity?: number
-
-    // Allow other fields if backend supports them dynamically
-    [key: string]: any
+    silence_timeout_ms?: number
+    // Tools
+    tools_config?: Record<string, unknown>
 }
 
 export const configService = {
-    // Helper to PATCH agent config fields — agentUuid comes from Redux (agents.activeAgent.agent_uuid)
-    // Never hardcoded. Never null.
+    /**
+     * PATCH /api/agents/{uuid}
+     * Maps BrowserConfig fields to the canonical BackendConfigUpdate payload.
+     * agentUuid comes from Redux (agents.activeAgent.agent_uuid) — never hardcoded.
+     */
     updateBrowserConfig: async (config: Partial<BrowserConfig>, agentId: string) => {
         if (!agentId) {
-            console.error('[configService] updateBrowserConfig called without agentId. Aborting PATCH.')
+            console.error('[configService] updateBrowserConfig called without agentId. Aborting.')
             return
         }
-        // UUID is in the URL — no need to repeat it in the body
+
         const payload: BackendConfigUpdate = {}
 
-        // Map Fields
-        if (config.provider) payload.llm_provider = config.provider
-        if (config.model) payload.llm_model = config.model
-        if (config.tokens) payload.max_tokens = config.tokens
-        if (config.temp) payload.temperature = config.temp
-
-        // Fix INT-05/Bug: Correct Mapping of System Prompt & First Message
+        // LLM
+        if (config.provider !== undefined) payload.llm_provider = config.provider
+        if (config.model !== undefined) payload.llm_model = config.model
+        if (config.tokens !== undefined) payload.max_tokens = config.tokens
+        if (config.temp !== undefined) payload.temperature = config.temp
         if (config.prompt !== undefined) payload.system_prompt = config.prompt
         if (config.msg !== undefined) payload.first_message = config.msg
 
-        // Block 3: Additional LLM Settings
+        // Extended LLM
         if (config.responseLength !== undefined) payload.responseLength = config.responseLength
         if (config.conversationTone !== undefined) payload.conversationTone = config.conversationTone
         if (config.conversationFormality !== undefined) payload.conversationFormality = config.conversationFormality
@@ -81,37 +81,36 @@ export const configService = {
         if (config.mode !== undefined) payload.mode = config.mode
         if (config.hallucination_blacklist !== undefined) payload.hallucination_blacklist = config.hallucination_blacklist
 
-        if (config.voiceId) payload.voice_name = config.voiceId
-        if (config.voiceStyle) payload.voice_style = config.voiceStyle
-        if (config.voiceSpeed) payload.voice_speed = config.voiceSpeed
-        if (config.voicePitch !== undefined) payload.voice_pitch = config.voicePitch // Also fix to allow 0
+        // Voice
+        if (config.voiceId !== undefined) payload.voice_name = config.voiceId
+        if (config.voiceStyle !== undefined) payload.voice_style = config.voiceStyle
+        if (config.voiceSpeed !== undefined) payload.voice_speed = config.voiceSpeed
+        if (config.voicePitch !== undefined) payload.voice_pitch = config.voicePitch
         if (config.voiceVolume !== undefined) payload.voice_volume = config.voiceVolume
-
         if (config.voiceStyleDegree !== undefined) payload.voiceStyleDegree = config.voiceStyleDegree
         if (config.voiceBgSound !== undefined) payload.voiceBgSound = config.voiceBgSound
         if (config.voiceBgUrl !== undefined) payload.voiceBgUrl = config.voiceBgUrl
 
+        // STT
         if (config.sttSilenceTimeout !== undefined) payload.silence_timeout_ms = config.sttSilenceTimeout
-
-        // Block 3: Additional STT Settings
         if (config.sttProvider !== undefined) payload.sttProvider = config.sttProvider
         if (config.sttModel !== undefined) payload.sttModel = config.sttModel
         if (config.sttLang !== undefined) payload.sttLang = config.sttLang
         if (config.sttKeywords !== undefined) payload.sttKeywords = config.sttKeywords
         if (config.interruption_threshold !== undefined) payload.interruption_threshold = config.interruption_threshold
-        if (config.vad_threshold !== undefined) payload.vadSensitivity = config.vad_threshold // Map var names if different
+        if (config.vad_threshold !== undefined) payload.vadSensitivity = config.vad_threshold
 
-        // INT-05: Map Tools Config
-        // We aggregate all tool-related settings into the 'tools_config' dictionary
-        // expected by the backend.
-        if (config.toolsSchema !== undefined || config.toolServerUrl !== undefined || config.clientToolsEnabled !== undefined || config.asyncTools !== undefined) {
-            let parsedTools = []
+        // Tools — only sent if any tool field is present
+        if (config.toolsSchema !== undefined
+            || config.toolServerUrl !== undefined
+            || config.clientToolsEnabled !== undefined
+            || config.asyncTools !== undefined) {
+
+            let parsedTools: unknown[] = []
             try {
-                if (config.toolsSchema) {
-                    parsedTools = JSON.parse(config.toolsSchema)
-                }
+                if (config.toolsSchema) parsedTools = JSON.parse(config.toolsSchema)
             } catch (e) {
-                console.warn("Failed to parse toolsSchema for backend update", e)
+                console.warn('[configService] Failed to parse toolsSchema:', e)
             }
 
             payload.tools_config = {
@@ -120,33 +119,15 @@ export const configService = {
                 client_tools_enabled: config.clientToolsEnabled,
                 async_execution: config.asyncTools,
                 tool_timeout_ms: config.toolTimeoutMs,
-                error_message: config.toolErrorMsg
+                error_message: config.toolErrorMsg,
             }
         }
 
-        const response = await api.patch(`/agents/${agentId}`, payload)
-        return response
-    },
-
-    updateTwilioConfig: async (config: Partial<TwilioConfig>, agentId: string) => {
-        if (!agentId) {
-            console.error('[configService] updateTwilioConfig called without agentId. Aborting PATCH.')
-            return
-        }
-        const payload: BackendConfigUpdate = { ...config }
         return api.patch(`/agents/${agentId}`, payload)
     },
 
-    updateTelnyxConfig: async (config: Partial<TelnyxConfig>, agentId: string) => {
-        if (!agentId) {
-            console.error('[configService] updateTelnyxConfig called without agentId. Aborting PATCH.')
-            return
-        }
-        const payload: BackendConfigUpdate = { ...config }
-        return api.patch(`/agents/${agentId}`, payload)
-    },
+    // ── Catalogs ──────────────────────────────────────────────────────────────
 
-    // Options / Catalogs
     getLLMProviders: async (): Promise<LLMProvider[]> => {
         const response = await api.get<{ providers: LLMProvider[] }>('/config/options/llm/providers')
         return response.providers || []
@@ -164,7 +145,7 @@ export const configService = {
     },
 
     getVoices: async (provider: string = 'azure', language?: string): Promise<Voice[]> => {
-        const params: any = { provider }
+        const params: Record<string, string> = { provider }
         if (language) params.language = language
         const response = await api.get<{ voices: Voice[] }>('/config/options/tts/voices', { params })
         return response.voices || []
@@ -173,7 +154,7 @@ export const configService = {
     getStyles: async (provider: string = 'azure', voiceId: string): Promise<VoiceStyle[]> => {
         if (!voiceId) return []
         const response = await api.get<{ styles: string[] }>('/config/options/tts/styles', { params: { provider, voice_id: voiceId } })
-        // Legacy backend returns strings, frontend expects objects
+        // Backend returns string[], frontend expects { id, label }
         return response.styles.map(s => ({ id: s, label: s }))
     },
 
@@ -186,7 +167,6 @@ export const configService = {
         voice_style_degree?: number
         provider: string
     }) => {
-        const response = await api.post('/config/options/tts/preview', params, { responseType: 'blob' })
-        return response
-    }
+        return api.post('/config/options/tts/preview', params, { responseType: 'blob' })
+    },
 }

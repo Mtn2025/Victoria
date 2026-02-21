@@ -2,38 +2,67 @@ import { Provider } from 'react-redux'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { store } from './store/store'
 import { MainLayout } from './components/layout/MainLayout'
-import { HistoryPage } from './pages/HistoryPage'
 import { LoginPage } from './pages/LoginPage'
+import { FeatureGate } from './components/ui/FeatureGate'
+
+// Lazy-imported pages — only mounted when their feature flag is ON
+import { HistoryPage } from './pages/HistoryPage'
 import { AgentsPanel } from './components/features/Agents/AgentsPanel'
 import { ConfigPage } from './pages/ConfigPage'
 
 /**
- * Router structure
+ * App — Router principal
  *
- * MainLayout renders:
- *   - Full-screen for /history
- *   - Split layout (left aside + always-on SimulatorPage) for all other routes
+ * Cada ruta está envuelta con <FeatureGate feature="..."> para poder
+ * activarse/desactivarse sin tocar código de negocio.
  *
- * The left aside switches content via Outlet:
- *   /simulator → ConfigPage rendered directly by MainLayout (no Outlet needed)
- *   /agents    → AgentsPanel via Outlet
- *   /config    → ConfigPage via Outlet
- *
- * SimulatorPage is always mounted in the right panel by MainLayout.
- * It is NOT a router child to avoid double-mounting.
+ * Orden de activación (ver featureFlags.ts):
+ *   AUTH              → siempre activo
+ *   SIMULATOR_PANEL   → Fase 2
+ *   AGENTS_LIST       → Fase 3
+ *   CONFIG_MODEL      → Fase 4
+ *   HISTORY_LIST      → Fase 5
  */
-function AppWithActiveAgent() {
+function AppRoutes() {
     return (
         <Routes>
             <Route path="/" element={<MainLayout />}>
                 <Route index element={<Navigate to="/simulator" replace />} />
-                {/* /simulator: MainLayout handles left panel directly (ConfigPage) */}
-                {/* No child route needed — MainLayout mounts SimulatorPage in right panel */}
+
+                {/* /simulator: el layout maneja los paneles internamente */}
                 <Route path="simulator" element={null} />
-                <Route path="history" element={<HistoryPage />} />
-                <Route path="agents" element={<AgentsPanel />} />
-                <Route path="config" element={<ConfigPage />} />
-                {/* Unknown paths → simulator */}
+
+                {/* /history — Fase 5 */}
+                <Route
+                    path="history"
+                    element={
+                        <FeatureGate feature="HISTORY_LIST">
+                            <HistoryPage />
+                        </FeatureGate>
+                    }
+                />
+
+                {/* /agents — Fase 3 */}
+                <Route
+                    path="agents"
+                    element={
+                        <FeatureGate feature="AGENTS_LIST">
+                            <AgentsPanel />
+                        </FeatureGate>
+                    }
+                />
+
+                {/* /config — Fase 4 */}
+                <Route
+                    path="config"
+                    element={
+                        <FeatureGate feature="CONFIG_MODEL">
+                            <ConfigPage />
+                        </FeatureGate>
+                    }
+                />
+
+                {/* Fallback → simulator */}
                 <Route path="*" element={<Navigate to="/simulator" replace />} />
             </Route>
         </Routes>
@@ -41,7 +70,7 @@ function AppWithActiveAgent() {
 }
 
 function App() {
-    const apiKey = localStorage.getItem('api_key') || localStorage.getItem('apiKey');
+    const apiKey = localStorage.getItem('api_key')
 
     if (!apiKey) {
         return (
@@ -52,12 +81,13 @@ function App() {
                     </Routes>
                 </BrowserRouter>
             </Provider>
-        );
+        )
     }
+
     return (
         <Provider store={store}>
             <BrowserRouter>
-                <AppWithActiveAgent />
+                <AppRoutes />
             </BrowserRouter>
         </Provider>
     )

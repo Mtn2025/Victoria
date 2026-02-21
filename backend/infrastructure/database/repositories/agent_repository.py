@@ -25,6 +25,14 @@ def _model_to_agent(agent_model: AgentModel) -> Agent:
         pitch=float(agent_model.voice_pitch),
         volume=float(agent_model.voice_volume),
     )
+    # Build metadata from DB JSON columns into the declared domain field.
+    # These are the extended blobs not stored as individual columns.
+    metadata: dict = {}
+    if agent_model.voice_config_json:
+        metadata["voice_config_json"] = agent_model.voice_config_json
+    if agent_model.stt_config:
+        metadata["stt_config"] = agent_model.stt_config
+
     agent = Agent(
         name=agent_model.name,
         system_prompt=agent_model.system_prompt,
@@ -34,17 +42,13 @@ def _model_to_agent(agent_model: AgentModel) -> Agent:
         agent_uuid=agent_model.agent_uuid,
         is_active=agent_model.is_active,
         created_at=agent_model.created_at,
+        metadata=metadata,
+        # Map tools_config (DB JSON column) to domain list
+        tools=([agent_model.tools_config] if isinstance(agent_model.tools_config, dict) else []
+               if agent_model.tools_config else []),
+        # Map llm_config JSON column directly
+        llm_config=agent_model.llm_config or {},
     )
-    # Attach ad-hoc metadata for JSON blobs not yet typed on the domain entity
-    agent.metadata = {}
-    if getattr(agent_model, "voice_config_json", None):
-        agent.metadata["voice_config_json"] = agent_model.voice_config_json
-    if getattr(agent_model, "stt_config", None):
-        agent.metadata["stt_config"] = agent_model.stt_config
-    if agent_model.tools_config:
-        agent.tools = [agent_model.tools_config] if isinstance(agent_model.tools_config, dict) else []
-    if agent_model.llm_config:
-        agent.llm_config = agent_model.llm_config
     return agent
 
 
@@ -68,7 +72,17 @@ class SqlAlchemyAgentRepository(AgentRepository):
         return _model_to_agent(agent_model)
 
     async def update_agent(self, agent: Agent) -> None:
-        stmt = select(AgentModel).where(AgentModel.name == agent.name)
+        """
+        Persist changes to an existing agent.
+        Searches by agent_uuid (preferred) for agents managed by the new UUIDbased API.
+        Falls back to name-based lookup for legacy /config/ routes.
+        """
+        if agent.agent_uuid:
+            stmt = select(AgentModel).where(AgentModel.agent_uuid == agent.agent_uuid)
+        else:
+            # Legacy fallback: /config/ endpoint may not have UUID
+            stmt = select(AgentModel).where(AgentModel.name == agent.name)
+
         result = await self.session.execute(stmt)
         agent_model = result.scalar_one_or_none()
 
@@ -94,7 +108,8 @@ class SqlAlchemyAgentRepository(AgentRepository):
             existing_llm = agent_model.llm_config or {}
             agent_model.llm_config = {**existing_llm, **agent.llm_config}
 
-        if hasattr(agent, "metadata") and agent.metadata:
+        # Persist extended JSON blobs from the domain metadata field
+        if agent.metadata:
             if "voice_config_json" in agent.metadata:
                 existing_voice = agent_model.voice_config_json or {}
                 agent_model.voice_config_json = {**existing_voice, **agent.metadata["voice_config_json"]}

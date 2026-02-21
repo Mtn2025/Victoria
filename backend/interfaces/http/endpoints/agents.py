@@ -92,7 +92,7 @@ async def get_active_agent(
             detail="No active agent found. Please activate an agent from the /agents panel.",
         )
 
-    metadata = getattr(active, "metadata", {}) or {}
+    # active.metadata is always a dict (declared in the domain entity).
 
     return ActiveAgentResponse(
         agent_uuid=active.agent_uuid,
@@ -110,9 +110,10 @@ async def get_active_agent(
             "volume": active.voice_config.volume,
         },
         llm_config=active.llm_config or {},
-        stt_config=metadata.get("stt_config") or {},
-        voice_config_json=metadata.get("voice_config_json") or {},
-        tools_config={},
+        stt_config=active.metadata.get("stt_config") or {},
+        voice_config_json=active.metadata.get("voice_config_json") or {},
+        # Read real tools_config from domain (never hardcoded)
+        tools_config=active.tools[0] if active.tools else {},
     )
 
 
@@ -159,7 +160,7 @@ async def update_agent_config(
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent {agent_uuid} not found")
 
-    # Apply updates (mirrors logic in /config/ endpoint)
+    # Apply updates (canonical keys — always llm_provider / llm_model in DB)
     if update.system_prompt is not None:
         agent.system_prompt = update.system_prompt
     if update.first_message is not None:
@@ -177,12 +178,16 @@ async def update_agent_config(
             volume=update.voice_volume if update.voice_volume is not None else agent.voice_config.volume,
         )
 
-    # Merge LLM config
+    # Merge LLM config — ALWAYS use llm_provider / llm_model as canonical keys.
+    # This eliminates the legacy ambiguity where /config/ stored them as 'provider'/'model'.
     llm_updates = {}
-    for field in ["llm_provider", "llm_model", "max_tokens", "temperature",
-                  "responseLength", "conversationTone", "conversationFormality",
-                  "conversationPacing", "contextWindow", "frequencyPenalty",
-                  "presencePenalty", "toolChoice", "dynamicVarsEnabled",
+    if update.llm_provider is not None:
+        llm_updates["llm_provider"] = update.llm_provider
+    if update.llm_model is not None:
+        llm_updates["llm_model"] = update.llm_model
+    for field in ["max_tokens", "temperature", "responseLength", "conversationTone",
+                  "conversationFormality", "conversationPacing", "contextWindow",
+                  "frequencyPenalty", "presencePenalty", "toolChoice", "dynamicVarsEnabled",
                   "dynamicVars", "mode", "hallucination_blacklist"]:
         val = getattr(update, field, None)
         if val is not None:
@@ -190,19 +195,17 @@ async def update_agent_config(
     if llm_updates:
         agent.llm_config = {**(agent.llm_config or {}), **llm_updates}
 
-    # Merge Voice extended config
+    # Merge Voice extended config into metadata
     voice_ext_updates = {}
     for field in ["voiceStyleDegree", "voiceBgSound", "voiceBgUrl"]:
         val = getattr(update, field, None)
         if val is not None:
             voice_ext_updates[field] = val
     if voice_ext_updates:
-        if not hasattr(agent, "metadata"):
-            agent.metadata = {}
         existing_voice = agent.metadata.get("voice_config_json") or {}
         agent.metadata["voice_config_json"] = {**existing_voice, **voice_ext_updates}
 
-    # Merge STT config
+    # Merge STT config into metadata
     stt_updates = {}
     for field in ["sttProvider", "sttModel", "sttLang", "sttKeywords",
                   "interruption_threshold", "vadSensitivity"]:
@@ -212,8 +215,6 @@ async def update_agent_config(
     if update.silence_timeout_ms is not None:
         stt_updates["silence_timeout_ms"] = update.silence_timeout_ms
     if stt_updates:
-        if not hasattr(agent, "metadata"):
-            agent.metadata = {}
         existing_stt = agent.metadata.get("stt_config") or {}
         agent.metadata["stt_config"] = {**existing_stt, **stt_updates}
 

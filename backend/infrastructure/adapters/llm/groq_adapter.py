@@ -26,7 +26,8 @@ class GroqLLMAdapter(LLMPort):
             logger.warning("Groq API Key missing. Adapter may fail.")
         
         self.client = AsyncGroq(api_key=self.api_key)
-        self.default_model = "llama3-70b-8192" # Fallback if agent.llm_config is missing
+        # Canonical default — must match the model saved by PATCH /agents/{uuid}
+        self.default_model = "llama-3.3-70b-versatile"
 
     async def generate_response(self, conversation: Conversation, agent: Agent) -> str:
         """
@@ -38,7 +39,8 @@ class GroqLLMAdapter(LLMPort):
             llm_cfg  = getattr(agent, 'llm_config', {}) or {}
 
             completion = await self.client.chat.completions.create(
-                model=llm_cfg.get('model', self.default_model),
+                # Read 'llm_model' (canonical since Rep D), fallback to legacy 'model'
+                model=llm_cfg.get('llm_model') or llm_cfg.get('model', self.default_model),
                 messages=messages,
                 temperature=llm_cfg.get('temperature', 0.7),
                 max_tokens=llm_cfg.get('max_tokens', 600),

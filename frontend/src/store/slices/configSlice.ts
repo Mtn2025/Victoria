@@ -132,7 +132,7 @@ const initialState: ConfigState = {
         enableBackchannel: false,
         maxDuration: 600,
         maxRetries: 1,
-        idleMessage: '¿Hola? ¿Sigues ahí?',
+        idleMessage: '',
 
         // Campaigns / Integrations
         crmEnabled: false,
@@ -147,11 +147,11 @@ const initialState: ConfigState = {
         auditLogEnabled: false,
 
         // Analysis Defaults
-        analysisPrompt: 'Resume la llamada en 3 puntos clave.',
-        successRubric: '- Cliente aceptó agendar cita.\n- Cliente solicitó información adicional.',
+        analysisPrompt: '',
+        successRubric: '',
         sentimentAnalysis: false,
         costTrackingEnabled: false,
-        extractionSchema: '{\n  "customer_intent": "string"\n}',
+        extractionSchema: '{}',
         piiRedactionEnabled: false,
         logWebhookUrl: '',
         retentionDays: 30,
@@ -159,14 +159,14 @@ const initialState: ConfigState = {
         // Flow Defaults
         bargeInEnabled: true,
         interruptionSensitivity: 0.5,
-        interruptionPhrases: '["para", "espera", "escúchame"]',
-        voicemailDetectionEnabled: true,
-        voicemailMessage: 'Hola, llamaba de Ubrokers...',
+        interruptionPhrases: '[]',
+        voicemailDetectionEnabled: false,
+        voicemailMessage: '',
         machineDetectionSensitivity: 0.7,
         responseDelaySeconds: 0.5,
-        waitForGreeting: true,
-        hyphenationEnabled: true,
-        endCallPhrases: '["gracias", "adiós", "hasta luego"]',
+        waitForGreeting: false,
+        hyphenationEnabled: false,
+        endCallPhrases: '[]',
 
         // Tools
         toolsSchema: '[]',
@@ -351,12 +351,13 @@ export const configSlice = createSlice({
             }
 
             if (data.llm_config) {
-                if (data.llm_config.provider) state.browser.provider = data.llm_config.provider
-                if (data.llm_config.model) state.browser.model = data.llm_config.model
+                // Backend stores these as 'llm_provider' and 'llm_model' inside llm_config
+                if (data.llm_config.llm_provider) state.browser.provider = data.llm_config.llm_provider
+                if (data.llm_config.llm_model) state.browser.model = data.llm_config.llm_model
                 if (data.llm_config.max_tokens !== undefined) state.browser.tokens = data.llm_config.max_tokens
                 if (data.llm_config.temperature !== undefined) state.browser.temp = data.llm_config.temperature
 
-                // Advanced LLM mapped fields
+                // Advanced LLM mapped fields (camelCase keys stored verbatim by backend)
                 const copyFields = ['responseLength', 'conversationTone', 'conversationFormality',
                     'conversationPacing', 'contextWindow', 'frequencyPenalty',
                     'presencePenalty', 'toolChoice', 'dynamicVarsEnabled',

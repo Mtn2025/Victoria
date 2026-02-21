@@ -6,16 +6,15 @@ import { saveBrowserConfig, fetchAgentConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
 import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/Button"
+import { ComingSoon } from "@/components/ui/ComingSoon"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
 import { VoiceSettings } from '@/components/features/Config/VoiceSettings'
 import { TranscriberSettings } from '@/components/features/Config/TranscriberSettings'
-import { ConnectivitySettings } from '@/components/features/Config/ConnectivitySettings'
-import { ToolsSettings } from '@/components/features/Config/ToolsSettings'
-import { AdvancedSettings } from "@/components/features/Config/AdvancedSettings"
-import { CampaignSettings } from "@/components/features/Config/CampaignSettings"
-import { SystemSettings } from "@/components/features/Config/SystemSettings"
-import { AnalysisSettings } from "@/components/features/Config/AnalysisSettings"
-import { FlowSettings } from "@/components/features/Config/FlowSettings"
+
+// -----------------------------------------------------------------
+// Tabs activos: model, voice, transcriber
+// El resto → ComingSoon (sin eliminar los componentes originales)
+// -----------------------------------------------------------------
 
 const PROFILES: { id: ProfileId; label: string; icon: LucideIcon }[] = [
     { id: 'browser', label: 'Simulador Web', icon: Globe },
@@ -45,7 +44,7 @@ export const ConfigPage = () => {
     }, [dispatch, navigate, activeAgent])
 
 
-    // Form Validation Logic
+    // Form Validation Logic — only for active (non-stub) browser profile
     const missingFields = []
     if (!browser.provider) missingFields.push("Proveedor LLM")
     if (!browser.model) missingFields.push("Modelo LLM")
@@ -54,13 +53,41 @@ export const ConfigPage = () => {
     const isBrowserValid = missingFields.length === 0
     const isValid = activeProfile === 'browser' ? isBrowserValid : true
 
+    // Active tabs have real backend connections.
+    // All others redirect to ComingSoon — their components are preserved but not imported.
+    const ACTIVE_TABS = ['model', 'voice', 'transcriber']
+    const isActiveTab = ACTIVE_TABS.includes(activeTab)
+
     const handleSave = async () => {
-        if (activeProfile === 'browser') {
-            await dispatch(saveBrowserConfig(browser)).unwrap()
-            // Could add a toast notification here
-        } else {
-            alert("El guardado para telefonía (Twilio/Telnyx) aún no está implementado")
+        if (activeProfile !== 'browser') {
+            // Twilio/Telnyx: no backend endpoint yet — show stub message
+            // TODO: Implement Twilio/Telnyx save when backend supports it
+            return
         }
+        await dispatch(saveBrowserConfig(browser)).unwrap()
+    }
+
+    const renderTabContent = () => {
+        if (activeTab === 'model') return <ModelSettings />
+        if (activeTab === 'voice') return <VoiceSettings />
+        if (activeTab === 'transcriber') return <TranscriberSettings />
+
+        // All other tabs: stub while being reconstructed
+        const TAB_NAMES: Record<string, string> = {
+            connectivity: 'Conectividad (Twilio / Telnyx)',
+            tools: 'Herramientas Externas',
+            advanced: 'Configuración Avanzada',
+            campaigns: 'Campañas',
+            analysis: 'Análisis de Llamadas',
+            flow: 'Flujo y Orquestación',
+            system: 'Sistema y Gobernanza',
+        }
+        return (
+            <ComingSoon
+                tabName={TAB_NAMES[activeTab] ?? activeTab}
+                reason="Esta sección estará disponible en la próxima fase de reconstrucción."
+            />
+        )
     }
 
     return (
@@ -102,56 +129,43 @@ export const ConfigPage = () => {
                 </div>
 
                 <div className="p-1">
-                    {activeTab === 'model' ? (
-                        <ModelSettings />
-                    ) : activeTab === 'voice' ? (
-                        <VoiceSettings />
-                    ) : activeTab === 'transcriber' ? (
-                        <TranscriberSettings />
-                    ) : activeTab === 'connectivity' ? (
-                        <ConnectivitySettings />
-                    ) : activeTab === 'tools' ? (
-                        <ToolsSettings />
-                    ) : activeTab === 'advanced' ? (
-                        <AdvancedSettings />
-                    ) : activeTab === 'campaigns' ? (
-                        <CampaignSettings />
-                    ) : activeTab === 'analysis' ? (
-                        <AnalysisSettings />
-                    ) : activeTab === 'flow' ? (
-                        <FlowSettings />
-                    ) : activeTab === 'system' ? (
-                        <SystemSettings />
-                    ) : (
-                        <div className="p-4 border border-blue-500/20 rounded-xl bg-blue-900/10 text-blue-200">
-                            <p>Contenido para la pestaña: <strong>{activeTab}</strong></p>
-                            <p className="text-sm mt-2 text-blue-300/60">Los formularios se migrarán uno a uno.</p>
-                        </div>
-                    )}
+                    {renderTabContent()}
                 </div>
             </div>
 
-            {/* Footer Actions */}
-            <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50 space-y-3">
+            {/* Footer Actions — only shown for active (non-stub) tabs */}
+            {isActiveTab && activeProfile === 'browser' && (
+                <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50 space-y-3">
 
-                {/* Validation Warning */}
-                {activeProfile === 'browser' && missingFields.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 p-2 rounded-md">
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        <span>Faltan campos obligatorios para guardar: {missingFields.join(", ")}</span>
+                    {/* Validation Warning */}
+                    {missingFields.length > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 p-2 rounded-md">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>Faltan campos obligatorios para guardar: {missingFields.join(", ")}</span>
+                        </div>
+                    )}
+
+                    <Button
+                        className="w-full"
+                        variant="primary"
+                        data-testid="btn-save-config"
+                        onClick={handleSave}
+                        disabled={isLoadingOptions || !isValid}
+                    >
+                        {isLoadingOptions ? "Guardando..." : "Guardar Configuración"}
+                    </Button>
+                </div>
+            )}
+
+            {/* Stub notice for non-browser profiles */}
+            {activeProfile !== 'browser' && (
+                <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 border border-slate-700/40 p-2 rounded-md">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-slate-600" />
+                        <span>El guardado para {activeProfile === 'twilio' ? 'Twilio' : 'Telnyx'} se implementará en una próxima fase.</span>
                     </div>
-                )}
-
-                <Button
-                    className="w-full"
-                    variant="primary"
-                    data-testid="btn-save-config"
-                    onClick={handleSave}
-                    disabled={isLoadingOptions || !isValid}
-                >
-                    {isLoadingOptions ? "Guardando..." : "Guardar Configuración"}
-                </Button>
-            </div>
+                </div>
+            )}
         </div>
     )
 }

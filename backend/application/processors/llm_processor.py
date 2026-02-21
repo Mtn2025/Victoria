@@ -30,7 +30,8 @@ class LLMProcessor(FrameProcessor):
         conversation_history: List[Dict[str, str]], 
         execute_tool_use_case: Optional[ExecuteToolUseCase] = None,
         handle_barge_in_uc: Optional[Any] = None,  # HandleBargeInUseCase
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        transcript_callback = None,      # async def cb(role: str, text: str) -> None
     ):
         super().__init__(name="LLMProcessor")
         self.llm_port = llm_port
@@ -39,6 +40,9 @@ class LLMProcessor(FrameProcessor):
         self.execute_tool = execute_tool_use_case
         self.barge_in_uc = handle_barge_in_uc
         self.context = context or {}
+        # Transcript callback — sends real-time STT/LLM turns to the Simulator panel.
+        # async def transcript_callback(role: str, text: str) -> None
+        self.transcript_callback = transcript_callback
         
         # State
         self.trace_id = str(uuid.uuid4())
@@ -97,6 +101,13 @@ class LLMProcessor(FrameProcessor):
 
     async def _handle_user_text(self, text: str):
         """Main LLM Loop: Update history -> Generate -> Execute Tools -> Repeat."""
+        # Notify Simulator: user transcript (STT final)
+        if self.transcript_callback:
+            try:
+                await self.transcript_callback("user", text)
+            except Exception:
+                pass  # non-fatal
+
         # Update History
         if not self.conversation_history or self.conversation_history[-1].get("content") != text:
             self.conversation_history.append({"role": "user", "content": text})
@@ -202,7 +213,14 @@ class LLMProcessor(FrameProcessor):
                 
                 # Splits
                 if len(sentence_buffer) > 10 and re.search(r'[.?!]\s+$', sentence_buffer):
-                     await self.push_frame(TextFrame(text=sentence_buffer, role="assistant", is_final=True), FrameDirection.DOWNSTREAM)
+                     tts_text = sentence_buffer
+                     await self.push_frame(TextFrame(text=tts_text, role="assistant", is_final=True), FrameDirection.DOWNSTREAM)
+                     # Notify Simulator: assistant sentence (real-time)
+                     if self.transcript_callback:
+                         try:
+                             await self.transcript_callback("assistant", tts_text)
+                         except Exception:
+                             pass  # non-fatal
                      sentence_buffer = ""
                      
         # Flush remaining

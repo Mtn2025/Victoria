@@ -55,9 +55,9 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
     meta = getattr(agent, 'metadata', {}) or {}
 
     return ConfigDTO(
-        # --- LLM (from agent.llm_config JSON, DB → here) ---
-        llm_provider = llm.get('provider', 'groq'),
-        llm_model    = llm.get('model',    'llama-3.3-70b-versatile'),
+        # --- LLM (from agent.llm_config JSON — keys are 'llm_provider'/'llm_model' since Rep D fix) ---
+        llm_provider = llm.get('llm_provider') or llm.get('provider', 'groq'),   # canonical first, legacy fallback
+        llm_model    = llm.get('llm_model')    or llm.get('model',    'llama-3.3-70b-versatile'),
         temperature  = float(llm.get('temperature', 0.7)),
         max_tokens   = int(llm.get('max_tokens',   600)),
         system_prompt      = agent.system_prompt  or '',
@@ -75,13 +75,11 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
         voice_language      = llm.get('voice_language', 'es-MX'),
 
         # --- STT ---
-        stt_provider        = meta.get('stt_config', {}).get('provider', 'azure'),
+        stt_provider        = meta.get('stt_config', {}).get('sttProvider', 'azure'),  # canonical front key
         stt_language        = meta.get('stt_config', {}).get('sttLang', 'es-MX'),
         silence_timeout_ms  = agent.silence_timeout_ms,
 
         # --- Runtime ---
-        # client_type is stored in llm_config by the PATCH endpoint (mode field)
-        # Falls back to 'browser' which is the canonical safe default.
         client_type = llm.get('client_type', 'browser'),
     )
 
@@ -146,6 +144,11 @@ class CallOrchestrator:
         
         # FASE 3B: Pipeline
         self.pipeline: Optional[ProcessorChain] = None
+
+        # Transcript callback — async def cb(role: str, text: str) -> None
+        # Set by audio_stream.py to send real-time transcripts to the WebSocket.
+        # Used by LLMProcessor (assistant turns) and STTProcessor (user turns).
+        self._transcript_callback = None
         
         # FASE 3A: Lifecycle management
         self.start_time = time.time()
@@ -163,16 +166,19 @@ class CallOrchestrator:
         stream_id: str, 
         from_number: Optional[str] = None,
         to_number: Optional[str] = None,
-        audio_output_callback = None,   # async def cb(audio_bytes: bytes) -> None
+        audio_output_callback = None,    # async def cb(audio_bytes: bytes) -> None
+        transcript_callback = None,      # async def cb(role: str, text: str) -> None
     ) -> Optional[bytes]:
         """
         Start the call session with enhanced lifecycle management.
         
         Args:
             audio_output_callback: Coroutine called for each TTS audio chunk produced
-                by the pipeline. The WS endpoint passes a function that sends the
-                bytes to the WebSocket client. Without this, synthesized audio is
-                silently dropped because TTS is the last processor in the chain.
+                by the pipeline. Routes audio bytes to the WebSocket client.
+            transcript_callback: Coroutine called for each STT/LLM text turn produced
+                by the pipeline. Routes transcript events to the WebSocket client so
+                the Simulator panel can show real-time transcriptions.
+                Signature: async def cb(role: str, text: str) -> None
         """
         logger.info(f"🚀 Starting session: {stream_id} for agent: {agent_id}")
         self.active = True
@@ -219,7 +225,8 @@ class CallOrchestrator:
                     fsm=self.fsm,
                     handle_barge_in_uc=handle_barge_in_uc,
                     stream_id=stream_id,
-                    output_callback=audio_output_callback,  # TTS → WebSocket return path
+                    output_callback=audio_output_callback,       # TTS → WebSocket return path
+                    transcript_callback=transcript_callback,     # STT/LLM → simulator panel
                 )
                 logger.info("✅ Pipeline built")
                 
@@ -365,16 +372,38 @@ class CallOrchestrator:
     async def end_session(self, reason: str = "completed") -> None:
         """
         End the call session with graceful cleanup.
-        
+
         FASE 3 enhancements:
         - Stop all background tasks
         - Clean FSM state
         - Close control channel
+
+        Post-call extraction:
+        If a conversation accumulated turns, ExtractionService is called to
+        analyze the full transcript via LLM and save the result in
+        call.metadata['extracted_data'] before persisting the final call state.
         """
         logger.info(f"🛑 Ending session: {reason}")
         await self.stop()
         
         if self.current_call:
+            # --- Post-call extraction ---
+            # Run only if the conversation has actual turns (user/assistant exchanges)
+            if self.current_call.conversation.turns and self.llm_port:
+                try:
+                    from backend.application.services.extraction_service import ExtractionService
+                    extraction = ExtractionService(llm_port=self.llm_port)
+                    result = await extraction.extract_from_conversation(
+                        self.current_call.conversation,
+                        call_id=self.current_call.id.value
+                    )
+                    # Persist in call.metadata so call_repository.save() stores it
+                    self.current_call.update_metadata("extracted_data", result.raw_data)
+                    logger.info("✅ Post-call extraction saved to call metadata")
+                except Exception as e:
+                    # Non-fatal: log and continue — call record still saved
+                    logger.warning(f"⚠️ Post-call extraction failed (non-fatal): {e}")
+
             await self.end_call_uc.execute(self.current_call, reason)
             self.current_call = None
             logger.info("✅ Session ended")

@@ -194,7 +194,7 @@ export const HistoryPage = () => {
             {/* Note: We might need to update CallDetailModal types if strict */}
             {selectedCall && (
                 <CallDetailModal
-                    call={selectedCall.call as any} // Temporary cast if types mismatch
+                    call={selectedCall.call}
                     isOpen={isDetailOpen}
                     onClose={() => setIsDetailOpen(false)}
                     transcript={selectedCall.transcripts}

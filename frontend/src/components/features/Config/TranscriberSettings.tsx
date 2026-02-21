@@ -74,7 +74,7 @@ export const TranscriberSettings = () => {
                         onChange={(e) => update('sttKeywords', e.target.value)}
                         rows={2}
                         className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        placeholder='[{"word": "Ubrokers", "boost": 2.0}]'
+                        placeholder='[{"word": "MiMarca", "boost": 2.0}]'
                     />
                 </div>
             </div>

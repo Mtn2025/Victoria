@@ -174,11 +174,23 @@ async def audio_stream(
                         except Exception as ws_err:
                             logger.warning(f"[TTS→WS] Failed to send audio chunk: {ws_err}")
 
-                    # Start session — passes callback so TTS output reaches client
+                    # --- Transcript callback: routes STT/LLM text turns → Simulator chat panel ---
+                    # The frontend (useAudioSimulator) listens for {type:"transcript", role, text}
+                    # emitted by LLMProcessor on each user STT final + each assistant sentence.
+                    async def send_transcript_event(role: str, text: str) -> None:
+                        try:
+                            await websocket.send_text(
+                                json.dumps({"type": "transcript", "role": role, "text": text})
+                            )
+                        except Exception as e:
+                            logger.warning(f"[TRANSCRIPT→WS] Failed to send: {e}")
+
+                    # Start session — passes callbacks so TTS audio and transcripts reach client
                     greeting_audio = await orchestrator.start_session(
                         agent_id=agent_id,
                         stream_id=stream_id,
-                        audio_output_callback=send_tts_audio,  # TTS → WS return path
+                        audio_output_callback=send_tts_audio,       # TTS → WS return path
+                        transcript_callback=send_transcript_event,  # STT/LLM → simulator panel
                     )
                     logger.info(f"Session started: {stream_id}")
 

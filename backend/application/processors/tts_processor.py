@@ -178,4 +178,3 @@ class TTSProcessor(FrameProcessor):
                         )
         except Exception as e:
             logger.error(f"Synthesis failed: {e}", exc_info=True)
-            print(f"DEBUG: Synthesis failed: {e}")
