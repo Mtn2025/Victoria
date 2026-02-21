@@ -43,4 +43,4 @@ EXPOSE 8000
 
 # Run migrations then start the server.
 # If alembic upgrade head fails, the container does NOT start (&&).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn backend.interfaces.http.main:app --host 0.0.0.0 --port 8000 --workers 4"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn backend.interfaces.http.main:app --host 0.0.0.0 --port 8000 --workers 1"]
