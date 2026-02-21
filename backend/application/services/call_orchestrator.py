@@ -162,16 +162,17 @@ class CallOrchestrator:
         agent_id: str, 
         stream_id: str, 
         from_number: Optional[str] = None,
-        to_number: Optional[str] = None
+        to_number: Optional[str] = None,
+        audio_output_callback = None,   # async def cb(audio_bytes: bytes) -> None
     ) -> Optional[bytes]:
         """
         Start the call session with enhanced lifecycle management.
         
-        FASE 3 enhancements:
-        - FSM state transition to LISTENING
-        - Control loop background task
-        - Idle monitor task
-        - Proper error handling
+        Args:
+            audio_output_callback: Coroutine called for each TTS audio chunk produced
+                by the pipeline. The WS endpoint passes a function that sends the
+                bytes to the WebSocket client. Without this, synthesized audio is
+                silently dropped because TTS is the last processor in the chain.
         """
         logger.info(f"🚀 Starting session: {stream_id} for agent: {agent_id}")
         self.active = True
@@ -217,7 +218,8 @@ class CallOrchestrator:
                     control_channel=self.control_channel,
                     fsm=self.fsm,
                     handle_barge_in_uc=handle_barge_in_uc,
-                    stream_id=stream_id
+                    stream_id=stream_id,
+                    output_callback=audio_output_callback,  # TTS → WebSocket return path
                 )
                 logger.info("✅ Pipeline built")
                 

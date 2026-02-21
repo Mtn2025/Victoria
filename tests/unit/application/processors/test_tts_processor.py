@@ -24,73 +24,76 @@ def mock_tts_port():
 async def test_tts_process_text(mock_tts_port, caplog):
     import logging
     caplog.set_level(logging.DEBUG)
-    
-    processor = TTSProcessor(mock_tts_port, MockConfig())
+
+    # Collect audio chunks via output_callback (new pattern: TTS → callback → transport)
+    received_chunks = []
+    async def output_callback(audio_bytes: bytes) -> None:
+        received_chunks.append(audio_bytes)
+
+    processor = TTSProcessor(mock_tts_port, MockConfig(), output_callback=output_callback)
     downstream = AsyncMock()
     processor.link(downstream)
-    
+
     await processor.start()
-    
+
     # Send Text
     frame = TextFrame(text="Hello", role="assistant")
     await processor.process_frame(frame, FrameDirection.DOWNSTREAM)
-    
+
     # Wait for worker
-    await asyncio.sleep(0.5) # Increase wait time
-    
+    await asyncio.sleep(0.5)
+
     # Check logs
     for record in caplog.records:
         print(f"LOG: {record.message}")
-    
-    # Check Downstream Audio
-    frames = [call.args[0] for call in downstream.process_frame.call_args_list if isinstance(call.args[0], AudioFrame)]
-    assert len(frames) == 2, f"Expected 2 frames, got {len(frames)}. Logs: {[r.message for r in caplog.records]}"
-    assert frames[0].data == b"chunk1"
-    assert frames[1].data == b"chunk2"
-    
+
+    # Verify audio arrived via output_callback (not downstream push — TTS is end of chain)
+    assert len(received_chunks) == 2, (
+        f"Expected 2 audio chunks via output_callback, got {len(received_chunks)}. "
+        f"Logs: {[r.message for r in caplog.records]}"
+    )
+    assert received_chunks[0] == b"chunk1"
+    assert received_chunks[1] == b"chunk2"
+
     await processor.stop()
 
 @pytest.mark.asyncio
 async def test_tts_cancellation(mock_tts_port):
-    processor = TTSProcessor(mock_tts_port, MockConfig())
-    
+    # Collect audio chunks via output_callback
+    received_chunks = []
+    async def output_callback(audio_bytes: bytes) -> None:
+        received_chunks.append(audio_bytes)
+
+    processor = TTSProcessor(mock_tts_port, MockConfig(), output_callback=output_callback)
+
     # Mock synthesis to hang/sleep
     async def slow_gen(text, voice, fmt):
         yield b"start"
         await asyncio.sleep(1.0)
         yield b"end"
-        
+
     mock_tts_port.synthesize_stream.side_effect = slow_gen
-    
+
     downstream = AsyncMock()
     processor.link(downstream)
     await processor.start()
-    
+
     # Send Text 1
     await processor.process_frame(TextFrame(text="Speak 1", role="assistant"), FrameDirection.DOWNSTREAM)
-    await asyncio.sleep(0.1) # Let it start
-    
+    await asyncio.sleep(0.1)  # Let it start
+
     # Send Cancel
     await processor.process_frame(CancelFrame(), FrameDirection.DOWNSTREAM)
-    
+
     # Send Text 2
     await processor.process_frame(TextFrame(text="Speak 2", role="assistant"), FrameDirection.DOWNSTREAM)
-    
-    await asyncio.sleep(0.2) # Allow Text 2 to process
-    
-    # Check audio frames
-    # We expect "start" from Text 1 (before cancel)
-    # Then maybe "start" from Text 2.
-    # Text 1 should NOT complete "end".
-    
-    frames = [call.args[0] for call in downstream.process_frame.call_args_list if isinstance(call.args[0], AudioFrame)]
-    
-    data_chunks = [f.data for f in frames]
-    # "start" from 1 might be there.
-    # "end" from 1 should NOT be there (cancelled).
-    # "start" from 2 should be there.
-    
-    assert b"end" not in data_chunks
-    assert b"start" in data_chunks # From 1 or 2
-    
+
+    await asyncio.sleep(0.2)  # Allow Text 2 to process
+
+    # "start" from Text 1 (before cancel) should be there.
+    # "end" from Text 1 should NOT (cancelled mid-stream).
+    # "start" from Text 2 should be there.
+    assert b"end" not in received_chunks
+    assert b"start" in received_chunks  # From 1 or 2
+
     await processor.stop()

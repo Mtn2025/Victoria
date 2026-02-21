@@ -161,10 +161,24 @@ async def audio_stream(
 
                     protocol.set_stream_id(stream_id)
 
-                    # FIX A: capture greeting_audio and send to client
+                    # --- TTS output callback: routes synthesized audio → WebSocket ---
+                    # TTS is the last processor in the pipeline. Without this callback,
+                    # synthesized audio is silently dropped (DOWNSTREAM end-of-chain).
+                    async def send_tts_audio(audio_bytes: bytes) -> None:
+                        try:
+                            if client == "browser":
+                                await websocket.send_bytes(audio_bytes)
+                            else:
+                                msg = protocol.create_media_message(audio_bytes)
+                                await websocket.send_text(msg)
+                        except Exception as ws_err:
+                            logger.warning(f"[TTS→WS] Failed to send audio chunk: {ws_err}")
+
+                    # Start session — passes callback so TTS output reaches client
                     greeting_audio = await orchestrator.start_session(
                         agent_id=agent_id,
                         stream_id=stream_id,
+                        audio_output_callback=send_tts_audio,  # TTS → WS return path
                     )
                     logger.info(f"Session started: {stream_id}")
 

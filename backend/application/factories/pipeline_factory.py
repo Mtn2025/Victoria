@@ -83,7 +83,8 @@ class PipelineFactory:
         control_channel: Optional[Any] = None,
         fsm: Optional[ConversationFSM] = None,
         handle_barge_in_uc: Optional[HandleBargeInUseCase] = None,
-        stream_id: Optional[str] = None
+        stream_id: Optional[str] = None,
+        output_callback = None,    # async def cb(audio_bytes: bytes) -> None
     ) -> ProcessorChain:
         """
         Create and wire processors into a chain.
@@ -100,6 +101,9 @@ class PipelineFactory:
             fsm: Optional conversation FSM (FASE 3A)
             handle_barge_in_uc: Optional barge-in handler (FASE 2.6)
             stream_id: Optional trace ID for logging
+            output_callback: Coroutine called with each synthesized audio chunk.
+                Route TTS output → WebSocket/Telephony transport.
+                Signature: async def cb(audio_bytes: bytes) -> None
             
         Returns:
             ProcessorChain with linked processors
@@ -138,10 +142,18 @@ class PipelineFactory:
             handle_barge_in_uc=handle_barge_in_uc  # FASE 2.6 integration
         )
 
-        tts = TTSProcessor(tts_port, config)
+        # TTS with output_callback — routes synthesized audio back to transport.
+        # Without output_callback, audio is silently dropped (TTS is last in chain).
+        tts = TTSProcessor(tts_port, config, output_callback=output_callback)
+        if not output_callback:
+            logger.warning(
+                "⚠️ No output_callback provided to TTSProcessor. "
+                "Synthesized audio will NOT be sent to the client. "
+                "Pass output_callback to create_pipeline() from the WS endpoint."
+            )
 
         # 2. Wiring (Linear Pipeline)
-        # Flow: Input → VAD → STT → LLM → TTS → Output
+        # Flow: Input → VAD → STT → LLM → TTS → [output_callback → WebSocket]
         vad.link(stt)
         stt.link(llm)
         llm.link(tts)
@@ -150,7 +162,8 @@ class PipelineFactory:
 
         logger.info(
             f"✅ Pipeline configured: {len(processors)} processors "
-            f"(Tools: {bool(execute_tool)}, Barge-in: {bool(handle_barge_in_uc)})"
+            f"(Tools: {bool(execute_tool)}, Barge-in: {bool(handle_barge_in_uc)}, "
+            f"Output: {'callback' if output_callback else 'NONE ⚠️'})"
         )
 
         return ProcessorChain(processors)

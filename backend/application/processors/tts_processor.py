@@ -17,14 +17,22 @@ logger = logging.getLogger(__name__)
 class TTSProcessor(FrameProcessor):
     """
     Text-to-Speech Processor.
-    Consumes TextFrames (Assistant) -> Synthesizes Audio -> Produces AudioFrames.
+    Consumes TextFrames (Assistant) -> Synthesizes Audio -> Delivers via output_callback.
     Includes serialization queue to prevent overlapping speech.
+
+    CRITICAL: TTS is the DOWNSTREAM END of the pipeline chain.
+    Synthesized audio MUST go to the caller via output_callback, NOT push_frame(DOWNSTREAM)
+    because DOWNSTREAM at the end of chain is silently discarded by FrameProcessor.push_frame().
+    The output_callback is set by CallOrchestrator to route audio back to the WebSocket.
     """
 
-    def __init__(self, tts_port: TTSPort, config: Any):
+    def __init__(self, tts_port: TTSPort, config: Any, output_callback=None):
         super().__init__(name="TTSProcessor")
         self.tts_port = tts_port
         self.config = config
+        # Coroutine callback: async def cb(audio_bytes: bytes) -> None
+        # Set by CallOrchestrator to route TTS output back to WebSocket transport.
+        self.output_callback = output_callback
         
         # Internal Queue for serial synthesis
         self._tts_queue: asyncio.Queue[Tuple[str, str]] = asyncio.Queue()
@@ -148,18 +156,26 @@ class TTSProcessor(FrameProcessor):
         try:
             async for audio_chunk in self.tts_port.synthesize_stream(text, voice_config, audio_format):
                 if audio_chunk:
-                    await self.push_frame(
-                        AudioFrame(
-                            data=audio_chunk,
-                            sample_rate=audio_format.sample_rate,
-                            channels=audio_format.channels,
-                            metadata={"trace_id": trace_id}
-                        ),
-                        FrameDirection.DOWNSTREAM
-                    )
+                    if self.output_callback:
+                        # PRIMARY PATH: send directly to transport (WebSocket/Telephony)
+                        # TTS is the LAST downstream processor — push_frame(DOWNSTREAM)
+                        # would be silently dropped. output_callback bypasses this.
+                        try:
+                            await self.output_callback(audio_chunk)
+                        except Exception as cb_err:
+                            logger.error(f"[TTS] output_callback error: {cb_err}")
+                    else:
+                        # FALLBACK: push upstream for any processor that wants to intercept
+                        # (e.g. recording, metrics). Not used in production path.
+                        await self.push_frame(
+                            AudioFrame(
+                                data=audio_chunk,
+                                sample_rate=audio_format.sample_rate,
+                                channels=audio_format.channels,
+                                metadata={"trace_id": trace_id}
+                            ),
+                            FrameDirection.UPSTREAM
+                        )
         except Exception as e:
             logger.error(f"Synthesis failed: {e}", exc_info=True)
-            # Re-raise to crash worker and see error in test? 
-            # Or just rely on log (but pytest captures log).
-            # Let's print to stdout for debugging
             print(f"DEBUG: Synthesis failed: {e}")
