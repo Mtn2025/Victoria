@@ -53,8 +53,9 @@ class ConfigUpdate(BaseModel):
     # VAD / Silence
     silence_timeout_ms: Optional[int] = None
     
-    # Agent identity — required, no default. Must come from Redux state (hydrated via GET /config/{id}).
-    agent_id: str
+    # Agent identity — optional when patching via /agents/{uuid} (UUID is already in the URL).
+    # Still accepted if sent by legacy callers.
+    agent_id: Optional[str] = None
     
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
