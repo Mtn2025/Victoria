@@ -4,15 +4,11 @@ Part of the Application Layer (Hexagonal Architecture).
 """
 import logging
 from abc import ABC, abstractmethod
-from enum import IntEnum
 
-from backend.application.processors.frames import Frame
+from backend.application.processors.frames import Frame, FrameDirection  # canonical
 
 logger = logging.getLogger(__name__)
 
-class FrameDirection(IntEnum):
-    DOWNSTREAM = 1  # Audio Input -> Processing -> Output
-    UPSTREAM = 2    # Feedback / Control signals going back up
 
 class FrameProcessor(ABC):
     """

@@ -5,13 +5,18 @@ Part of the Application Layer (Hexagonal Architecture).
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from enum import Enum
+from enum import IntEnum
 from typing import Any, Literal
 
-class FrameDirection(Enum):
-    """Direction a frame travels through the pipeline."""
-    DOWNSTREAM = "downstream"   # source → sink (normal flow)
-    UPSTREAM   = "upstream"     # sink → source (e.g. backpressure)
+class FrameDirection(IntEnum):
+    """Direction a frame travels through the pipeline.
+    
+    CANONICAL DEFINITION — single source of truth.
+    Imported by frame_processor.py and re-exported from there.
+    Do NOT redefine FrameDirection elsewhere.
+    """
+    DOWNSTREAM = 1  # source → sink (normal flow: audio → VAD → STT → LLM → TTS)
+    UPSTREAM   = 2  # sink → source (e.g. backpressure, control signals)
 
 @dataclass(kw_only=True)
 class Frame:
