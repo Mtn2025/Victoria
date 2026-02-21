@@ -56,7 +56,12 @@ class PCMProcessor extends AudioWorkletProcessor {
 
                 // Flush Input Buffer
                 if (this.inPtr >= this.inBufferSize) {
-                    this.port.postMessage(this.inBuffer); // Post Int16Array to hook
+                    // HALF-DUPLEX ECHO AVOIDANCE
+                    // If TTS is playing (available > 0), do NOT send mic data to the backend.
+                    // This prevents the speaker's audio from looping back and triggering a false Barge-In.
+                    if (this.available <= 0) {
+                        this.port.postMessage(this.inBuffer); // Post Int16Array to hook
+                    }
                     this.inPtr = 0;
                 }
             }
