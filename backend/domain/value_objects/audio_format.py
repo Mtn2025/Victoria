@@ -1,6 +1,22 @@
 """
 Audio Format Value Object.
 Part of the Domain Layer (Hexagonal Architecture).
+
+CONTRATO DE CAPA:
+  Toda capa que produzca o consuma audio debe declarar explícitamente su
+  AudioFormat. Ninguna capa puede asumir un formato por defecto.
+
+  Tabla de formatos por cliente:
+    - browser  → AudioFormat.for_browser()    → 24000 Hz, PCM-16, mono
+    - twilio   → AudioFormat.for_telephony()  → 8000 Hz, MuLaw-8, mono
+    - telnyx   → AudioFormat.for_telephony()  → 8000 Hz, MuLaw-8, mono
+
+  Flujo obligatorio:
+    1. El tipo de cliente (client_type) se resuelve al inicio de la sesión.
+    2. PipelineFactory deriva AudioFormat.for_client(client_type) y lo
+       pasa EXPLÍCITAMENTE a cada procesador que lo necesite.
+    3. Ningún procesador define un fallback interno de formato.
+    4. Si el formato no se puede determinar, se lanza ValueError en startup.
 """
 from dataclasses import dataclass
 from typing import Literal

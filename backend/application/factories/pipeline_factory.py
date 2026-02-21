@@ -16,6 +16,7 @@ from backend.domain.entities.conversation_state import ConversationFSM
 from backend.domain.ports.stt_port import STTPort
 from backend.domain.ports.tts_port import TTSPort
 from backend.domain.ports.llm_port import LLMPort
+from backend.domain.value_objects.audio_format import AudioFormat
 from backend.domain.use_cases.detect_turn_end import DetectTurnEndUseCase
 from backend.domain.use_cases.execute_tool import ExecuteToolUseCase
 from backend.domain.use_cases.handle_barge_in import HandleBargeInUseCase
@@ -104,11 +105,30 @@ class PipelineFactory:
             ProcessorChain with linked processors
         """
         logger.info(f"🏭 Building pipeline for stream: {stream_id or 'unknown'}")
-        
-        # 1. Instantiate Processors with enhanced DI
+
+        # --- Resolución de AudioFormat desde el tipo de cliente ---
+        # El client_type del agente es la fuente de verdad. Ningún procesador
+        # asume un formato propio (ver contrato en audio_format.py).
+        client_type = getattr(config, 'client_type', None)
+        if not client_type:
+            logger.warning(
+                "⚠️  client_type no encontrado en config. "
+                "Usando 'browser' como fallback seguro (24kHz PCM). "
+                "Verifica que el agente tiene client_type configurado."
+            )
+            client_type = 'browser'
+
+        audio_format = AudioFormat.for_client(client_type)
+        logger.info(
+            f"📡 AudioFormat resuelto: client_type={client_type!r} → "
+            f"sr={audio_format.sample_rate} bits={audio_format.bits_per_sample} "
+            f"enc={audio_format.encoding}"
+        )
+
+        # 1. Instantiate Processors with explicit AudioFormat
         vad = VADProcessor(config, detect_turn_end)
-        stt = STTProcessor(stt_port)              # audio_format injected via push_audio_frame
-        
+        stt = STTProcessor(stt_port, audio_format=audio_format)
+
         # LLM with optional enhancements
         llm = LLMProcessor(
             llm_port=llm_port,
@@ -117,22 +137,22 @@ class PipelineFactory:
             execute_tool_use_case=execute_tool,
             handle_barge_in_uc=handle_barge_in_uc  # FASE 2.6 integration
         )
-        
+
         tts = TTSProcessor(tts_port, config)
-        
+
         # 2. Wiring (Linear Pipeline)
         # Flow: Input → VAD → STT → LLM → TTS → Output
         vad.link(stt)
         stt.link(llm)
         llm.link(tts)
-        
+
         processors = [vad, stt, llm, tts]
-        
+
         logger.info(
             f"✅ Pipeline configured: {len(processors)} processors "
             f"(Tools: {bool(execute_tool)}, Barge-in: {bool(handle_barge_in_uc)})"
         )
-        
+
         return ProcessorChain(processors)
     
     @staticmethod

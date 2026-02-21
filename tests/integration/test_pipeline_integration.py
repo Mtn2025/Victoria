@@ -16,6 +16,10 @@ from backend.application.processors.frames import (
 from backend.application.processors.stt_processor import STTProcessor
 from backend.application.processors.llm_processor import LLMProcessor
 from backend.application.processors.tts_processor import TTSProcessor
+from backend.domain.value_objects.audio_format import AudioFormat
+
+# Formato de referencia para todos los tests de integración: browser 24kHz
+_BROWSER_FORMAT = AudioFormat.for_browser()
 
 
 @pytest.fixture
@@ -81,8 +85,8 @@ class TestPipelineIntegration:
     ):
         """Test complete pipeline: Audio → STT → LLM → TTS → Audio."""
         
-        # 1. Create processors
-        stt_processor = STTProcessor(stt_provider=mock_stt_port)
+        # 1. Create processors — audio_format obligatorio (contrato de capa)
+        stt_processor = STTProcessor(stt_provider=mock_stt_port, audio_format=_BROWSER_FORMAT)
         llm_processor = LLMProcessor(
             llm_port=mock_llm_port,
             config={},
@@ -113,10 +117,10 @@ class TestPipelineIntegration:
         await llm_processor.start()
         await tts_processor.start()
         
-        # 5. Send audio frame through pipeline
+        # 5. Send audio frame — sample_rate coincide con _BROWSER_FORMAT (24kHz)
         audio_frame = AudioFrame(
             data=b"fake_audio_input",
-            sample_rate=16000,
+            sample_rate=_BROWSER_FORMAT.sample_rate,
             channels=1
         )
         
@@ -132,7 +136,6 @@ class TestPipelineIntegration:
         session.process_audio.assert_called()
         
         # Output should contain AudioFrame from TTS
-        # We might have input frame pass-through, so check for the generated one
         audio_outputs = [f for f in output_frames if isinstance(f, AudioFrame) and f.data == b"fake_audio_data_12345"]
         assert len(audio_outputs) > 0, "Pipeline should produce generated audio output"
     
@@ -144,8 +147,8 @@ class TestPipelineIntegration:
     ):
         """Test that pipeline correctly handles system frames."""
         
-        # Create pipeline
-        stt = STTProcessor(stt_provider=mock_stt_port)
+        # Create pipeline — audio_format obligatorio
+        stt = STTProcessor(stt_provider=mock_stt_port, audio_format=_BROWSER_FORMAT)
         llm = LLMProcessor(llm_port=mock_llm_port, config={}, conversation_history=[])
         tts = TTSProcessor(tts_port=mock_tts_port, config={"voice_name": "default"})
         
@@ -181,8 +184,8 @@ class TestPipelineIntegration:
     ):
         """Test pipeline behavior under load."""
         
-        # Create pipeline
-        stt = STTProcessor(stt_provider=mock_stt_port)
+        # Create pipeline — audio_format obligatorio
+        stt = STTProcessor(stt_provider=mock_stt_port, audio_format=_BROWSER_FORMAT)
         llm = LLMProcessor(llm_port=mock_llm_port, config={}, conversation_history=[])
         tts = TTSProcessor(tts_port=mock_tts_port, config={"voice_name": "default"})
         
@@ -193,11 +196,11 @@ class TestPipelineIntegration:
         await llm.start()
         await tts.start()
         
-        # Send many frames rapidly
+        # Send many frames rapidly — sample_rate coincide con _BROWSER_FORMAT
         for i in range(10):
             audio_frame = AudioFrame(
                 data=f"audio_{i}".encode(),
-                sample_rate=16000,
+                sample_rate=_BROWSER_FORMAT.sample_rate,
                 channels=1
             )
             await stt.process_frame(audio_frame, FrameDirection.DOWNSTREAM)
@@ -221,7 +224,7 @@ class TestPipelineIntegration:
         # Make LLM raise error
         mock_llm_port.generate_stream.side_effect = Exception("LLM API Error")
         
-        stt = STTProcessor(stt_provider=mock_stt_port)
+        stt = STTProcessor(stt_provider=mock_stt_port, audio_format=_BROWSER_FORMAT)
         llm = LLMProcessor(llm_port=mock_llm_port, config={}, conversation_history=[])
         tts = TTSProcessor(tts_port=mock_tts_port, config={"voice_name": "default"})
         
@@ -255,7 +258,7 @@ class TestProcessorInteractions:
     async def test_stt_to_llm_flow(self, mock_stt_port, mock_llm_port):
         """Test STT processor outputs text that LLM can consume."""
         
-        stt = STTProcessor(stt_provider=mock_stt_port)
+        stt = STTProcessor(stt_provider=mock_stt_port, audio_format=_BROWSER_FORMAT)
         llm = LLMProcessor(llm_port=mock_llm_port, config={}, conversation_history=[])
         
         stt.link(llm)
@@ -273,8 +276,8 @@ class TestProcessorInteractions:
         
         llm.process_frame = capture_process
         
-        # Send audio to STT
-        audio = AudioFrame(data=b"test_audio", sample_rate=16000, channels=1)
+        # Send audio to STT — sample_rate coincide con _BROWSER_FORMAT
+        audio = AudioFrame(data=b"test_audio", sample_rate=_BROWSER_FORMAT.sample_rate, channels=1)
         await stt.process_frame(audio, FrameDirection.DOWNSTREAM)
         
         await asyncio.sleep(0.5)

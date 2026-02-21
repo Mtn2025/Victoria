@@ -1,6 +1,9 @@
 """
 STT Processor.
 Part of the Application Layer (Hexagonal Architecture).
+
+NOTA: audio_format DEBE ser pasado explícitamente por PipelineFactory.
+Ningún formato se asume por defecto (ver contrato en audio_format.py).
 """
 import asyncio
 import logging
@@ -20,22 +23,40 @@ class STTProcessor(FrameProcessor):
     Consumes Results from STT -> Pushes TextFrames downstream.
     """
 
-    def __init__(self, stt_provider: STTPort, audio_format: AudioFormat = AudioFormat.for_telephony()):
+    def __init__(self, stt_provider: STTPort, audio_format: Optional[AudioFormat] = None):
         super().__init__(name="STTProcessor")
         self.stt_provider = stt_provider
         self.audio_format = audio_format
         self.session: Optional[STTSession] = None
         self._reader_task: Optional[asyncio.Task] = None
+        logger.info(
+            f"[STT INIT] audio_format declared: "
+            f"sr={audio_format.sample_rate if audio_format else 'NONE'} "
+            f"bits={audio_format.bits_per_sample if audio_format else 'NONE'} "
+            f"enc={audio_format.encoding if audio_format else 'NONE'}"
+        )
 
     async def start(self):
         """Initialize STT Session."""
+        # --- Fast-fail: formato obligatorio ---
+        if self.audio_format is None:
+            raise ValueError(
+                "STTProcessor requires an explicit audio_format. "
+                "PipelineFactory must pass AudioFormat.for_client(config.client_type). "
+                "No default format is assumed to avoid silent mismatch with the STT provider."
+            )
         try:
             # Start the streaming session via the Port
             self.session = await self.stt_provider.start_stream(format=self.audio_format)
             
             # Start background reader for results
             self._reader_task = asyncio.create_task(self._read_results())
-            logger.info("STTProcessor started.")
+            logger.info(
+                f"STTProcessor started. "
+                f"Format: sr={self.audio_format.sample_rate} "
+                f"bits={self.audio_format.bits_per_sample} "
+                f"enc={self.audio_format.encoding}"
+            )
         except Exception as e:
             logger.error(f"Failed to start STTProcessor: {e}")
             raise
@@ -63,6 +84,14 @@ class STTProcessor(FrameProcessor):
         """
         if direction == FrameDirection.DOWNSTREAM:
             if isinstance(frame, AudioFrame):
+                # --- Mismatch guard: detecta discrepancia de formato en runtime ---
+                if self.audio_format and frame.sample_rate != self.audio_format.sample_rate:
+                    logger.warning(
+                        f"[STT MISMATCH] Frame sample_rate={frame.sample_rate} "
+                        f"!= declared format sample_rate={self.audio_format.sample_rate}. "
+                        f"Azure recibirá audio ininteligible. "
+                        f"Verifica client_type en la configuración del agente."
+                    )
                 if self.session:
                     # Push content to STT
                     await self.session.process_audio(frame.data)
