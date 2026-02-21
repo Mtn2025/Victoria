@@ -224,40 +224,43 @@ from backend.domain.value_objects.audio_format import AudioFormat
 @router.post("/options/tts/preview")
 async def preview_tts_voice(request: VoicePreviewRequest):
     """
-    Generate an audio preview for a specific voice configuration.
+    Generate a WAV audio preview for a specific voice configuration.
+
+    Returns Riff16Khz16BitMonoPcm (WAV with RIFF header) — required by
+    HTML5 Audio / new Audio(). Raw PCM causes NotSupportedError in browsers.
     """
     registry = StaticTTSRegistryAdapter()
-    
+
     try:
         adapter = registry.get_provider_adapter(request.provider)
-        
-        # Build VoiceConfig domain object
+
         vc = VoiceConfig(
             name=request.voice_name,
             speed=request.voice_speed,
             pitch=request.voice_pitch,
             volume=request.voice_volume,
             style=request.voice_style or "default",
-            style_degree=request.voice_style_degree or 1.0
+            style_degree=request.voice_style_degree or 1.0,
         )
-        
-        # Request Web-compatible format for browser HTML5 Audio playback (WAV)
-        format_obj = AudioFormat(encoding="pcm", sample_rate=16000, channels=1)
-        
-        # We need a generic sample text for the language
+
         sample_text = "Hola, esta es una prueba de voz para comprobar la configuración."
-        if request.provider == "elevenlabs" and "multilingual" not in getattr(vc, 'locale', ''):
-             # Elevenlabs default preview.
-             sample_text = "Hello, this is a voice test to check the current configuration."
-             
-        audio_bytes = await adapter.synthesize(text=sample_text, voice=vc, format=format_obj)
-        
+        if request.provider == "elevenlabs":
+            sample_text = "Hello, this is a voice test to check the current configuration."
+
+        # synthesize_for_preview() uses Riff (WAV header included).
+        # Fallback: generic synthesize() — non-Azure adapters may not need the header.
+        if hasattr(adapter, "synthesize_for_preview"):
+            audio_bytes = await adapter.synthesize_for_preview(text=sample_text, voice=vc)
+        else:
+            format_obj = AudioFormat(encoding="pcm", sample_rate=16000, channels=1)
+            audio_bytes = await adapter.synthesize(text=sample_text, voice=vc, format=format_obj)
+
         return Response(content=audio_bytes, media_type="audio/wav")
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Text-to-Speech synthesis failed: {e}")
+        logger.error(f"Text-to-Speech preview failed: {e}")
         raise HTTPException(status_code=500, detail="Voice synthesis failed")
 
 @router.get("/options/llm/providers")

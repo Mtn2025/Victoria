@@ -104,6 +104,43 @@ class AzureTTSAdapter(TTSPort):
              # Default Fallback
              speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw)
 
+    def _configure_format_for_preview(self, speech_config):
+        """
+        Configure output format for browser HTML5 audio preview.
+
+        Uses Riff16Khz16BitMonoPcm (not Raw*) because:
+        - Raw formats produce bare PCM bytes with no RIFF/WAV header.
+        - Browsers require the RIFF header to parse the WAV container.
+        - The Riff* variants in Azure SDK prepend the 44-byte header automatically.
+        """
+        speech_config.set_speech_synthesis_output_format(
+            speechsdk.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm
+        )
+
+    async def synthesize_for_preview(self, text: str, voice: VoiceConfig) -> bytes:
+        """
+        Synthesize text to WAV bytes suitable for browser preview.
+
+        Uses Riff16Khz16BitMonoPcm so the output includes the RIFF/WAV header
+        expected by HTML5 Audio and new Audio(). Regular synthesize() uses Raw*
+        formats (no header) intended for real-time streaming pipelines.
+        """
+        self._configure_format_for_preview(self.speech_config)
+        audio_config = speechsdk.audio.AudioConfig(filename="/dev/null")
+        synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=self.speech_config,
+            audio_config=audio_config,
+        )
+        ssml = self._build_ssml(text, voice)
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None, lambda: synthesizer.speak_ssml_async(ssml).get()
+        )
+        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            return result.audio_data
+        details = result.cancellation_details
+        raise Exception(f"Azure TTS preview failed: {details.reason} — {details.error_details}")
+
     def _build_ssml(self, text: str, voice: VoiceConfig) -> str:
         """
         Construct SSML with voice configuration.
