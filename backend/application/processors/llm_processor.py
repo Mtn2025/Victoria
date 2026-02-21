@@ -49,6 +49,12 @@ class LLMProcessor(FrameProcessor):
             if isinstance(frame, TextFrame):
                 # Only process final user transcripts
                 if frame.is_final and frame.role == "user":
+                    # [PIPE-8] TextFrame (user transcript) reached LLMProcessor
+                    logger.info(
+                        f"[PIPE-8/LLM] TextFrame received: "
+                        f"role={frame.role!r} is_final={frame.is_final} "
+                        f"text={frame.text[:50]!r}"
+                    )
                     logger.info(f"Processing User Input: {frame.text[:30]}...")
                     
                     # Handle interruption if generation is in progress

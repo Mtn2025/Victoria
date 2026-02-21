@@ -84,6 +84,11 @@ class STTProcessor(FrameProcessor):
         """
         if direction == FrameDirection.DOWNSTREAM:
             if isinstance(frame, AudioFrame):
+                # [PIPE-4] AudioFrame arrived at STTProcessor
+                logger.info(
+                    f"[PIPE-4/STT] AudioFrame: {len(frame.data)}B "
+                    f"sr={frame.sample_rate} session={'ACTIVE' if self.session else 'NONE'}"
+                )
                 # --- Mismatch guard: detecta discrepancia de formato en runtime ---
                 if self.audio_format and frame.sample_rate != self.audio_format.sample_rate:
                     logger.warning(
@@ -93,6 +98,11 @@ class STTProcessor(FrameProcessor):
                         f"Verifica client_type en la configuración del agente."
                     )
                 if self.session:
+                    # [PIPE-5] Bytes entering Azure push_stream
+                    logger.info(
+                        f"[PIPE-5/STT→AZURE] sending {len(frame.data)}B "
+                        f"to session.process_audio()"
+                    )
                     # Push content to STT
                     await self.session.process_audio(frame.data)
                     

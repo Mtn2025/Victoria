@@ -137,6 +137,12 @@ class TTSProcessor(FrameProcessor):
         audio_format = AudioFormat.for_client(client_type)
         
         logger.info(f"Synthesizing: {text[:30]}... (Voice: {voice_config.name})")
+        # [PIPE-9] TTS synthesis starting
+        logger.info(
+            f"[PIPE-9/TTS] Synthesizing: {text[:50]!r} "
+            f"voice={voice_config.name} fmt=sr={audio_format.sample_rate}"
+        )
+
 
         try:
             async for audio_chunk in self.tts_port.synthesize_stream(text, voice_config, audio_format):

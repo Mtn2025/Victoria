@@ -54,9 +54,15 @@ class VADProcessor(FrameProcessor):
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         if direction == FrameDirection.DOWNSTREAM:
             if isinstance(frame, AudioFrame):
+                # [PIPE-2] Audio frame arrived at VADProcessor
+                logger.info(
+                    f"[PIPE-2/VAD] AudioFrame received: {len(frame.data)}B "
+                    f"sr={frame.sample_rate} ch={frame.channels}"
+                )
                 await self._process_audio(frame)
                 await self.push_frame(frame, direction) # Pass audio through
             else:
+                logger.debug(f"[PIPE-2/VAD] non-audio frame: {type(frame).__name__}")
                 await self.push_frame(frame, direction)
         else:
             await self.push_frame(frame, direction)
