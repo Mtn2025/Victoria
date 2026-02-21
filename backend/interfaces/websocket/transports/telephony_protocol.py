@@ -53,27 +53,26 @@ class TelephonyProtocol:
 
         # Browser / Generic
         elif self.client_type == "browser":
-             # Assert "type" is present, or map "event"
-             msg_type = msg.get("type") or msg.get("event")
-             if msg_type == "start":
-                 return {"type": "start", "stream_id": msg.get("stream_id")}
-             elif msg_type == "stop":
-                 return {"type": "stop"}
-             elif msg_type == "media":
-                 # Browser typically sends raw bytes via binary frame, but if they send JSON media:
-                 payload = msg.get("data") or msg.get("payload")
-                 if payload:
-                      # Is it base64? Simulator uses base64 in JSON mode? 
-                      # The simulator in frontend calls `ws.send(audioData)` which are bytes.
-                      # But for text events it uses JSON.
-                      # If browser sends JSON media, assume base64.
-                      try:
-                          chunk = base64.b64decode(payload)
-                          return {"type": "media", "data": chunk}
-                      except:
-                          return {"type": "unknown", "raw": msg}
-                 return {"type": "unknown", "raw": msg}
-             
+            msg_type = msg.get("type") or msg.get("event")
+            if msg_type == "start":
+                return {"type": "start", "stream_id": msg.get("stream_id"), "start": msg.get("start")}
+            elif msg_type == "stop":
+                return {"type": "stop"}
+            elif msg_type == "media":
+                # Frontend sends: { event:'media', media:{ payload:<b64>, track, timestamp } }
+                payload = (
+                    msg.get("data")
+                    or msg.get("payload")
+                    or msg.get("media", {}).get("payload")  # ← correct path
+                )
+                if payload:
+                    try:
+                        chunk = base64.b64decode(payload)
+                        return {"type": "media", "data": chunk}
+                    except Exception:
+                        return {"type": "unknown", "raw": msg}
+                return {"type": "unknown", "raw": msg}
+
         return {"type": "unknown", "raw": msg}
 
     def create_media_message(self, audio_chunk: bytes) -> str:

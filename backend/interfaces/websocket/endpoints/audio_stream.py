@@ -152,7 +152,7 @@ async def audio_stream(
 
                 # ── "start" event ──────────────────────────────────────
                 if event["type"] == "start":
-                    if client == "browser" and "start" in event:
+                    if client == "browser" and event.get("start"):
                         stream_id = event["start"].get("streamSid") or stream_id
                     else:
                         stream_id = event.get("stream_id") or stream_id
