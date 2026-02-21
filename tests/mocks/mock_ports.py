@@ -68,6 +68,11 @@ class MockAgentRepository(AgentRepository):
             raise AgentNotFoundError(f"No agent with uuid={agent_uuid}")
         return target
 
+    async def delete_agent(self, agent_uuid: str) -> None:
+        agent = await self.get_agent_by_uuid(agent_uuid)
+        if agent:
+            del self.agents[agent.name]
+
 class MockSTTPort(STTPort):
     async def transcribe(self, audio: bytes, format, language="es-MX") -> str:
         return "mock transcription"
