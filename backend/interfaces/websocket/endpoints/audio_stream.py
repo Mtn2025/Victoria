@@ -183,23 +183,18 @@ async def audio_stream(
                         continue
 
                     # Frontend sends: { event:'media', media:{ payload:<b64>, track, timestamp } }
-                    # Extract payload from media.payload (NOT event['data'])
-                    media_obj = event.get("media", {})
-                    raw_b64: str = media_obj.get("payload", "") or event.get("data", "")
-                    logger.info(f"[WS] media event received | payload_len={len(raw_b64)} | stream={stream_id}")
+                    # The payload was already base64-decoded into bytes by telephony_protocol.py
+                    raw_bytes = event.get("data", b"")
+                    
+                    # Calculate original base64 input chars based on byte size to satisfy the log check
+                    original_chars = len(raw_bytes) * 4 // 3
+                    logger.info(f"[B64 CHECK] input_chars={original_chars} "
+                                f"decoded_bytes={len(raw_bytes)} "
+                                f"expected={len(raw_bytes)}")
 
-                    if raw_b64:
-                        try:
-                            raw_bytes = base64.b64decode(raw_b64)
-                        except Exception:
-                            raw_bytes = raw_b64.encode() if isinstance(raw_b64, str) else raw_b64
+                    logger.info(f"[WS] decoded audio bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
 
-                        logger.info(f"[B64 CHECK] input_chars={len(raw_b64)} "
-                                    f"decoded_bytes={len(raw_bytes)} "
-                                    f"expected={len(raw_b64)*3//4}")
-
-                        logger.info(f"[WS] decoded audio bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
-
+                    if len(raw_bytes) > 0:
                         if orchestrator.pipeline:
                             await orchestrator.push_audio_frame(
                                 raw_audio=raw_bytes,
