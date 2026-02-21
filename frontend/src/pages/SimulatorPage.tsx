@@ -4,7 +4,7 @@ import { AudioVisualizer } from '@/components/features/Simulator/AudioVisualizer
 import { ChatInterface } from '@/components/features/Simulator/ChatInterface';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Terminal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
 const SimulatorPage = () => {
     const [debugLogs, setDebugLogs] = useState<DebugLog[]>([]);
@@ -129,8 +129,8 @@ const SimulatorPage = () => {
 
                         <AudioVisualizer
                             mode={visualizerMode}
-                            analyser={analyser}
-                            outputAnalyser={outputAnalyser}
+                            analyser={analyser.current}
+                            outputAnalyser={outputAnalyser.current}
                             isAgentSpeaking={isAgentSpeaking}
                         />
                     </div>
@@ -148,9 +148,9 @@ const SimulatorPage = () => {
                                         <div className="flex gap-2 text-slate-500">
                                             <span>{log.timestamp}</span>
                                             <span className={`font-bold ${log.type === 'WS_SEND' ? 'text-blue-400' :
-                                                    log.type === 'WS_RECV' ? 'text-green-400' :
-                                                        log.type === 'ERROR' ? 'text-red-400' :
-                                                            'text-slate-300'
+                                                log.type === 'WS_RECV' ? 'text-green-400' :
+                                                    log.type === 'ERROR' ? 'text-red-400' :
+                                                        'text-slate-300'
                                                 }`}>{log.type}</span>
                                         </div>
                                         <div className="text-slate-400 pl-4">

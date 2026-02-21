@@ -1,5 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * useAudioSimulator — Ref-first architecture.
+ *
+ * DESIGN RULES:
+ *   1. All mutable state lives in useRef — never causes re-renders.
+ *   2. React state (useState) is only for UI rendering: simState, isAgentSpeaking, transcripts.
+ *   3. startTest and stopTest are stored in refs so they never change identity.
+ *      No useCallback, no cross-dependencies.
+ *   4. useEffect cleanup has deps=[] — fires ONLY on true unmount, never on re-renders.
+ *   5. Callbacks passed as props (onTranscript, onDebugLog) are kept in refs so they
+ *      can be read with the latest value without being listed as dependencies.
+ */
+import { useState, useEffect, useRef } from 'react';
 import { WS_BASE_URL } from '../utils/constants';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface TranscriptMessage {
     role: 'user' | 'assistant' | 'system';
@@ -27,368 +41,359 @@ interface UseAudioSimulatorProps {
     onDebugLog?: (log: DebugLog) => void;
 }
 
-export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulatorProps = {}) => {
-    const [simState, setSimState] = useState<SimulatorState>('ready');
-    const [vadLevel, setVadLevel] = useState(0);
-    const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
-    const [metrics, setMetrics] = useState<SimulatorMetrics>({ llm_latency: null, tts_latency: null });
-    const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
+export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulatorProps = {}) => {
+
+    // ── UI state (only for rendering) ──
+    const [simState, setSimState] = useState<SimulatorState>('ready');
+    const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
+    const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
+    const [vadLevel, setVadLevel] = useState(0);
+    const [metrics, setMetrics] = useState<SimulatorMetrics>({ llm_latency: null, tts_latency: null });
+
+    // ── Mutable refs (never trigger re-renders) ──
     const ws = useRef<WebSocket | null>(null);
-    const audioContext = useRef<AudioContext | null>(null);
+    const audioCtx = useRef<AudioContext | null>(null);
     const processor = useRef<AudioWorkletNode | null>(null);
-    const mediaStream = useRef<MediaStream | null>(null);
+    const stream = useRef<MediaStream | null>(null);
     const analyser = useRef<AnalyserNode | null>(null);
     const outputAnalyser = useRef<AnalyserNode | null>(null);
-    const speakingTimer = useRef<NodeJS.Timeout | null>(null);
+    const speakingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Initializate Audio Context
-    const initAudioContext = useCallback(async () => {
-        const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
-        if (!audioContext.current) {
-            audioContext.current = new AudioCtor({ sampleRate: 24000 }); // Updated to 24kHz for better quality if supported
-        }
-        if (audioContext.current?.state === 'suspended') {
-            await audioContext.current.resume();
-        }
-    }, []);
-
-    // Keep a ref to the latest onDebugLog so that logging functions can
-    // read it without being listed as a dependency (which would cascade into
-    // stopTest/startTest recreations and trigger useEffect cleanup on re-renders).
+    // ── Prop refs (always up-to-date without dep lists) ──
+    const onTranscriptRef = useRef(onTranscript);
     const onDebugLogRef = useRef(onDebugLog);
+    useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
     useEffect(() => { onDebugLogRef.current = onDebugLog; }, [onDebugLog]);
 
-    const addDebugLog = useCallback((type: string, data: any) => {
-        if (onDebugLogRef.current) {
-            const log: DebugLog = {
-                type,
-                ...data,
-                timestamp: new Date().toISOString().split('T')[1].slice(0, -1)
-            };
-            onDebugLogRef.current(log);
-        }
-    }, []); // stable — reads onDebugLog via ref
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers (plain functions — zero React deps)
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // stopTest is intentionally defined with EMPTY deps [] so its identity is
-    // stable across ALL re-renders. It reads onDebugLog via onDebugLogRef,
-    // and setState dispatchers (setSimState, setIsAgentSpeaking) are guaranteed
-    // stable by React. All other targets are refs.
-    //
-    // WHY: If stopTest had any non-ref dependency (e.g. addDebugLog), it would
-    // re-create on every render that changes that dep. The component receives
-    // the new stopTest, and useEffect(cleanup, [stopTest]) fires its cleanup,
-    // calling stopTest() and closing the WebSocket mid-session.
-    const stopTest = useCallback(() => {
+    const log = (type: string, data: Record<string, unknown> = {}) => {
+        if (!onDebugLogRef.current) return;
+        onDebugLogRef.current({
+            type,
+            ...data,
+            timestamp: new Date().toISOString().split('T')[1].slice(0, -1),
+        });
+    };
+
+    const markAgentSpeaking = () => {
+        setIsAgentSpeaking(true);
+        if (speakingTimer.current) clearTimeout(speakingTimer.current);
+        speakingTimer.current = setTimeout(() => setIsAgentSpeaking(false), 300);
+    };
+
+    // Feed raw PCM16 bytes to the AudioWorklet for playback.
+    const feedAudioToWorklet = (pcm16: Int16Array) => {
+        if (!processor.current) {
+            console.warn('[SIM] feedAudioToWorklet: processor not ready, dropping frame');
+            return;
+        }
+        processor.current.port.postMessage(pcm16);
+        markAgentSpeaking();
+    };
+
+    // Decode base64 TTS payload (JSON media event) → PCM16 → worklet.
+    const playBase64Audio = (base64Data: string) => {
+        if (!base64Data || !audioCtx.current) return;
+        try {
+            const binary = window.atob(base64Data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            feedAudioToWorklet(new Int16Array(bytes.buffer));
+        } catch (e) {
+            console.error('[SIM] playBase64Audio error:', e);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // stopTest — stored in a ref so its identity is permanently stable.
+    // The component can call stopTestFn.current() directly.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const stopTestFn = useRef<() => void>(() => { });
+    stopTestFn.current = () => {
         console.warn('[DIAG] stopTest() CALLED FROM:', new Error().stack);
-        console.log('Stopping simulator test...');
-        setSimState('ready');
-        // Inline the debug log using the ref directly (not addDebugLog) to
-        // avoid any closure or dependency issue.
-        if (onDebugLogRef.current) {
-            onDebugLogRef.current({
-                type: 'SYSTEM',
-                event: 'STOP_TEST',
-                timestamp: new Date().toISOString().split('T')[1].slice(0, -1)
-            });
-        }
 
+        // Null out onclose FIRST to prevent re-entrant stopTest call from onclose handler.
         if (ws.current) {
             ws.current.onclose = null;
             ws.current.close();
             ws.current = null;
         }
-
         if (processor.current) {
             processor.current.disconnect();
             processor.current.port.onmessage = null;
             processor.current = null;
         }
-
-        if (mediaStream.current) {
-            mediaStream.current.getTracks().forEach(t => t.stop());
-            mediaStream.current = null;
+        if (stream.current) {
+            stream.current.getTracks().forEach(t => t.stop());
+            stream.current = null;
         }
-
-        if (audioContext.current) {
-            audioContext.current.close().catch(console.error);
-            audioContext.current = null;
+        if (audioCtx.current) {
+            audioCtx.current.close().catch(() => { });
+            audioCtx.current = null;
         }
-
+        if (speakingTimer.current) {
+            clearTimeout(speakingTimer.current);
+            speakingTimer.current = null;
+        }
         analyser.current = null;
         outputAnalyser.current = null;
+
+        setSimState('ready');
         setIsAgentSpeaking(false);
-    }, []); // stable — all reads go through refs or stable dispatchers
+        log('SYSTEM', { event: 'STOP_TEST' });
+    };
 
-    const playAudio = useCallback((base64Data: string) => {
-        if (!base64Data || !audioContext.current) return;
-
-        // TODO: This uses the PCM Worklet if available, or just fallback?
-        // For now relying on worklet is best for streaming.
-        // If worklet is not waiting for data, we can't push.
-
-        if (processor.current) {
-            try {
-                const binaryString = window.atob(base64Data);
-                const len = binaryString.length;
-                const bytes = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                const pcm16 = new Int16Array(bytes.buffer);
-                processor.current.port.postMessage(pcm16); // Send to worklet for playback
-
-                setIsAgentSpeaking(true);
-                if (speakingTimer.current) clearTimeout(speakingTimer.current);
-                speakingTimer.current = setTimeout(() => {
-                    setIsAgentSpeaking(false);
-                }, 300);
-
-            } catch (e) {
-                console.error("Playback Error", e);
-            }
-        }
-    }, []);
-
-    // Start Test
-    const startTest = useCallback(async (config: { initialMsg: string, initiator: string, voiceStyle: string }) => {
-        try {
-            if (simState === 'connected' || simState === 'connecting') {
-                stopTest();
-                return;
-            }
-
-            setSimState('connecting');
-            setTranscripts([]);
-            addDebugLog('SYSTEM', { event: 'START_TEST_INIT', config });
-
-            // Note: WS_BASE_URL is injected by Nginx/envsubst or Vite fallback 
-            // e.g. wss://api.victoria.com/ws/media-stream
-            // agent_id = active agent UUID from Redux (empty → backend falls back to active agent)
-            const { store } = await import('../store/store')
-            const agentUuid = store.getState().agents.activeAgent?.agent_uuid ?? ''
-            const wsUrl = `${WS_BASE_URL}?client=browser` +
-                (agentUuid ? `&agent_id=${encodeURIComponent(agentUuid)}` : '') +
-                `&initial_message=${encodeURIComponent(config.initialMsg)}` +
-                `&initiator=${encodeURIComponent(config.initiator)}` +
-                `&voice_style=${encodeURIComponent(config.voiceStyle)}`;
-
-            console.log("Connecting to WS:", wsUrl);
-
-            // Init WS
-            ws.current = new WebSocket(wsUrl);
-            ws.current.binaryType = 'arraybuffer';
-
-            ws.current.onopen = async () => {
-                console.log("WS Connected");
-                setSimState('connected');
-                addDebugLog('WS', { event: 'OPEN' });
-
-                // Init Mic
-                await initMicrophone();
-
-                // Send Start
-                if (ws.current?.readyState === WebSocket.OPEN) {
-                    const startMsg = {
-                        event: 'start',
-                        start: {
-                            streamSid: 'browser-' + Date.now(),
-                            callSid: 'sim-' + Date.now(),
-                            media_format: { encoding: 'audio/pcm', sample_rate: 24000, channels: 1 }
-                        }
-                    };
-                    ws.current.send(JSON.stringify(startMsg));
-                    addDebugLog('WS_SEND', { event: 'START', data: startMsg });
-                }
-            };
-
-            ws.current.onmessage = (event) => {
-                if (event.data instanceof ArrayBuffer) {
-                    // Binary Audio (PCM16)
-                    console.log('[DIAG] AUDIO RECEIVED', event.data.byteLength, 'bytes | processor.current:', processor.current);
-                    const pcm16 = new Int16Array(event.data);
-                    if (processor.current) {
-                        processor.current.port.postMessage(pcm16);
-
-                        setIsAgentSpeaking(true);
-                        if (speakingTimer.current) clearTimeout(speakingTimer.current);
-                        speakingTimer.current = setTimeout(() => {
-                            setIsAgentSpeaking(false);
-                        }, 300);
-                    } else {
-                        console.warn('[DIAG] AUDIO DROPPED — processor.current is null (worklet not ready yet)');
-                    }
-                } else {
-                    // Text Control Messages
-                    try {
-                        const msg = JSON.parse(event.data);
-                        // Filter out incessant logs if needed, but for debug we want them
-                        if (msg.event !== 'media' && msg.type !== 'audio') {
-                            addDebugLog('WS_RECV', msg);
-                        }
-
-                        if (msg.event === 'media' || msg.type === 'audio') {
-                            const payload = msg.media ? msg.media.payload : msg.data;
-                            playAudio(payload);
-                        } else if (msg.type === 'debug') {
-
-                            if (msg.event === 'speech_state') setIsAgentSpeaking(msg.data.speaking);
-                            else if (msg.event === 'vad_level') setVadLevel(msg.data.rms);
-                            else if (msg.event === 'llm_latency') setMetrics(m => ({ ...m, llm_latency: msg.data.duration_ms + ' ms' }));
-                            else if (msg.event === 'tts_latency') setMetrics(m => ({ ...m, tts_latency: msg.data.duration_ms + ' ms' }));
-
-                        } else if (msg.type === 'transcript') {
-                            const newMsg: TranscriptMessage = {
-                                role: msg.role,
-                                text: msg.text,
-                                timestamp: new Date().toLocaleTimeString()
-                            };
-                            setTranscripts(prev => [...prev, newMsg]);
-                            if (onTranscript) onTranscript(newMsg);
-                        }
-                    } catch (err) {
-                        console.error("Error processing WS message:", err);
-                    }
-                }
-            };
-
-            ws.current.onclose = (event) => {
-                // DIAG: log all WS close details
-                console.warn('[DIAG] WS CLOSED | code:', event.code, '| reason:', event.reason || '(none)', '| wasClean:', event.wasClean);
-                addDebugLog('WS', { event: 'CLOSE', code: event.code, reason: event.reason, wasClean: event.wasClean });
-                stopTest();
-            };
-
-            ws.current.onerror = (e) => {
-                // DIAG: log WS error details
-                console.error('[DIAG] WS ERROR event:', e);
-                addDebugLog('WS', { event: 'ERROR', detail: String(e) });
-                // onerror is always followed by onclose — stopTest() runs there
-            };
-
-        } catch (e) {
-            console.error('Connection failed', e);
-            stopTest();
-        }
-    }, [simState, initAudioContext, stopTest, playAudio, onTranscript, addDebugLog]);
-
-    // Cleanup on true unmount only.
-    // deps = [] is correct: stopTest is now identity-stable (empty deps useCallback),
-    // so React will not re-run this effect on re-renders.
-    useEffect(() => {
-        return () => { stopTest(); };
-    }, [stopTest]);
+    // ─────────────────────────────────────────────────────────────────────────
+    // initMicrophone — plain async function, no deps.
+    // ─────────────────────────────────────────────────────────────────────────
 
     const initMicrophone = async () => {
         try {
-            await initAudioContext();
-            if (!audioContext.current) return;
+            // ── 1. AudioContext ──
+            if (!audioCtx.current) {
+                const AC = window.AudioContext || (window as any).webkitAudioContext;
+                audioCtx.current = new AC({ sampleRate: 24000 });
+            }
 
-            // Analysers
-            analyser.current = audioContext.current.createAnalyser();
-            analyser.current.fftSize = 512; // Higher resolution for visualizer
-
-            outputAnalyser.current = audioContext.current.createAnalyser();
-            outputAnalyser.current.fftSize = 512;
-            outputAnalyser.current.connect(audioContext.current.destination);
-
-            // Media Stream
-            mediaStream.current = await navigator.mediaDevices.getUserMedia({
+            // ── 2. getUserMedia ──
+            stream.current = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
-                    sampleRate: 24000
-                }
+                    sampleRate: 24000,
+                },
             });
 
-            // CRITICAL: Resume AudioContext *after* getUserMedia.
-            // Browsers suspend the AudioContext if it was created before a user
-            // gesture (or resume it lazily). getUserMedia provides the right
-            // moment to ensure the context is running before we wire the graph.
-            if (audioContext.current.state === 'suspended') {
-                await audioContext.current.resume();
-                console.log('[DIAG] AudioContext resumed after getUserMedia, state:', audioContext.current.state);
-            } else {
-                console.log('[DIAG] AudioContext state after getUserMedia:', audioContext.current.state);
+            // ── 3. Resume context AFTER getUserMedia (browser gesture unlock) ──
+            if (audioCtx.current.state === 'suspended') {
+                await audioCtx.current.resume();
             }
+            console.log('[DIAG] AudioContext state after getUserMedia:', audioCtx.current.state);
 
-            const source = audioContext.current.createMediaStreamSource(mediaStream.current);
+            // ── 4. Build analyser nodes ──
+            analyser.current = audioCtx.current.createAnalyser();
+            analyser.current.fftSize = 512;
+
+            outputAnalyser.current = audioCtx.current.createAnalyser();
+            outputAnalyser.current.fftSize = 512;
+            outputAnalyser.current.connect(audioCtx.current.destination);
+
+            // ── 5. Wire mic source to analyser ──
+            const source = audioCtx.current.createMediaStreamSource(stream.current);
             source.connect(analyser.current);
 
-            // Load Worklet
+            // ── 6. Load AudioWorklet ──
             try {
-                await audioContext.current.audioWorklet.addModule('/audio-worklet-processor.js');
+                await audioCtx.current.audioWorklet.addModule('/audio-worklet-processor.js');
 
-                processor.current = new AudioWorkletNode(audioContext.current, 'pcm-processor', {
-                    numberOfInputs: 1,    // standard: request one input bus so mic data flows in
+                processor.current = new AudioWorkletNode(audioCtx.current, 'pcm-processor', {
+                    numberOfInputs: 1,
                     numberOfOutputs: 1,
                     outputChannelCount: [1],
                     channelCount: 1,
                     channelCountMode: 'explicit',
                 } as AudioWorkletNodeOptions);
 
-                processor.current.port.onmessage = (event) => {
-                    // Microphone chunk from AudioWorklet → encode → send to backend
+                // Worklet → hook: mic data chunks (Int16Array) sent to backend.
+                processor.current.port.onmessage = (ev) => {
+                    const data = ev.data;
+
+                    // Debug message from worklet (e.g. empty_input)
+                    if (data && typeof data === 'object' && data.type === 'debug') {
+                        console.warn('[WORKLET]', data.msg, 'count:', data.count);
+                        return;
+                    }
+
+                    // Mic PCM16 chunk — encode as base64 and send to backend.
+                    if (!(data instanceof Int16Array)) return;
                     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) return;
 
-                    const pcm16 = event.data as Int16Array;
-                    // Skip debug-type messages from worklet
-                    if (!pcm16 || !(pcm16 instanceof Int16Array)) return;
-
-                    const bytes = new Uint8Array(pcm16.buffer);
+                    const bytes = new Uint8Array(data.buffer);
                     let binary = '';
-                    const len = bytes.byteLength;
-                    const CHUNK_SIZE = 0x8000;
-                    for (let i = 0; i < len; i += CHUNK_SIZE) {
-                        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK_SIZE)));
+                    const CHUNK = 0x8000;
+                    for (let i = 0; i < bytes.byteLength; i += CHUNK) {
+                        binary += String.fromCharCode.apply(
+                            null, Array.from(bytes.subarray(i, i + CHUNK))
+                        );
                     }
-                    const base64Audio = window.btoa(binary);
+                    const b64 = window.btoa(binary);
 
                     ws.current.send(JSON.stringify({
                         event: 'media',
-                        media: {
-                            payload: base64Audio,
-                            track: 'inbound',
-                            timestamp: Date.now()
-                        }
+                        media: { payload: b64, track: 'inbound', timestamp: Date.now() },
                     }));
                 };
 
+                // Wire: mic source → worklet → output analyser → speakers.
                 source.connect(processor.current);
-                processor.current.connect(outputAnalyser.current!);
+                processor.current.connect(outputAnalyser.current);
 
-                console.log('[DIAG] WORKLET_LOADED, AudioContext state:', audioContext.current.state);
-                addDebugLog('AUDIO', { event: 'WORKLET_LOADED' });
+                console.log('[DIAG] WORKLET_LOADED, AudioContext state:', audioCtx.current.state);
+                log('AUDIO', { event: 'WORKLET_LOADED' });
 
             } catch (err) {
-                // AudioWorklet failed (e.g. path not found, browser unsupported).
-                // DO NOT close the WS — the session must stay open so the user can
-                // still hear the greeting. Mic output just won't be sent.
-                console.error('AudioWorklet Error', err);
-                addDebugLog('AUDIO', { event: 'WORKLET_ERROR', error: String(err) });
-                // Note: no alert() here — it blocks the browser thread and destabilises WS state.
+                // Worklet failure: keep WS open — user still hears greeting.
+                console.error('[SIM] AudioWorklet load failed:', err);
+                log('AUDIO', { event: 'WORKLET_ERROR', error: String(err) });
             }
 
-        } catch (e) {
-            // getUserMedia failed (permission denied, no device, non-HTTPS, etc.).
-            // DO NOT call stopTest() — that would close the WebSocket and disconnect
-            // the backend session. The session stays open; the user just can't send audio.
-            // The backend greeting will still play.
-            console.error('Mic Error', e);
-            addDebugLog('AUDIO', { event: 'MIC_ERROR', error: String(e) });
+        } catch (err) {
+            // getUserMedia failure: keep WS open — greeting still plays.
+            console.error('[SIM] getUserMedia failed:', err);
+            log('AUDIO', { event: 'MIC_ERROR', error: String(err) });
         }
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // startTest — stored in a ref so its identity is permanently stable.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const startTestFn = useRef<(config: { initialMsg: string; initiator: string; voiceStyle: string }) => Promise<void>>(
+        async () => { }
+    );
+    startTestFn.current = async (config) => {
+        // Guard: if already running, stop first.
+        if (ws.current) {
+            stopTestFn.current();
+            return;
+        }
+
+        setSimState('connecting');
+        setTranscripts([]);
+        log('SYSTEM', { event: 'START_TEST_INIT', config });
+
+        try {
+            // Resolve active agent UUID from Redux store (dynamic import avoids circular dep).
+            const { store } = await import('../store/store');
+            const agentUuid = store.getState().agents.activeAgent?.agent_uuid ?? '';
+
+            const wsUrl =
+                `${WS_BASE_URL}?client=browser` +
+                (agentUuid ? `&agent_id=${encodeURIComponent(agentUuid)}` : '') +
+                `&initial_message=${encodeURIComponent(config.initialMsg)}` +
+                `&initiator=${encodeURIComponent(config.initiator)}` +
+                `&voice_style=${encodeURIComponent(config.voiceStyle)}`;
+
+            console.log('[SIM] Connecting to WS:', wsUrl);
+            const socket = new WebSocket(wsUrl);
+            socket.binaryType = 'arraybuffer';
+            ws.current = socket;
+
+            // ── onopen ──
+            socket.onopen = async () => {
+                console.log('[SIM] WS connected');
+                setSimState('connected');
+                log('WS', { event: 'OPEN' });
+
+                // Init mic (non-fatal — WS stays open even if mic fails).
+                await initMicrophone();
+
+                // Send start event to backend.
+                if (socket.readyState === WebSocket.OPEN) {
+                    const startMsg = {
+                        event: 'start',
+                        start: {
+                            streamSid: 'browser-' + Date.now(),
+                            callSid: 'sim-' + Date.now(),
+                            media_format: { encoding: 'audio/pcm', sample_rate: 24000, channels: 1 },
+                        },
+                    };
+                    socket.send(JSON.stringify(startMsg));
+                    log('WS_SEND', { event: 'START', data: startMsg });
+                }
+            };
+
+            // ── onmessage ──
+            socket.onmessage = (ev) => {
+                // ── Binary: raw PCM16 greeting / TTS audio ──
+                if (ev.data instanceof ArrayBuffer) {
+                    console.log('[DIAG] AUDIO RECEIVED', ev.data.byteLength, 'bytes | processor:', processor.current);
+                    feedAudioToWorklet(new Int16Array(ev.data));
+                    return;
+                }
+
+                // ── Text: JSON control messages ──
+                try {
+                    const msg = JSON.parse(ev.data as string);
+
+                    // Suppress media/audio spam from debug panel
+                    if (msg.event !== 'media' && msg.type !== 'audio') {
+                        log('WS_RECV', msg);
+                    }
+
+                    if (msg.event === 'media' || msg.type === 'audio') {
+                        const payload = msg.media?.payload ?? msg.data;
+                        playBase64Audio(payload);
+
+                    } else if (msg.type === 'debug') {
+                        if (msg.event === 'speech_state') setIsAgentSpeaking(msg.data?.speaking ?? false);
+                        else if (msg.event === 'vad_level') setVadLevel(msg.data?.rms ?? 0);
+                        else if (msg.event === 'llm_latency') setMetrics(m => ({ ...m, llm_latency: `${msg.data?.duration_ms} ms` }));
+                        else if (msg.event === 'tts_latency') setMetrics(m => ({ ...m, tts_latency: `${msg.data?.duration_ms} ms` }));
+
+                    } else if (msg.type === 'transcript') {
+                        const newMsg: TranscriptMessage = {
+                            role: msg.role,
+                            text: msg.text,
+                            timestamp: new Date().toLocaleTimeString(),
+                        };
+                        setTranscripts(prev => [...prev, newMsg]);
+                        onTranscriptRef.current?.(newMsg);
+                    }
+                } catch (err) {
+                    console.error('[SIM] onmessage parse error:', err);
+                }
+            };
+
+            // ── onclose ──
+            socket.onclose = (ev) => {
+                console.warn('[DIAG] WS CLOSED | code:', ev.code, '| reason:', ev.reason || '(none)', '| wasClean:', ev.wasClean);
+                log('WS', { event: 'CLOSE', code: ev.code, reason: ev.reason, wasClean: ev.wasClean });
+                stopTestFn.current();
+            };
+
+            // ── onerror ──
+            socket.onerror = (ev) => {
+                console.error('[DIAG] WS ERROR:', ev);
+                log('WS', { event: 'ERROR' });
+                // onclose always fires after onerror — cleanup runs there.
+            };
+
+        } catch (err) {
+            console.error('[SIM] startTest failed:', err);
+            stopTestFn.current();
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cleanup on true unmount only — deps=[] guarantees this.
+    // ─────────────────────────────────────────────────────────────────────────
+    useEffect(() => {
+        return () => { stopTestFn.current(); };
+    }, []); // ← intentional empty deps — only run on unmount
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public API — stable references (wrappers over refs)
+    // ─────────────────────────────────────────────────────────────────────────
     return {
         simState,
         vadLevel,
         isAgentSpeaking,
         metrics,
         transcripts,
-        analyser: analyser.current,
-        outputAnalyser: outputAnalyser.current,
-        startTest,
-        stopTest
+        // Expose nodes as refs so consumers can read .current without re-renders
+        analyser: analyser,
+        outputAnalyser: outputAnalyser,
+        // Stable wrappers — identity never changes across renders
+        startTest: (config: { initialMsg: string; initiator: string; voiceStyle: string }) =>
+            startTestFn.current(config),
+        stopTest: () => stopTestFn.current(),
     };
 };
