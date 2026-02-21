@@ -66,7 +66,10 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
     // Stop Test
     const stopTest = useCallback(() => {
-        console.log("Stopping simulator test...");
+        // DIAG: log a stack trace every time stopTest is called so we can identify
+        // which code path is closing the WebSocket.
+        console.warn('[DIAG] stopTest() CALLED FROM:', new Error().stack);
+        console.log('Stopping simulator test...');
         setSimState('ready');
         addDebugLog('SYSTEM', { event: 'STOP_TEST' });
 
@@ -182,6 +185,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
             ws.current.onmessage = (event) => {
                 if (event.data instanceof ArrayBuffer) {
                     // Binary Audio (PCM16)
+                    console.log('[DIAG] AUDIO RECEIVED', event.data.byteLength, 'bytes | processor.current:', processor.current);
                     const pcm16 = new Int16Array(event.data);
                     if (processor.current) {
                         processor.current.port.postMessage(pcm16);
@@ -191,6 +195,8 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                         speakingTimer.current = setTimeout(() => {
                             setIsAgentSpeaking(false);
                         }, 300);
+                    } else {
+                        console.warn('[DIAG] AUDIO DROPPED — processor.current is null (worklet not ready yet)');
                     }
                 } else {
                     // Text Control Messages
@@ -227,16 +233,17 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
             };
 
             ws.current.onclose = (event) => {
-                console.log("WS Closed", event);
-                addDebugLog('WS', { event: 'CLOSE', code: event.code, reason: event.reason });
+                // DIAG: log all WS close details
+                console.warn('[DIAG] WS CLOSED | code:', event.code, '| reason:', event.reason || '(none)', '| wasClean:', event.wasClean);
+                addDebugLog('WS', { event: 'CLOSE', code: event.code, reason: event.reason, wasClean: event.wasClean });
                 stopTest();
             };
 
             ws.current.onerror = (e) => {
-                console.error("WS Error", e);
-                addDebugLog('WS', { event: 'ERROR' });
-                // Don't stop immediately, let close handle it or retry?
-                // stopTest(); 
+                // DIAG: log WS error details
+                console.error('[DIAG] WS ERROR event:', e);
+                addDebugLog('WS', { event: 'ERROR', detail: String(e) });
+                // onerror is always followed by onclose — stopTest() runs there
             };
 
         } catch (e) {
