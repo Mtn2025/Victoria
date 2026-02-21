@@ -93,16 +93,38 @@ class AzureTTSAdapter(TTSPort):
             # await asyncio.sleep(0) 
 
     def _configure_format(self, speech_config, format: AudioFormat):
-        # Simplistic mapping based on legacy logic
-        # 16kHz PCM (Browser) vs 8kHz Mulaw (Telephony)
-        
-        if format.encoding == "pcm" and format.sample_rate == 16000:
-             speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm)
-        elif format.encoding == "mulaw" or format.encoding == "ulaw": # 8kHz usually
-             speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw)
+        """
+        Map AudioFormat VO to Azure SpeechSynthesisOutputFormat enum.
+
+        IMPORTANT: Raw* formats produce bare PCM bytes (no header) — used for
+        real-time pipeline streaming via WebSocket where the receiver handles
+        the raw PCM directly (e.g. browser AudioWorklet, Twilio μ-law stream).
+
+        Riff* formats include the WAV header and are only used for the preview
+        endpoint (synthesize_for_preview) where the browser plays via new Audio().
+        """
+        enc = format.encoding
+        sr  = format.sample_rate
+
+        if enc == "pcm" and sr == 24000:
+            # Browser via AudioWorklet: Int16Array(arraybuffer) expects PCM16@24kHz raw
+            speech_config.set_speech_synthesis_output_format(
+                speechsdk.SpeechSynthesisOutputFormat.Raw24Khz16BitMonoPcm
+            )
+        elif enc == "pcm" and sr == 16000:
+            speech_config.set_speech_synthesis_output_format(
+                speechsdk.SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm
+            )
+        elif enc in ("mulaw", "ulaw"):
+            # Twilio / Telnyx: 8kHz μ-law
+            speech_config.set_speech_synthesis_output_format(
+                speechsdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw
+            )
         else:
-             # Default Fallback
-             speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw)
+            # Safe fallback for unknown formats
+            speech_config.set_speech_synthesis_output_format(
+                speechsdk.SpeechSynthesisOutputFormat.Raw8Khz8BitMonoMULaw
+            )
 
     def _configure_format_for_preview(self, speech_config):
         """
