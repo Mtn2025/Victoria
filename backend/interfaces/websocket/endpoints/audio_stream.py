@@ -182,23 +182,27 @@ async def audio_stream(
                     if not stream_id:
                         continue
 
-                    # FIX B: route to pipeline via push_audio_frame
-                    raw_b64: str = event.get("data", "")
+                    # Frontend sends: { event:'media', media:{ payload:<b64>, track, timestamp } }
+                    # Extract payload from media.payload (NOT event['data'])
+                    media_obj = event.get("media", {})
+                    raw_b64: str = media_obj.get("payload", "") or event.get("data", "")
+                    logger.info(f"[WS] media event received | payload_len={len(raw_b64)} | stream={stream_id}")
+
                     if raw_b64:
                         try:
                             raw_bytes = base64.b64decode(raw_b64)
                         except Exception:
                             raw_bytes = raw_b64.encode() if isinstance(raw_b64, str) else raw_b64
 
+                        logger.info(f"[WS] decoded audio bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
+
                         if orchestrator.pipeline:
-                            # Route through pipeline (VAD → STT → LLM → TTS)
                             await orchestrator.push_audio_frame(
                                 raw_audio=raw_bytes,
                                 sample_rate=audio_fmt.sample_rate,
                                 channels=audio_fmt.channels,
                             )
                         else:
-                            # Fallback: legacy direct path (no pipeline)
                             async for response_chunk in orchestrator.process_audio_input(raw_bytes):
                                 resp_msg = protocol.create_media_message(response_chunk)
                                 await websocket.send_text(resp_msg)
@@ -213,6 +217,7 @@ async def audio_stream(
                     continue
 
                 raw_bytes: bytes = message["bytes"]
+                logger.info(f"[WS] binary frame received | bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
 
                 if orchestrator.pipeline:
                     # FIX B: inject into pipeline

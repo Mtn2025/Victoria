@@ -285,6 +285,8 @@ class CallOrchestrator:
             logger.warning("push_audio_frame: pipeline not ready, dropping frame")
             return
 
+        logger.info(f"[AUDIO] Frame received: {len(raw_audio)} bytes | sr={sample_rate} | ch={channels}")
+
         from backend.application.processors.frames import AudioFrame, FrameDirection
 
         frame = AudioFrame(
