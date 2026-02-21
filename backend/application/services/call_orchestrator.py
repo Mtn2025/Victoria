@@ -178,11 +178,7 @@ class CallOrchestrator:
             # STEP 5: Start control loop
             self._control_task = asyncio.create_task(self._control_loop())
             logger.info("✅ Control loop started")
-            
-            # STEP 6: Start monitor task
-            self._monitor_task = asyncio.create_task(self._monitor_idle())
-            logger.info("✅ Monitor task started")
-            
+
             logger.info("🚀 All subsystems running")
             
             # STEP 7: Send initial greeting (FASE 3B)
@@ -203,10 +199,17 @@ class CallOrchestrator:
                     logger.info(f"✅ Greeting synthesized ({len(greeting_audio)} bytes)")
                 except Exception as e:
                     logger.warning(f"⚠️ Greeting synthesis failed: {e}")
-            
+
+            # STEP 6 (moved after greeting): Start idle monitor so the countdown
+            # only begins once the session is fully ready for user input.
+            # Resetting last_interaction_time here covers the greeting synthesis time.
+            self.last_interaction_time = time.time()
+            self._monitor_task = asyncio.create_task(self._monitor_idle())
+            logger.info("✅ Monitor task started (post-greeting)")
+
             # Return greeting audio (caller sends to transport)
             return greeting_audio
-            
+
         except Exception as e:
             logger.error(f"❌ Session start failed: {e}")
             await self.stop()
