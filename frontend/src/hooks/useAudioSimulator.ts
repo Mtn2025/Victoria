@@ -224,6 +224,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                         );
                     }
                     const b64 = window.btoa(binary);
+                    console.log('[MIC CHUNK SENT]', bytes.byteLength, 'bytes');
 
                     ws.current.send(JSON.stringify({
                         event: 'media',
@@ -316,6 +317,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                 if (ev.data instanceof ArrayBuffer) {
                     console.log('[DIAG] AUDIO RECEIVED', ev.data.byteLength, 'bytes | processor:', processor.current);
                     feedAudioToWorklet(new Int16Array(ev.data));
+                    console.log('[GREETING DONE] WS state:', ws.current?.readyState, 'processor:', !!processor.current);
                     return;
                 }
 
@@ -354,6 +356,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
             // ── onclose ──
             socket.onclose = (ev) => {
+                console.warn('[WS CLOSE]', ev.code, ev.reason, ev.wasClean, new Date().toISOString());
                 console.warn('[DIAG] WS CLOSED | code:', ev.code, '| reason:', ev.reason || '(none)', '| wasClean:', ev.wasClean);
                 log('WS', { event: 'CLOSE', code: ev.code, reason: ev.reason, wasClean: ev.wasClean });
                 stopTestFn.current();
