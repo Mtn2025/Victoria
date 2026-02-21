@@ -33,6 +33,7 @@ from backend.application.services.control_channel import (
     send_emergency_stop
 )
 from backend.application.factories.pipeline_factory import PipelineFactory, ProcessorChain
+from backend.application.processors.frames import AudioFrame, FrameDirection
 
 logger = logging.getLogger(__name__)
 
@@ -305,9 +306,6 @@ class CallOrchestrator:
                     f"rms={rms:.1f} "
                     f"{'VOZ DETECTADA' if rms > 100 else 'silencio'}"
                 )
-
-        from backend.application.processors.frames import AudioFrame, FrameDirection
-
         frame = AudioFrame(
             data=raw_audio,
             sample_rate=sample_rate,
