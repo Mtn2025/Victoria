@@ -107,10 +107,10 @@ class GroqLLMAdapter(LLMPort):
         # Groq models as of current knowledge
         # TODO: Fetch dynamically from Groq API when available
         return [
-            "llama3-70b-8192",
-            "llama3-8b-8192",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
             "mixtral-8x7b-32768",
-            "gemma-7b-it",
+            "gemma2-9b-it",
         ]
 
     def is_model_safe_for_voice(self, model: str) -> bool:
@@ -121,8 +121,8 @@ class GroqLLMAdapter(LLMPort):
         """
         # Fast models suitable for voice
         voice_safe_models = [
-            "llama3-70b-8192",  # Good balance of speed and quality
-            "llama3-8b-8192",   # Faster but lower quality
+            "llama-3.3-70b-versatile",  # Good balance of speed and quality
+            "llama-3.1-8b-instant",   # Faster but lower quality
             "mixtral-8x7b-32768",  # Good quality, acceptable latency
         ]
         return model in voice_safe_models
