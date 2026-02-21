@@ -45,7 +45,7 @@ class PCMProcessor extends AudioWorkletProcessor {
         // --- 1. CAPTURE (Mic Input) ---
         // Input[0] is the Mic stream
         const input = inputs[0];
-        if (input && input.length) {
+        if (input && input.length && input[0] && input[0].length > 0) {
             const channelData = input[0];
             for (let i = 0; i < channelData.length; i++) {
                 // Float32 -> Int16
@@ -56,9 +56,16 @@ class PCMProcessor extends AudioWorkletProcessor {
 
                 // Flush Input Buffer
                 if (this.inPtr >= this.inBufferSize) {
-                    this.port.postMessage(this.inBuffer); // Post Int16Array
+                    this.port.postMessage(this.inBuffer); // Post Int16Array to hook
                     this.inPtr = 0;
                 }
+            }
+        } else {
+            // DIAG: inputs[0] is empty — mic not connected to this worklet node
+            // Log once every ~5s at 24kHz/128 frames to avoid flooding
+            this._emptyInputCount = (this._emptyInputCount || 0) + 1;
+            if (this._emptyInputCount % 1000 === 1) {
+                this.port.postMessage({ type: 'debug', msg: 'empty_input', count: this._emptyInputCount });
             }
         }
 

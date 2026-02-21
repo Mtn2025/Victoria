@@ -298,36 +298,47 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
-                    sampleRate: 24000 // Request 24k if possible
+                    sampleRate: 24000
                 }
             });
+
+            // CRITICAL: Resume AudioContext *after* getUserMedia.
+            // Browsers suspend the AudioContext if it was created before a user
+            // gesture (or resume it lazily). getUserMedia provides the right
+            // moment to ensure the context is running before we wire the graph.
+            if (audioContext.current.state === 'suspended') {
+                await audioContext.current.resume();
+                console.log('[DIAG] AudioContext resumed after getUserMedia, state:', audioContext.current.state);
+            } else {
+                console.log('[DIAG] AudioContext state after getUserMedia:', audioContext.current.state);
+            }
 
             const source = audioContext.current.createMediaStreamSource(mediaStream.current);
             source.connect(analyser.current);
 
             // Load Worklet
             try {
-                // Ensure this path is correct and accessible in public folder
                 await audioContext.current.audioWorklet.addModule('/audio-worklet-processor.js');
 
                 processor.current = new AudioWorkletNode(audioContext.current, 'pcm-processor', {
-                    outputChannelCount: [1]
-                });
+                    numberOfInputs: 1,    // standard: request one input bus so mic data flows in
+                    numberOfOutputs: 1,
+                    outputChannelCount: [1],
+                    channelCount: 1,
+                    channelCountMode: 'explicit',
+                } as AudioWorkletNodeOptions);
 
                 processor.current.port.onmessage = (event) => {
-                    // Message from Worklet (Microphone Data)
+                    // Microphone chunk from AudioWorklet → encode → send to backend
                     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) return;
 
-                    // Expecting base64 or raw bytes? 
-                    // To matching backend expectations (Twilio style base64 in JSON)
-                    // The worklet should send us Int16Array
-                    const pcm16 = event.data;
+                    const pcm16 = event.data as Int16Array;
+                    // Skip debug-type messages from worklet
+                    if (!pcm16 || !(pcm16 instanceof Int16Array)) return;
 
-                    // Convert to base64
                     const bytes = new Uint8Array(pcm16.buffer);
                     let binary = '';
                     const len = bytes.byteLength;
-                    // Chunking to avoid stack overflow
                     const CHUNK_SIZE = 0x8000;
                     for (let i = 0; i < len; i += CHUNK_SIZE) {
                         binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK_SIZE)));
@@ -347,6 +358,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                 source.connect(processor.current);
                 processor.current.connect(outputAnalyser.current!);
 
+                console.log('[DIAG] WORKLET_LOADED, AudioContext state:', audioContext.current.state);
                 addDebugLog('AUDIO', { event: 'WORKLET_LOADED' });
 
             } catch (err) {
