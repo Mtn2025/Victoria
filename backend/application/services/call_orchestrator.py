@@ -190,13 +190,9 @@ class CallOrchestrator:
             if agent.first_message and self.synthesize_text_uc and self.tts_port:
                 logger.info(f"👋 Greeting: {agent.first_message[:50]}...")
                 try:
-                    # Create voice config from agent attributes
-                    voice_config = VoiceConfig(
-                        voice_name=agent.voice_name if hasattr(agent, 'voice_name') else "en-US-JennyNeural",
-                        style=agent.voice_style if hasattr(agent, 'voice_style') else "friendly",
-                        speed=agent.voice_speed if hasattr(agent, 'voice_speed') else 1.0,
-                        pitch=agent.voice_pitch if hasattr(agent, 'voice_pitch') else 0
-                    )
+                    # Use the agent's existing voice_config (already a VoiceConfig VO)
+                    # agent.voice_config is always set — the repo guarantees it.
+                    voice_config = agent.voice_config
                     
                     # Synthesize greeting (direct TTS, no LLM overhead)
                     greeting_audio = await self.synthesize_text_uc.execute(
