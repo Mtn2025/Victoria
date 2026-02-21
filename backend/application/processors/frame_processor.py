@@ -49,13 +49,19 @@ class FrameProcessor(ABC):
         """Send a frame to the next/prev processor."""
         if direction == FrameDirection.DOWNSTREAM:
             if self._next:
-                await self._next.process_frame(frame, direction)
+                try:
+                    await self._next.process_frame(frame, direction)
+                except Exception as e:
+                    logger.error(f"[{self.name} -> {self._next.name}] Process Error: {e}", exc_info=True)
             else:
                 # End of chain
                 pass
         elif direction == FrameDirection.UPSTREAM:
             if self._prev:
-                await self._prev.process_frame(frame, direction)
+                try:
+                    await self._prev.process_frame(frame, direction)
+                except Exception as e:
+                    logger.error(f"[{self.name} -> {self._prev.name}] Process Error: {e}", exc_info=True)
             else:
                 # Start of chain
                 pass

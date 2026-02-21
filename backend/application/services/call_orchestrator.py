@@ -292,10 +292,11 @@ class CallOrchestrator:
         # SAFE MODE: log audio stats sin procesar
         if len(raw_audio) > 0:
             # Contar samples válidos (PCM16 = 2 bytes cada uno)
-            sample_count = len(raw_audio) // 2
+            valid_bytes = len(raw_audio) - (len(raw_audio) % 2)
+            sample_count = valid_bytes // 2
             if sample_count > 0:
                 audio_int16 = __import__('numpy').frombuffer(
-                    raw_audio, dtype='int16')
+                    raw_audio[:valid_bytes], dtype='int16')
                 rms = float(__import__('numpy').sqrt(
                     __import__('numpy').mean(
                         audio_int16.astype('float32')**2)))
