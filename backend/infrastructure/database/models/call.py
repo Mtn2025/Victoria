@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -18,7 +18,7 @@ class CallModel(Base):
     phone_number: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     client_type: Mapped[str] = mapped_column(String, default="unknown", index=True)
     
-    start_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    start_time: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)

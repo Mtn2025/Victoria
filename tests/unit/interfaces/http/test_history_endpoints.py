@@ -7,7 +7,7 @@ from backend.interfaces.http.endpoints.history import router
 from backend.interfaces.deps import get_call_repository
 from backend.domain.entities.call import Call, CallStatus
 from backend.domain.value_objects.call_id import CallId
-from datetime import datetime
+from datetime import datetime, timezone
 
 app = FastAPI()
 app.include_router(router)
@@ -23,7 +23,7 @@ def test_get_history_rows():
     # Arrange
     call = Call(
         id=CallId("call-1"), 
-        start_time=datetime.now(), 
+        start_time=datetime.now(timezone.utc), 
         status=CallStatus.COMPLETED,
         agent=MagicMock(),
         conversation=MagicMock()

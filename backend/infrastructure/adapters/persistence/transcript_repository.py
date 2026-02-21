@@ -119,7 +119,7 @@ class SQLAlchemyTranscriptRepository(TranscriptRepositoryPort):
         """
         from backend.infrastructure.database.models import TranscriptModel, CallModel
         from sqlalchemy import select
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         try:
             # Resolve session_id (UUID string) to internal DB ID (int)
@@ -136,7 +136,7 @@ class SQLAlchemyTranscriptRepository(TranscriptRepositoryPort):
                 call_id=db_id,
                 role=role,
                 content=content,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
             
             session.add(transcript)

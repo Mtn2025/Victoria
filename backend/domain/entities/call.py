@@ -35,7 +35,7 @@ class Call:
     conversation: Conversation
     status: CallStatus = CallStatus.INITIATED
     phone_number: Optional[PhoneNumber] = None
-    start_time: datetime = field(default_factory=datetime.utcnow)
+    start_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     end_time: Optional[datetime] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -54,7 +54,7 @@ class Call:
         is_failure = reason.lower() in ["failed", "error", "timeout", "system_error"]
         self.status = CallStatus.FAILED if is_failure else CallStatus.COMPLETED
         
-        self.end_time = datetime.utcnow()
+        self.end_time = datetime.now(timezone.utc)
         self.metadata["termination_reason"] = reason
 
     @property
