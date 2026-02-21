@@ -5,7 +5,14 @@ Part of the Application Layer (Hexagonal Architecture).
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
+from enum import Enum
 from typing import Any, Literal
+
+class FrameDirection(Enum):
+    """Direction a frame travels through the pipeline."""
+    DOWNSTREAM = "downstream"   # source → sink (normal flow)
+    UPSTREAM   = "upstream"     # sink → source (e.g. backpressure)
+
 @dataclass(kw_only=True)
 class Frame:
     """Base class for all pipeline frames."""
