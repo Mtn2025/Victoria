@@ -269,7 +269,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
         return () => {
             stopTestRef.current();
         };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const initMicrophone = async () => {
         try {
