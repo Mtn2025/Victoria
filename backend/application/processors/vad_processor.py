@@ -101,10 +101,14 @@ class VADProcessor(FrameProcessor):
             # Normalize to -1.0 to 1.0
             audio_float32 = audio_int16.astype(np.float32) / 32768.0
 
-            # Resample 24k to 16k for Silero
+            # Resample 24k → 16k for Silero using linear interpolation.
+            # np.arange(...).astype(int) truncates and creates irregular gaps
+            # that distort the signal — Silero scores it as silence.
+            # np.interp produces exactly 512 evenly-spaced samples.
             if sample_rate == 24000:
-                indices = np.arange(0, len(audio_float32), 1.5).astype(int)
-                audio_vad = audio_float32[indices]
+                x_old = np.arange(len(audio_float32))
+                x_new = np.linspace(0, len(audio_float32) - 1, 512)
+                audio_vad = np.interp(x_new, x_old, audio_float32)
             else:
                 audio_vad = audio_float32
 
@@ -116,10 +120,21 @@ class VADProcessor(FrameProcessor):
                 f"rms={float(np.sqrt(np.mean(audio_vad**2))):.4f}"
             )
 
+            # Log the exact chunk Silero receives — visible on any silent failure
+            logger.info(
+                f"[VAD SILERO IN] shape={audio_vad.shape} dtype={audio_vad.dtype} "
+                f"min={float(audio_vad.min()):.4f} max={float(audio_vad.max()):.4f} "
+                f"rms={float(np.sqrt(np.mean(audio_vad**2))):.4f} sr={target_sr}"
+            )
+
             try:
                 confidence = self.vad_adapter(audio_vad, target_sr)
             except Exception as e:
-                logger.error(f"VAD Inference Error: {e}")
+                logger.error(
+                    f"[VAD SILERO ERROR] {e} — "
+                    f"chunk shape={audio_vad.shape} dtype={audio_vad.dtype} "
+                    f"min={float(audio_vad.min()):.4f} max={float(audio_vad.max()):.4f}"
+                )
                 confidence = 0.0
 
             logger.info(f"[VAD CONFIDENCE] conf={confidence:.4f} "
