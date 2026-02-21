@@ -1,24 +1,163 @@
 /**
  * AgentsPanel.tsx
- * Main view for agent management: list, create, activate.
+ * Main view for agent management: list, create, activate, rename, delete.
  */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
-import { fetchAgents, fetchActiveAgent, createAgent, activateAgent } from '@/store/slices/agentsSlice'
-import { Bot, Plus, Settings, Loader2, AlertCircle } from 'lucide-react'
+import {
+    fetchAgents,
+    fetchActiveAgent,
+    createAgent,
+    activateAgent,
+    updateAgentName,
+    deleteAgent,
+} from '@/store/slices/agentsSlice'
+import { Bot, Plus, Settings, Loader2, AlertCircle, Trash2, Pencil, ArrowRight, X } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Button } from '@/components/ui/Button'
 import { Agent } from '@/types/config'
 
+// --------------------------------------------------------------------- //
+// Manage Agent Modal                                                      //
+// --------------------------------------------------------------------- //
+interface ManageModalProps {
+    agent: Agent
+    onClose: () => void
+    onConfigure: (agent: Agent) => void
+}
+
+const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
+    const dispatch = useAppDispatch()
+    const [name, setName] = useState(agent.name)
+    const [saving, setSaving] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [nameError, setNameError] = useState('')
+
+    const handleSaveName = async () => {
+        if (!name.trim()) { setNameError('El nombre no puede estar vacío'); return }
+        if (name.trim() === agent.name) { onClose(); return }
+        setSaving(true)
+        await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: name.trim() }))
+        setSaving(false)
+        onClose()
+    }
+
+    const handleDelete = async () => {
+        setDeleting(true)
+        const result = await dispatch(deleteAgent(agent.agent_uuid))
+        setDeleting(false)
+        if ((result as any).error) {
+            setConfirmDelete(false)
+        } else {
+            onClose()
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-96 shadow-2xl">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                        <Settings size={15} className="text-blue-400" />
+                        Gestionar agente
+                    </h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+                        <X size={16} />
+                    </button>
+                </div>
+
+                {/* Name field */}
+                <label className="block text-xs text-slate-400 mb-1.5">Nombre</label>
+                <div className="flex gap-2 mb-1">
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => { setName(e.target.value); setNameError('') }}
+                        onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                        className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500"
+                    />
+                    <Button
+                        variant="primary"
+                        onClick={handleSaveName}
+                        disabled={saving}
+                        className="text-xs px-3"
+                    >
+                        {saving ? <Loader2 size={12} className="animate-spin" /> : <Pencil size={12} />}
+                    </Button>
+                </div>
+                {nameError && <p className="text-xs text-red-400 mb-3">{nameError}</p>}
+
+                {/* Divider */}
+                <div className="border-t border-slate-700/60 my-4" />
+
+                {/* Action: Go to Config */}
+                <Button
+                    variant="primary"
+                    onClick={() => onConfigure(agent)}
+                    className="w-full flex items-center justify-center gap-2 text-sm mb-3"
+                >
+                    <ArrowRight size={14} />
+                    Configurar agente
+                </Button>
+
+                {/* Action: Delete */}
+                {!confirmDelete ? (
+                    <button
+                        onClick={() => setConfirmDelete(true)}
+                        disabled={agent.is_active}
+                        title={agent.is_active ? 'No puedes eliminar el agente activo' : 'Eliminar agente'}
+                        className={cn(
+                            "w-full flex items-center justify-center gap-2 text-xs py-2 rounded-lg transition-all",
+                            agent.is_active
+                                ? "bg-slate-800/50 text-slate-600 cursor-not-allowed"
+                                : "bg-red-900/20 text-red-400 hover:bg-red-900/40 border border-red-900/30"
+                        )}
+                    >
+                        <Trash2 size={12} />
+                        {agent.is_active ? 'No se puede eliminar el agente activo' : 'Eliminar agente'}
+                    </button>
+                ) : (
+                    <div className="bg-red-900/20 border border-red-900/40 rounded-lg p-3">
+                        <p className="text-xs text-red-300 mb-3 text-center">
+                            ¿Eliminar <span className="font-bold">{agent.name}</span>? Esta acción no se puede deshacer.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setConfirmDelete(false)}
+                                className="flex-1 text-xs py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="flex-1 text-xs py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-500 transition-all disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={12} className="animate-spin mx-auto" /> : 'Confirmar'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+// --------------------------------------------------------------------- //
+// AgentsPanel                                                             //
+// --------------------------------------------------------------------- //
 export const AgentsPanel = () => {
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
     const { agents, loading, error } = useAppSelector(s => s.agents)
 
-    const [showModal, setShowModal] = useState(false)
+    const [showCreateModal, setShowCreateModal] = useState(false)
     const [newAgentName, setNewAgentName] = useState('')
     const [creating, setCreating] = useState(false)
+    const [managedAgent, setManagedAgent] = useState<Agent | null>(null)
 
     useEffect(() => {
         dispatch(fetchAgents())
@@ -27,20 +166,16 @@ export const AgentsPanel = () => {
 
     const handleActivate = async (agent: Agent) => {
         await dispatch(activateAgent(agent.agent_uuid))
-        // Refresh the active agent in Redux — ConfigPage's useEffect will detect
-        // the new activeAgent and call fetchAgentConfig() automatically.
         dispatch(fetchActiveAgent())
     }
 
-    const handleConfigure = (agent: Agent) => {
+    const handleConfigure = async (agent: Agent) => {
         if (!agent.is_active) {
-            dispatch(activateAgent(agent.agent_uuid)).then(() => {
-                dispatch(fetchActiveAgent())
-                navigate('/config')
-            })
-        } else {
-            navigate('/config')
+            await dispatch(activateAgent(agent.agent_uuid))
+            dispatch(fetchActiveAgent())
         }
+        setManagedAgent(null)
+        navigate('/config')
     }
 
     const handleCreate = async () => {
@@ -49,7 +184,7 @@ export const AgentsPanel = () => {
         await dispatch(createAgent(newAgentName.trim()))
         setCreating(false)
         setNewAgentName('')
-        setShowModal(false)
+        setShowCreateModal(false)
     }
 
     return (
@@ -60,7 +195,7 @@ export const AgentsPanel = () => {
                     <Bot size={18} className="text-blue-400" />
                     <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase">Agentes</h2>
                 </div>
-                <Button variant="primary" onClick={() => setShowModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5">
+                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5">
                     <Plus size={14} />
                     Nuevo Agente
                 </Button>
@@ -86,7 +221,7 @@ export const AgentsPanel = () => {
                     <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
                         <Bot size={40} className="opacity-30" />
                         <p className="text-sm">No hay agentes registrados.</p>
-                        <Button variant="primary" onClick={() => setShowModal(true)} className="text-xs">
+                        <Button variant="primary" onClick={() => setShowCreateModal(true)} className="text-xs">
                             Crear primer agente
                         </Button>
                     </div>
@@ -134,9 +269,10 @@ export const AgentsPanel = () => {
                                     Activar
                                 </button>
                             )}
+                            {/* ⚙️ — opens manage modal */}
                             <button
-                                onClick={() => handleConfigure(agent)}
-                                title="Configurar"
+                                onClick={() => setManagedAgent(agent)}
+                                title="Gestionar agente"
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
                             >
                                 <Settings size={14} />
@@ -147,7 +283,7 @@ export const AgentsPanel = () => {
             </div>
 
             {/* Create Agent Modal */}
-            {showModal && (
+            {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-80 shadow-2xl">
                         <h3 className="text-sm font-bold text-slate-100 mb-4 flex items-center gap-2">
@@ -165,7 +301,7 @@ export const AgentsPanel = () => {
                         />
                         <div className="flex gap-2">
                             <button
-                                onClick={() => { setShowModal(false); setNewAgentName('') }}
+                                onClick={() => { setShowCreateModal(false); setNewAgentName('') }}
                                 className="flex-1 text-xs py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all"
                             >
                                 Cancelar
@@ -181,6 +317,15 @@ export const AgentsPanel = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Manage Agent Modal */}
+            {managedAgent && (
+                <ManageModal
+                    agent={managedAgent}
+                    onClose={() => setManagedAgent(null)}
+                    onConfigure={handleConfigure}
+                />
             )}
         </div>
     )

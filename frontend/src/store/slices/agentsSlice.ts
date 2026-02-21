@@ -1,7 +1,6 @@
 /**
  * agentsSlice.ts
  * Redux slice for agent lifecycle management.
- * Stores the list of agents and the currently active agent.
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { Agent } from '@/types/config'
@@ -43,6 +42,20 @@ export const createAgent = createAsyncThunk(
 export const activateAgent = createAsyncThunk(
     'agents/activateAgent',
     async (agentUuid: string) => agentService.activateAgent(agentUuid)
+)
+
+export const updateAgentName = createAsyncThunk(
+    'agents/updateAgentName',
+    async ({ agentUuid, name }: { agentUuid: string; name: string }) =>
+        agentService.updateAgentName(agentUuid, name)
+)
+
+export const deleteAgent = createAsyncThunk(
+    'agents/deleteAgent',
+    async (agentUuid: string) => {
+        await agentService.deleteAgent(agentUuid)
+        return agentUuid   // return uuid to remove from state
+    }
 )
 
 // ------------------------------------------------------------------ //
@@ -101,7 +114,6 @@ const agentsSlice = createSlice({
         builder.addCase(activateAgent.fulfilled, (state, action: PayloadAction<Agent>) => {
             state.loading = false
             state.activeAgent = action.payload
-            // Update is_active flag in the list
             state.agents = state.agents.map(a => ({
                 ...a,
                 is_active: a.agent_uuid === action.payload.agent_uuid,
@@ -110,6 +122,27 @@ const agentsSlice = createSlice({
         builder.addCase(activateAgent.rejected, (state, action) => {
             state.loading = false
             state.error = action.error.message ?? 'Error al activar agente'
+        })
+
+        // updateAgentName — patch name in list
+        builder.addCase(updateAgentName.fulfilled, (state, action: PayloadAction<Agent>) => {
+            state.agents = state.agents.map(a =>
+                a.agent_uuid === action.payload.agent_uuid ? { ...a, name: action.payload.name } : a
+            )
+            if (state.activeAgent?.agent_uuid === action.payload.agent_uuid) {
+                state.activeAgent = { ...state.activeAgent, name: action.payload.name }
+            }
+        })
+        builder.addCase(updateAgentName.rejected, (state, action) => {
+            state.error = action.error.message ?? 'Error al renombrar agente'
+        })
+
+        // deleteAgent — remove from list
+        builder.addCase(deleteAgent.fulfilled, (state, action: PayloadAction<string>) => {
+            state.agents = state.agents.filter(a => a.agent_uuid !== action.payload)
+        })
+        builder.addCase(deleteAgent.rejected, (state, action) => {
+            state.error = action.error.message ?? 'No se pudo eliminar el agente'
         })
     },
 })

@@ -51,6 +51,16 @@ export const agentService = {
 
     /** Update config fields for a specific agent. */
     updateAgentConfig: async (agentUuid: string, config: Record<string, unknown>): Promise<void> => {
-        await api.patch(`/agents/${agentUuid}`, { agent_id: agentUuid, ...config })
+        await api.patch(`/agents/${agentUuid}`, config)
+    },
+
+    /** Rename an agent. */
+    updateAgentName: async (agentUuid: string, name: string): Promise<Agent> => {
+        return await api.patch<Agent>(`/agents/${agentUuid}/name`, { name })
+    },
+
+    /** Permanently delete an agent. The backend rejects deleting the active agent. */
+    deleteAgent: async (agentUuid: string): Promise<void> => {
+        await api.delete(`/agents/${agentUuid}`)
     },
 }

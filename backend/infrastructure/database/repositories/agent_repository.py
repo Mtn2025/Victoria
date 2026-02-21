@@ -167,3 +167,11 @@ class SqlAlchemyAgentRepository(AgentRepository):
         await self.session.commit()
         await self.session.refresh(target)
         return _model_to_agent(target)
+
+    async def delete_agent(self, agent_uuid: str) -> None:
+        """Permanently delete an agent row by UUID."""
+        from sqlalchemy import delete as sa_delete
+        await self.session.execute(
+            sa_delete(AgentModel).where(AgentModel.agent_uuid == agent_uuid)
+        )
+        await self.session.commit()

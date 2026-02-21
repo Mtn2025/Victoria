@@ -87,3 +87,8 @@ class AgentRepository(ABC):
         Raises AgentNotFoundError if the UUID does not exist.
         """
         pass
+
+    @abstractmethod
+    async def delete_agent(self, agent_uuid: str) -> None:
+        """Permanently delete an agent by UUID. Does not check active status."""
+        pass

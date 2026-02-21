@@ -13,6 +13,7 @@ from backend.interfaces.http.schemas.agent_schemas import (
     AgentCreateRequest,
     AgentCreateResponse,
     ActiveAgentResponse,
+    AgentUpdateNameRequest,
 )
 from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
 from backend.domain.use_cases.list_agents import ListAgentsUseCase
@@ -222,3 +223,58 @@ async def update_agent_config(
 
     await repo.update_agent(agent)
     return {"status": "ok", "agent_uuid": agent_uuid}
+
+
+# --------------------------------------------------------------------------- #
+# PATCH /agents/{agent_uuid}/name                                               #
+# Rename an agent                                                               #
+# --------------------------------------------------------------------------- #
+@router.patch("/{agent_uuid}/name", response_model=AgentListItem)
+async def rename_agent(
+    agent_uuid: str,
+    request: AgentUpdateNameRequest,
+    repo: AgentRepository = Depends(get_agent_repository),
+) -> AgentListItem:
+    """Rename an agent. Does not affect configuration or active status."""
+    agent = await repo.get_agent_by_uuid(agent_uuid)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent {agent_uuid} not found")
+
+    if not request.name or not request.name.strip():
+        raise HTTPException(status_code=422, detail="Agent name cannot be empty")
+
+    agent.name = request.name.strip()
+    await repo.update_agent(agent)
+
+    return AgentListItem(
+        agent_uuid=agent.agent_uuid,
+        name=agent.name,
+        is_active=agent.is_active,
+        created_at=agent.created_at,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# DELETE /agents/{agent_uuid}                                                   #
+# --------------------------------------------------------------------------- #
+@router.delete("/{agent_uuid}", status_code=200)
+async def delete_agent(
+    agent_uuid: str,
+    repo: AgentRepository = Depends(get_agent_repository),
+):
+    """
+    Delete an agent permanently.
+    Returns HTTP 400 if the agent is currently active — deactivate it first.
+    """
+    agent = await repo.get_agent_by_uuid(agent_uuid)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent {agent_uuid} not found")
+
+    if agent.is_active:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete the active agent. Activate another agent first, then retry.",
+        )
+
+    await repo.delete_agent(agent_uuid)
+    return {"status": "deleted", "agent_uuid": agent_uuid}

@@ -54,3 +54,9 @@ class ActiveAgentResponse(BaseModel):
     stt_config: Dict[str, Any]
     voice_config_json: Dict[str, Any]
     tools_config: Dict[str, Any]
+
+
+class AgentUpdateNameRequest(BaseModel):
+    """Request to rename an agent."""
+    name: str = Field(..., min_length=1, max_length=100,
+                      description="New display name for the agent")
