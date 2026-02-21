@@ -36,10 +36,10 @@ export const AgentsPanel = () => {
         if (!agent.is_active) {
             dispatch(activateAgent(agent.agent_uuid)).then(() => {
                 dispatch(fetchActiveAgent())
-                navigate('/simulator')
+                navigate('/config')
             })
         } else {
-            navigate('/simulator')
+            navigate('/config')
         }
     }
 
