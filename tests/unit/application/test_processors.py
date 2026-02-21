@@ -80,9 +80,13 @@ class TestVADProcessor:
     def processor(self, mock_vad_adapter, mock_detect_use_case):
         config = MagicMock()
         config.vad_confirmation_window_ms = 0
+        config.vad_threshold_start    = 0.5   # new SSoT field
+        config.vad_threshold_return   = 0.35  # new SSoT field
+        config.vad_min_speech_frames  = 3     # new SSoT field
+        config.vad_enable_confirmation = True
         config.client_type = 'browser'
         config.silence_timeout_ms = 1000
-        
+
         proc = VADProcessor(config, mock_detect_use_case, vad_adapter=mock_vad_adapter)
         proc.push_frame = AsyncMock()
         return proc

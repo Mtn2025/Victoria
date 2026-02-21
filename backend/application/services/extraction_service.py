@@ -19,6 +19,11 @@ from backend.domain.value_objects.extraction_schema import (
 
 logger = logging.getLogger(__name__)
 
+# Maximum tokens for extraction prompt responses.
+# Kept small (< 1k) since output is structured JSON, not conversational.
+# TECHNICAL CONSTANT: changing this affects JSON completeness vs. cost tradeoff.
+MAX_EXTRACTION_TOKENS: int = 800
+
 
 class ExtractionService:
     """
@@ -91,8 +96,8 @@ class ExtractionService:
                     LLMMessage(role="system", content=system_prompt),
                     LLMMessage(role="user", content=user_prompt)
                 ],
-                temperature=0.1,  # Deterministic
-                max_tokens=800,
+                temperature=0.1,  # INTENTIONAL: deterministic for structured JSON extraction
+                max_tokens=MAX_EXTRACTION_TOKENS,
                 model=None,  # Use default model
             )
             

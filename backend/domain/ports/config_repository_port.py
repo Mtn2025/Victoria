@@ -41,6 +41,14 @@ class ConfigDTO:
     stt_language: str = "es-MX"
     silence_timeout_ms: int = 1000
 
+    # VAD Config
+    # These are the canonical defaults for Silero VAD.
+    # All processors MUST read from this object — never hardcode.
+    vad_threshold_start: float = 0.5      # Confidence to START speech detection
+    vad_threshold_return: float = 0.35    # Confidence floor before declaring silence
+    vad_min_speech_frames: int = 3        # Min consecutive speech frames before START event
+    vad_confirmation_window_ms: int = 200 # Time window to confirm speech onset (ms)
+
     # Advanced
     enable_denoising: bool = True
     enable_backchannel: bool = False

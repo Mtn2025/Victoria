@@ -41,7 +41,9 @@ class TTSRequest:
     pitch: int = 0
     speed: float = 1.0
     volume: float = 100.0
-    format: str = "pcm_16000"
+    # Format string: 'pcm_24000' for browser, 'pcm_8000_mulaw' for telephony
+    # SSoT: client_type in ConfigDTO determines this — default is browser (24kHz PCM)
+    format: str = "pcm_24000"
     style: Optional[str] = None
     backpressure_detected: bool = False
     

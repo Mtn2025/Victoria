@@ -35,20 +35,19 @@ class VADProcessor(FrameProcessor):
         self.speech_frames = 0
         self._voice_detected_at: Optional[float] = None
         
-        # Parameters (Defaults from legacy)
-        self.threshold_start = 0.5
-        self.threshold_return = 0.35
-        self.min_speech_frames = 3
-        self.chunk_duration_ms = 32 # 512 samples @ 16k
-        
+        # VAD Thresholds — read from ConfigDTO (SSoT: config_repository_port.py)
+        # Never hardcode here. To change defaults, update ConfigDTO.
+        self.threshold_start    = getattr(config, 'vad_threshold_start',         0.5)
+        self.threshold_return   = getattr(config, 'vad_threshold_return',        0.35)
+        self.min_speech_frames  = getattr(config, 'vad_min_speech_frames',       3)
+        self.chunk_duration_ms  = 32  # TECHNICAL CONSTANT: Silero V5 window at 16kHz (not configurable)
+
         # Configurable params
         self.confirmation_window_ms = getattr(config, 'vad_confirmation_window_ms', 200)
-        self.confirmation_enabled = getattr(config, 'vad_enable_confirmation', True)
-        
-        # Determine Sample Rate based on config usage in legacy
-        # Assuming we can inspect config or default to something.
-        # Legacy checked client_type.
-        client_type = getattr(config, 'client_type', 'twilio')
+        self.confirmation_enabled   = getattr(config, 'vad_enable_confirmation',    True)
+
+        # Determine VAD target sample rate from client_type
+        client_type    = getattr(config, 'client_type', 'browser')
         self.target_sr = 16000 if client_type == 'browser' else 8000
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
@@ -177,8 +176,8 @@ class VADProcessor(FrameProcessor):
                     # Logic: silence frames * chunk duration = total silence duration
                     silence_ms = self.silence_frames * self.chunk_duration_ms
                     
-                    # Retrieve silence timeout from config
-                    silence_timeout = getattr(self.config, 'silence_timeout_ms', 500)
+                    # Retrieve silence timeout from ConfigDTO (SSoT: DB → ConfigDTO → here)
+                    silence_timeout = getattr(self.config, 'silence_timeout_ms', 1000)
                     
                     if self.detect_turn_end.execute(silence_ms, silence_timeout):
                         self.speaking = False

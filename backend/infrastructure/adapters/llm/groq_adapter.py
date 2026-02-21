@@ -31,19 +31,22 @@ class GroqLLMAdapter(LLMPort):
     async def generate_response(self, conversation: Conversation, agent: Agent) -> str:
         """
         Generate a single completion.
+        Reads model/temperature from agent.llm_config (SSoT: DB → Agent entity → here).
         """
         try:
             messages = self._build_messages(conversation, agent)
-            
+            llm_cfg  = getattr(agent, 'llm_config', {}) or {}
+
             completion = await self.client.chat.completions.create(
-                model=self.default_model, # Could override from agent.llm_config
+                model=llm_cfg.get('model', self.default_model),
                 messages=messages,
-                temperature=0.7,
+                temperature=llm_cfg.get('temperature', 0.7),
+                max_tokens=llm_cfg.get('max_tokens', 600),
                 stream=False
             )
-            
+
             return completion.choices[0].message.content or ""
-            
+
         except Exception as e:
             logger.error(f"[GroqLLM] Generation failed: {e}")
             raise

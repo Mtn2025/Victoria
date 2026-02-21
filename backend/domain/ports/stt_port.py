@@ -48,7 +48,8 @@ class STTConfig:
     # Advanced Controls
     model: str = "default"
     keywords: Optional[list] = None  # [{"word": "Keyword", "boost": 2.0}]
-    silence_timeout: int = 500
+    # SSoT: matches agent.silence_timeout_ms DB default and ConfigDTO.silence_timeout_ms
+    silence_timeout: int = 1000
     utterance_end_strategy: str = "default"
     
     # Formatting & Filters
