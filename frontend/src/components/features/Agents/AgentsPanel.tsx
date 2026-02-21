@@ -1,6 +1,14 @@
 /**
  * AgentsPanel.tsx
  * Main view for agent management: list, create, activate, rename, delete.
+ *
+ * Navigation flow:
+ *  - Click on agent card  → activate agent + navigate to /config
+ *  - Click on ⚙️ button   → open ManageModal (stopPropagation prevents card nav)
+ *  - Modal: pencil ✏️     → inline rename (no navigation)
+ *  - Modal: "Configurar"  → activate + navigate to /config
+ *  - Modal: delete button → confirmation → delete (disabled for active agent)
+ *  - "+ Nuevo Agente"     → open create modal (no navigation)
  */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -13,7 +21,10 @@ import {
     updateAgentName,
     deleteAgent,
 } from '@/store/slices/agentsSlice'
-import { Bot, Plus, Settings, Loader2, AlertCircle, Trash2, Pencil, ArrowRight, X } from 'lucide-react'
+import {
+    Bot, Plus, Settings, Loader2, AlertCircle,
+    Trash2, Pencil, ArrowRight, X, Check
+} from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Button } from '@/components/ui/Button'
 import { Agent } from '@/types/config'
@@ -29,26 +40,39 @@ interface ManageModalProps {
 
 const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
     const dispatch = useAppDispatch()
+
+    // Name editing
+    const [editingName, setEditingName] = useState(false)
     const [name, setName] = useState(agent.name)
     const [saving, setSaving] = useState(false)
+    const [nameError, setNameError] = useState('')
+
+    // Delete
     const [confirmDelete, setConfirmDelete] = useState(false)
     const [deleting, setDeleting] = useState(false)
-    const [nameError, setNameError] = useState('')
+    const [deleteError, setDeleteError] = useState('')
 
     const handleSaveName = async () => {
         if (!name.trim()) { setNameError('El nombre no puede estar vacío'); return }
-        if (name.trim() === agent.name) { onClose(); return }
+        if (name.trim() === agent.name) { setEditingName(false); return }
         setSaving(true)
-        await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: name.trim() }))
+        const result = await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: name.trim() }))
         setSaving(false)
-        onClose()
+        if ((result as any).error) {
+            setNameError('Error al guardar el nombre')
+        } else {
+            setEditingName(false)
+            setNameError('')
+        }
     }
 
     const handleDelete = async () => {
         setDeleting(true)
+        setDeleteError('')
         const result = await dispatch(deleteAgent(agent.agent_uuid))
         setDeleting(false)
         if ((result as any).error) {
+            setDeleteError('No se pudo eliminar. ¿Es el agente activo?')
             setConfirmDelete(false)
         } else {
             onClose()
@@ -56,8 +80,14 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-96 shadow-2xl">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <div
+                className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-96 shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-5">
                     <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
@@ -69,31 +99,55 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
                     </button>
                 </div>
 
-                {/* Name field */}
+                {/* Name row */}
                 <label className="block text-xs text-slate-400 mb-1.5">Nombre</label>
-                <div className="flex gap-2 mb-1">
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={e => { setName(e.target.value); setNameError('') }}
-                        onKeyDown={e => e.key === 'Enter' && handleSaveName()}
-                        className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500"
-                    />
-                    <Button
-                        variant="primary"
-                        onClick={handleSaveName}
-                        disabled={saving}
-                        className="text-xs px-3"
-                    >
-                        {saving ? <Loader2 size={12} className="animate-spin" /> : <Pencil size={12} />}
-                    </Button>
-                </div>
+                {editingName ? (
+                    <div className="flex gap-2 mb-1">
+                        <input
+                            type="text"
+                            value={name}
+                            autoFocus
+                            onChange={e => { setName(e.target.value); setNameError('') }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') handleSaveName()
+                                if (e.key === 'Escape') { setEditingName(false); setName(agent.name) }
+                            }}
+                            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-500"
+                        />
+                        <button
+                            onClick={handleSaveName}
+                            disabled={saving}
+                            className="w-8 h-8 mt-1 rounded-lg bg-blue-600 hover:bg-blue-500 flex items-center justify-center transition-all disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 size={12} className="animate-spin text-white" /> : <Check size={12} className="text-white" />}
+                        </button>
+                        <button
+                            onClick={() => { setEditingName(false); setName(agent.name) }}
+                            className="w-8 h-8 mt-1 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all"
+                        >
+                            <X size={12} className="text-slate-300" />
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="flex-1 text-sm text-slate-100 bg-slate-800/50 px-3 py-2 rounded-lg border border-slate-700">
+                            {name}
+                        </span>
+                        <button
+                            onClick={() => setEditingName(true)}
+                            title="Editar nombre"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
+                        >
+                            <Pencil size={13} />
+                        </button>
+                    </div>
+                )}
                 {nameError && <p className="text-xs text-red-400 mb-3">{nameError}</p>}
 
                 {/* Divider */}
                 <div className="border-t border-slate-700/60 my-4" />
 
-                {/* Action: Go to Config */}
+                {/* Go to Config */}
                 <Button
                     variant="primary"
                     onClick={() => onConfigure(agent)}
@@ -103,7 +157,10 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
                     Configurar agente
                 </Button>
 
-                {/* Action: Delete */}
+                {/* Delete */}
+                {deleteError && (
+                    <p className="text-xs text-red-400 text-center mb-2">{deleteError}</p>
+                )}
                 {!confirmDelete ? (
                     <button
                         onClick={() => setConfirmDelete(true)}
@@ -122,7 +179,7 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
                 ) : (
                     <div className="bg-red-900/20 border border-red-900/40 rounded-lg p-3">
                         <p className="text-xs text-red-300 mb-3 text-center">
-                            ¿Eliminar <span className="font-bold">{agent.name}</span>? Esta acción no se puede deshacer.
+                            ¿Eliminar <span className="font-bold">{agent.name}</span>? No se puede deshacer.
                         </p>
                         <div className="flex gap-2">
                             <button
@@ -164,11 +221,22 @@ export const AgentsPanel = () => {
         dispatch(fetchActiveAgent())
     }, [dispatch])
 
-    const handleActivate = async (agent: Agent) => {
-        await dispatch(activateAgent(agent.agent_uuid))
-        dispatch(fetchActiveAgent())
+    /** Click on the card: activate + go directly to /config */
+    const handleCardClick = async (agent: Agent) => {
+        if (!agent.is_active) {
+            await dispatch(activateAgent(agent.agent_uuid))
+            dispatch(fetchActiveAgent())
+        }
+        navigate('/config')
     }
 
+    /** ⚙️ button: open manage modal — does NOT navigate */
+    const handleManageClick = (e: React.MouseEvent, agent: Agent) => {
+        e.stopPropagation()   // prevent card onClick from firing
+        setManagedAgent(agent)
+    }
+
+    /** "Configurar agente" inside modal: activate + navigate */
     const handleConfigure = async (agent: Agent) => {
         if (!agent.is_active) {
             await dispatch(activateAgent(agent.agent_uuid))
@@ -195,7 +263,11 @@ export const AgentsPanel = () => {
                     <Bot size={18} className="text-blue-400" />
                     <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase">Agentes</h2>
                 </div>
-                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5">
+                <Button
+                    variant="primary"
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5"
+                >
                     <Plus size={14} />
                     Nuevo Agente
                 </Button>
@@ -228,13 +300,18 @@ export const AgentsPanel = () => {
                 )}
 
                 {agents.map((agent) => (
+                    /* CARD — clickeable → activa agente y navega a /config */
                     <div
                         key={agent.agent_uuid}
+                        onClick={() => handleCardClick(agent)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && handleCardClick(agent)}
                         className={cn(
-                            "flex items-center justify-between p-4 rounded-xl border transition-all",
+                            "flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
                             agent.is_active
-                                ? "bg-blue-900/20 border-blue-500/40 ring-1 ring-blue-500/20"
-                                : "bg-slate-800/50 border-slate-700/50 hover:border-slate-600"
+                                ? "bg-blue-900/20 border-blue-500/40 ring-1 ring-blue-500/20 hover:ring-blue-500/40"
+                                : "bg-slate-800/50 border-slate-700/50 hover:border-slate-500 hover:bg-slate-800"
                         )}
                     >
                         <div className="flex items-center gap-3">
@@ -260,18 +337,9 @@ export const AgentsPanel = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
-                            {!agent.is_active && (
-                                <button
-                                    onClick={() => handleActivate(agent)}
-                                    disabled={loading}
-                                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 hover:bg-blue-600 hover:text-white transition-all disabled:opacity-50"
-                                >
-                                    Activar
-                                </button>
-                            )}
-                            {/* ⚙️ — opens manage modal */}
+                            {/* ⚙️ — open manage modal (stopPropagation: does NOT trigger card click) */}
                             <button
-                                onClick={() => setManagedAgent(agent)}
+                                onClick={(e) => handleManageClick(e, agent)}
                                 title="Gestionar agente"
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
                             >

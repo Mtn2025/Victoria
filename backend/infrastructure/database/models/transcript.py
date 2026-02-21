@@ -12,6 +12,6 @@ class TranscriptModel(Base):
     
     role: Mapped[str] = mapped_column(String) # user, assistant
     content: Mapped[str] = mapped_column(Text)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     call: Mapped["CallModel"] = relationship(back_populates="transcripts")
