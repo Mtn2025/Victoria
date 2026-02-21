@@ -144,7 +144,7 @@ class AzureSTTSession(STTSession):
     async def process_audio(self, audio_chunk: bytes) -> None:
         """Write PCM bytes into the Azure push stream."""
         # [PIPE-6] Confirm bytes reaching the push_stream at the Azure boundary
-        logger.info(
+        logger.debug(
             f"[PIPE-6/AZURE] push_stream.write({len(audio_chunk)}B)"
         )
         self._push_stream.write(audio_chunk)

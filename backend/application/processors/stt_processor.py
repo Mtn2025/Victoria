@@ -106,7 +106,7 @@ class STTProcessor(FrameProcessor):
         if direction == FrameDirection.DOWNSTREAM:
             if isinstance(frame, AudioFrame):
                 # [PIPE-4] AudioFrame arrived at STTProcessor
-                logger.info(
+                logger.debug(
                     f"[PIPE-4/STT] AudioFrame: {len(frame.data)}B "
                     f"sr={frame.sample_rate} session={'ACTIVE' if self.session else 'NONE'}"
                 )
@@ -120,7 +120,7 @@ class STTProcessor(FrameProcessor):
                     )
                 if self.session:
                     # [PIPE-5] Bytes entering Azure push_stream
-                    logger.info(
+                    logger.debug(
                         f"[PIPE-5/STT→AZURE] sending {len(frame.data)}B "
                         f"to session.process_audio()"
                     )

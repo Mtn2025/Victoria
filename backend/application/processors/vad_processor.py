@@ -54,7 +54,7 @@ class VADProcessor(FrameProcessor):
         if direction == FrameDirection.DOWNSTREAM:
             if isinstance(frame, AudioFrame):
                 # [PIPE-2] Audio frame arrived at VADProcessor
-                logger.info(
+                logger.debug(
                     f"[PIPE-2/VAD] AudioFrame received: {len(frame.data)}B "
                     f"sr={frame.sample_rate} ch={frame.channels}"
                 )

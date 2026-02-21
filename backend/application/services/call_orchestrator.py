@@ -350,7 +350,7 @@ class CallOrchestrator:
         self.last_interaction_time = time.time()
 
         # [PIPE-1] Confirm audio arrived at orchestrator and is entering the pipeline
-        logger.info(
+        logger.debug(
             f"[PIPE-1/ORCH] {len(raw_audio)}B sr={sample_rate} ch={channels} "
             f"→ pushing to VAD"
         )

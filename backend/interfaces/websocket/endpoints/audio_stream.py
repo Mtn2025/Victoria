@@ -214,11 +214,11 @@ async def audio_stream(
                     
                     # Calculate original base64 input chars based on byte size to satisfy the log check
                     original_chars = len(raw_bytes) * 4 // 3
-                    logger.info(f"[B64 CHECK] input_chars={original_chars} "
-                                f"decoded_bytes={len(raw_bytes)} "
-                                f"expected={len(raw_bytes)}")
+                    logger.debug(f"[B64 CHECK] input_chars={original_chars} "
+                                 f"decoded_bytes={len(raw_bytes)} "
+                                 f"expected={len(raw_bytes)}")
 
-                    logger.info(f"[WS] decoded audio bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
+                    logger.debug(f"[WS] decoded audio bytes={len(raw_bytes)} | pipeline={'ready' if orchestrator.pipeline else 'NONE'}")
 
                     if len(raw_bytes) > 0:
                         if orchestrator.pipeline:
