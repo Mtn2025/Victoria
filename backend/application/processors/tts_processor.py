@@ -117,20 +117,21 @@ class TTSProcessor(FrameProcessor):
         if not text:
             return
 
-        # Prepare Config objects calling helper or existing config
-        # Assuming self.config has attributes or get method
+        # Config is always a ConfigDTO (converted from Agent via _agent_to_config_dto
+        # in call_orchestrator). All voice fields are flat attributes on ConfigDTO.
+        # SSoT chain: DB → Agent.voice_config → ConfigDTO.voice_name → here.
         def get_cfg(key, default=None):
             if isinstance(self.config, dict):
                 return self.config.get(key, default)
             return getattr(self.config, key, default)
-            
+
         voice_config = VoiceConfig(
-            name=get_cfg('voice_name', 'en-US-JennyNeural'),
-            speed=get_cfg('voice_speed', 1.0),
-            pitch=get_cfg('voice_pitch', 0.0),
-            volume=get_cfg('voice_volume', 100.0),
-            style=get_cfg('voice_style', "default"), 
-            style_degree=float(get_cfg('voice_style_degree', 1.0))   
+            name         = get_cfg('voice_name',         'es-MX-DaliaNeural'),
+            speed        = get_cfg('voice_speed',        1.0),
+            pitch        = int(get_cfg('voice_pitch',    0)),
+            volume       = int(get_cfg('voice_volume',   100)),
+            style        = get_cfg('voice_style',        'default'),
+            style_degree = float(get_cfg('voice_style_degree', 1.0)),
         )
         
         client_type = get_cfg('client_type', 'browser')  # browser=24kHz PCM; twilio=8kHz mulaw

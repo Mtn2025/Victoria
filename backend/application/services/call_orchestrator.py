@@ -23,6 +23,7 @@ from backend.domain.use_cases.execute_tool import ExecuteToolUseCase
 from backend.domain.use_cases.handle_barge_in import HandleBargeInUseCase
 from backend.domain.value_objects.audio_format import AudioFormat
 from backend.domain.value_objects.voice_config import VoiceConfig
+from backend.domain.ports.config_repository_port import ConfigDTO
 from backend.domain.ports.stt_port import STTPort
 from backend.domain.ports.llm_port import LLMPort
 from backend.domain.ports.tts_port import TTSPort
@@ -37,11 +38,59 @@ from backend.application.processors.frames import AudioFrame, FrameDirection
 
 logger = logging.getLogger(__name__)
 
+
+def _agent_to_config_dto(agent) -> ConfigDTO:
+    """
+    Bridge function: converts Agent entity → ConfigDTO at the pipeline boundary.
+
+    SSoT contract:
+      DB → agent_repository._model_to_agent() → Agent entity
+          → HERE → ConfigDTO → pipeline processors
+
+    All pipeline processors receive a flat ConfigDTO and NEVER inspect
+    the Agent entity directly. This is the single conversion point.
+    """
+    llm  = agent.llm_config or {}
+    vc   = agent.voice_config  # VoiceConfig value object — guaranteed by Agent.__post_init__
+    meta = getattr(agent, 'metadata', {}) or {}
+
+    return ConfigDTO(
+        # --- LLM (from agent.llm_config JSON, DB → here) ---
+        llm_provider = llm.get('provider', 'groq'),
+        llm_model    = llm.get('model',    'llama-3.3-70b-versatile'),
+        temperature  = float(llm.get('temperature', 0.7)),
+        max_tokens   = int(llm.get('max_tokens',   600)),
+        system_prompt      = agent.system_prompt  or '',
+        first_message      = agent.first_message  or '',
+        first_message_mode = llm.get('first_message_mode', 'text'),
+
+        # --- TTS (from agent.voice_config VoiceConfig VO, DB → here) ---
+        tts_provider        = vc.provider         or 'azure',
+        voice_name          = vc.name,            # ← actual voice from DB
+        voice_style         = vc.style            or 'default',
+        voice_style_degree  = float(vc.style_degree),
+        voice_speed         = float(vc.speed),
+        voice_pitch         = int(vc.pitch),
+        voice_volume        = int(vc.volume),
+        voice_language      = llm.get('voice_language', 'es-MX'),
+
+        # --- STT ---
+        stt_provider        = meta.get('stt_config', {}).get('provider', 'azure'),
+        stt_language        = meta.get('stt_config', {}).get('sttLang', 'es-MX'),
+        silence_timeout_ms  = agent.silence_timeout_ms,
+
+        # --- Runtime ---
+        # client_type is stored in llm_config by the PATCH endpoint (mode field)
+        # Falls back to 'browser' which is the canonical safe default.
+        client_type = llm.get('client_type', 'browser'),
+    )
+
+
 class CallOrchestrator:
     """
     Orchestrates the lifecycle of a voice call.
     Acts as the facade for the Interface layer to interact with the Core Domain.
-    
+
     FASE 3 Complete: FSM, ControlChannel, PipelineFactory, SynthesizeText
     """
 
@@ -154,9 +203,11 @@ class CallOrchestrator:
                 execute_tool_uc = ExecuteToolUseCase(self.tools)
                 handle_barge_in_uc = HandleBargeInUseCase()
                 
-                # Build pipeline via factory
+                # Build pipeline via factory.
+                # Convert Agent entity → ConfigDTO (flat) so every processor
+                # reads from ConfigDTO attributes. See _agent_to_config_dto().
                 self.pipeline = await PipelineFactory.create_pipeline(
-                    config=agent,  # Using agent as config (has all settings)
+                    config=_agent_to_config_dto(agent),
                     stt_port=self.stt_port,
                     llm_port=self.llm_port,
                     tts_port=self.tts_port,

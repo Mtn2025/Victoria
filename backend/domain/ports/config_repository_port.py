@@ -33,8 +33,15 @@ class ConfigDTO:
     tts_provider: str = "azure"
     voice_name: str = "es-MX-DaliaNeural"
     voice_style: str = "default"
+    voice_style_degree: float = 1.0     # Style intensity (0.01 - 2.0)
     voice_speed: float = 1.0
+    voice_pitch: int = 0                # Hz offset (-100 to +100)
+    voice_volume: int = 100             # Volume level (0-100)
     voice_language: str = "es-MX"
+
+    # Runtime client type — determines audio format across the pipeline
+    # 'browser' = 24 kHz PCM  |  'twilio'/'telnyx' = 8 kHz mulaw
+    client_type: str = "browser"
 
     # STT Config
     stt_provider: str = "azure"
