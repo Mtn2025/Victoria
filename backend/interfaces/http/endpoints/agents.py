@@ -27,9 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------- #
-# GET /agents/                                                                  #
+# GET /agents
 # --------------------------------------------------------------------------- #
-@router.get("/", response_model=list[AgentListItem])
+@router.get("", response_model=list[AgentListItem])
 async def list_agents(
     repo: AgentRepository = Depends(get_agent_repository),
 ) -> list[AgentListItem]:
@@ -48,9 +48,9 @@ async def list_agents(
 
 
 # --------------------------------------------------------------------------- #
-# POST /agents/                                                                 #
+# POST /agents
 # --------------------------------------------------------------------------- #
-@router.post("/", response_model=AgentCreateResponse, status_code=201)
+@router.post("", response_model=AgentCreateResponse, status_code=201)
 async def create_agent(
     request: AgentCreateRequest,
     repo: AgentRepository = Depends(get_agent_repository),

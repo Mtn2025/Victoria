@@ -39,7 +39,6 @@ def create_app() -> FastAPI:
         description="Hexagonal Architecture Implementation",
         version="2.0.0",
         lifespan=lifespan,
-        redirect_slashes=False,   # prevents 307 auto-redirect on trailing slash mismatch
     )
 
     # Middleware
