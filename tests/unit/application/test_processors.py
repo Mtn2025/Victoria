@@ -32,7 +32,8 @@ class TestSTTProcessor:
 
     @pytest.fixture
     def processor(self, mock_provider):
-        return STTProcessor(stt_provider=mock_provider)
+        # audio_format obligatorio (contrato de capa — ver audio_format.py)
+        return STTProcessor(stt_provider=mock_provider, audio_format=AudioFormat.for_browser())
 
     @pytest.mark.asyncio
     async def test_process_audio_pushes_to_session(self, processor, mock_provider, mock_session):

@@ -47,7 +47,8 @@ def mock_stt_port():
 @pytest.mark.asyncio
 async def test_stt_processor_lifecycle(mock_stt_port):
     port, session = mock_stt_port
-    processor = STTProcessor(port)
+    # audio_format obligatorio (contrato de capa — ver audio_format.py)
+    processor = STTProcessor(port, audio_format=AudioFormat.for_telephony())
     
     # Start
     await processor.start()
@@ -64,7 +65,8 @@ async def test_stt_processor_lifecycle(mock_stt_port):
 async def test_process_audio_frame(mock_stt_port):
     # Setup
     port, session = mock_stt_port
-    processor = STTProcessor(port)
+    # for_telephony() = 8kHz, coincide con sample_rate=8000 del AudioFrame
+    processor = STTProcessor(port, audio_format=AudioFormat.for_telephony())
     
     # Mock downstream
     downstream = AsyncMock()
