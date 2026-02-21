@@ -3,7 +3,7 @@ Call Entity (Aggregate Root).
 Part of the Domain Layer (Hexagonal Architecture).
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Dict, Any
 
@@ -61,7 +61,7 @@ class Call:
     def duration_seconds(self) -> float:
         """Calculate call duration in seconds."""
         if not self.end_time:
-             return (datetime.utcnow() - self.start_time).total_seconds()
+             return (datetime.now(timezone.utc) - self.start_time).total_seconds()
         return (self.end_time - self.start_time).total_seconds()
 
     def update_metadata(self, key: str, value: Any) -> None:

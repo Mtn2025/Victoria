@@ -8,7 +8,10 @@ jinja2>=3.1.0
 
 # Database
 sqlalchemy>=2.0.0
+alembic>=1.13.0
 aiosqlite>=0.19.0
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
 
 # Networking
 httpx>=0.24.0
@@ -38,10 +41,6 @@ asgi-correlation-id>=4.3.0
 
 # Cache & Message Broker
 redis>=5.0.0
-
-# Production Database (PostgreSQL)
-asyncpg>=0.29.0
-psycopg2-binary>=2.9.9
 
 # Testing
 pytest>=7.0.0

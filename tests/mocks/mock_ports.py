@@ -33,12 +33,40 @@ class MockCallRepository(CallRepository):
 class MockAgentRepository(AgentRepository):
     def __init__(self):
         self.agents = {}
-        
+
     async def get_agent(self, agent_id: str) -> Optional[Agent]:
         return self.agents.get(agent_id)
-        
+
     async def update_agent(self, agent: Agent) -> None:
-        self.agents[agent.name] = agent # Assuming name as ID for mock
+        self.agents[agent.name] = agent  # name as key for mock
+
+    # ------------------------------------------------------------------ #
+    # New abstract methods required by AgentRepository port               #
+    # ------------------------------------------------------------------ #
+
+    async def get_all_agents(self) -> list:
+        return list(self.agents.values())
+
+    async def create_agent(self, agent: Agent) -> Agent:
+        self.agents[agent.name] = agent
+        return agent
+
+    async def get_agent_by_uuid(self, agent_uuid: str) -> Optional[Agent]:
+        for agent in self.agents.values():
+            if getattr(agent, 'agent_uuid', None) == agent_uuid:
+                return agent
+        return None
+
+    async def set_active_agent(self, agent_uuid: str) -> Agent:
+        target = None
+        for agent in self.agents.values():
+            agent.is_active = (getattr(agent, 'agent_uuid', None) == agent_uuid)
+            if agent.is_active:
+                target = agent
+        if target is None:
+            from backend.domain.ports.persistence_port import AgentNotFoundError
+            raise AgentNotFoundError(f"No agent with uuid={agent_uuid}")
+        return target
 
 class MockSTTPort(STTPort):
     async def transcribe(self, audio: bytes, format, language="es-MX") -> str:

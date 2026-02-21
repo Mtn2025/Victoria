@@ -30,6 +30,10 @@ COPY --from=builder /root/.local /root/.local
 COPY backend/ ./backend/
 COPY config/ ./config/
 
+# Copy Alembic migration files (required for alembic upgrade head)
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
+
 # Env vars
 ENV PATH=/root/.local/bin:$PATH
 ENV PYTHONPATH=/app
@@ -37,5 +41,6 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Production command (no reload, multiple workers)
-CMD ["uvicorn", "backend.interfaces.http.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Run migrations then start the server.
+# If alembic upgrade head fails, the container does NOT start (&&).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn backend.interfaces.http.main:app --host 0.0.0.0 --port 8000 --workers 4"]

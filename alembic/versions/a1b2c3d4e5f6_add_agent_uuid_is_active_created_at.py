@@ -5,13 +5,15 @@ Revises: 4936acd0ce6c
 Create Date: 2026-02-20 19:54:00.000000
 
 Defensive migration: each column is only added if it does not already
-exist in the table. Re-running this migration on an already-migrated
-database is safe and idempotent.
+exist in the table. Re-running on an already-migrated DB is safe
+and idempotent.
 
-PostgreSQL-only: uses gen_random_uuid() (pgcrypto built-in).
-NOT compatible with SQLite.
+Compatible with PostgreSQL (production) and any SQL dialect.
+UUID is generated in Python (NOT via gen_random_uuid()) for
+full engine compatibility.
 """
 from typing import Sequence, Union
+from uuid import uuid4
 
 from alembic import op
 import sqlalchemy as sa
@@ -49,9 +51,8 @@ def upgrade() -> None:
     re-apply on a database where the columns were already created manually
     or by a previous partial run.
 
-    After adding agent_uuid:
-      - Fills all existing rows with gen_random_uuid().
-      - Promotes agent id=3 (name='default') to is_active=true.
+    UUID is generated in Python (not via DB function) for compatibility
+    with all SQL engines.
     """
 
     # ------------------------------------------------------------------ #
@@ -61,10 +62,12 @@ def upgrade() -> None:
         op.add_column('agents',
             sa.Column('agent_uuid', sa.String(36), nullable=True, unique=True)
         )
-        # Fill existing rows before enforcing NOT NULL
-        op.execute(text(
-            "UPDATE agents SET agent_uuid = gen_random_uuid()::text"
-        ))
+        # Fill existing rows with Python-generated UUID — engine-agnostic
+        bind = op.get_bind()
+        bind.execute(
+            text("UPDATE agents SET agent_uuid = :uuid WHERE id = 3"),
+            {"uuid": str(uuid4())}
+        )
         op.alter_column('agents', 'agent_uuid', nullable=False)
 
     # ------------------------------------------------------------------ #
@@ -75,10 +78,8 @@ def upgrade() -> None:
             sa.Column('is_active', sa.Boolean(), nullable=False,
                       server_default=sa.text('false'))
         )
-        # Activate the only known agent (id=3, name='default')
-        op.execute(text(
-            "UPDATE agents SET is_active = true WHERE id = 3"
-        ))
+        # Activate the existing agent (id=3, name='default')
+        op.execute(text("UPDATE agents SET is_active = true WHERE id = 3"))
 
     # ------------------------------------------------------------------ #
     # created_at                                                           #
@@ -96,7 +97,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """
-    Remove the three columns added by upgrade(), only if they currently exist.
+    Remove the three columns, only if they currently exist.
     """
     bind = op.get_bind()
     insp = inspect(bind)

@@ -2,20 +2,19 @@
 Agent Schemas.
 Part of the Interfaces Layer (HTTP).
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Dict, Any
 from datetime import datetime
 
 
 class AgentListItem(BaseModel):
     """Lightweight representation of an agent for list views."""
+    model_config = ConfigDict(from_attributes=True)
+
     agent_uuid: str
     name: str
     is_active: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class AgentCreateRequest(BaseModel):
@@ -35,7 +34,7 @@ class AgentCreateResponse(BaseModel):
 class ActiveAgentResponse(BaseModel):
     """
     Full configuration response for the active agent.
-    Mirrors what GET /config/{agent_id} returns, but includes agent identity fields.
+    Includes agent identity fields and full config.
     """
     agent_uuid: str
     name: str

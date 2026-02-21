@@ -1,6 +1,7 @@
+import uuid
 from typing import Optional, List
 from datetime import datetime
-from sqlalchemy import String, Text, Float, Integer, JSON, Boolean, DateTime, text
+from sqlalchemy import String, Text, Float, Integer, JSON, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -11,9 +12,9 @@ class AgentModel(Base):
     __tablename__ = "agents"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    # Public UUID — exposed to the frontend. Never expose the int id.
+    # Public UUID — generated in Python (engine-agnostic, works with SQLite in tests)
     agent_uuid: Mapped[str] = mapped_column(String(36), unique=True, nullable=False,
-                                             server_default=text("gen_random_uuid()::text"))
+                                             default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String, unique=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
