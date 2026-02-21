@@ -22,7 +22,7 @@ from backend.domain.use_cases.set_active_agent import SetActiveAgentUseCase
 from backend.domain.entities.agent import Agent
 from backend.domain.value_objects.voice_config import VoiceConfig
 
-router = APIRouter(prefix="/agents", tags=["agents"])
+router = APIRouter(prefix="/agents", tags=["agents"], redirect_slashes=False)
 logger = logging.getLogger(__name__)
 
 

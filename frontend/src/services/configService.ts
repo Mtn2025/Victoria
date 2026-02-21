@@ -124,7 +124,7 @@ export const configService = {
             }
         }
 
-        const response = await api.patch(`/agents/${agentId}/`, payload)
+        const response = await api.patch(`/agents/${agentId}`, payload)
         return response
     },
 
@@ -134,7 +134,7 @@ export const configService = {
             return
         }
         const payload: BackendConfigUpdate = { ...config }
-        return api.patch(`/agents/${agentId}/`, payload)
+        return api.patch(`/agents/${agentId}`, payload)
     },
 
     updateTelnyxConfig: async (config: Partial<TelnyxConfig>, agentId: string) => {
@@ -143,7 +143,7 @@ export const configService = {
             return
         }
         const payload: BackendConfigUpdate = { ...config }
-        return api.patch(`/agents/${agentId}/`, payload)
+        return api.patch(`/agents/${agentId}`, payload)
     },
 
     // Options / Catalogs

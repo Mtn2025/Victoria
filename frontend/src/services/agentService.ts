@@ -26,12 +26,12 @@ interface ActiveAgentResponse extends Agent {
 export const agentService = {
     /** Return all agents ordered by creation date. */
     listAgents: async (): Promise<Agent[]> => {
-        return await api.get<Agent[]>('/agents/')
+        return await api.get<Agent[]>('/agents')
     },
 
     /** Create a new agent with system-default configuration. */
     createAgent: async (name: string): Promise<Agent> => {
-        return await api.post<Agent>('/agents/', { name })
+        return await api.post<Agent>('/agents', { name })
     },
 
     /** Return the active agent with its full configuration. Returns null on 404. */
