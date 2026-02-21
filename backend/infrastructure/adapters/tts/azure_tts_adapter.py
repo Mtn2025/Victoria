@@ -182,9 +182,14 @@ class AzureTTSAdapter(TTSPort):
         # Azure supports absolute volume 0-100 (e.g. volume="75")
         volume = f"{voice.volume}"
 
+        # Derive locale from voice name (e.g. "es-MX-BeatrizNeural" → "es-MX")
+        # Falls back to "es-MX" if voice name doesn't follow Azure naming convention.
+        parts = voice.name.split("-") if voice.name else []
+        lang = f"{parts[0]}-{parts[1]}" if len(parts) >= 2 else "es-MX"
+
         ssml = (
             f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
-            f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-MX">'
+            f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="{lang}">'
             f'<voice name="{voice.name}">'
             f'{style_tag}'
             f'<prosody rate="{rate}" pitch="{pitch}" volume="{volume}">'

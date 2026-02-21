@@ -27,9 +27,19 @@ class PromptBuilder:
         base_prompt = get_cfg('system_prompt', '') or "Eres un asistente útil."
 
         # 1. Parsing Configuration
-        length = get_cfg('response_length', 'short')
-        tone = get_cfg('conversation_tone', 'warm')
-        formality = get_cfg('conversation_formality', 'semi_formal')
+        # Keys stored by PATCH endpoint in llm_config as camelCase (responseLength, etc.).
+        # ConfigDTO exposes them via _agent_to_config_dto() under snake_case too.
+        # Try both to support both storage formats.
+        def get_cfg_multi(*keys, default=None):
+            for key in keys:
+                v = get_cfg(key)
+                if v is not None:
+                    return v
+            return default
+
+        length    = get_cfg_multi('response_length',           'responseLength',          default='short')
+        tone      = get_cfg_multi('conversation_tone',         'conversationTone',        default='warm')
+        formality = get_cfg_multi('conversation_formality',    'conversationFormality',   default='semi_formal')
 
         # 2. Instruction Maps
         length_instructions = {

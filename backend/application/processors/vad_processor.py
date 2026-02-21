@@ -67,7 +67,7 @@ class VADProcessor(FrameProcessor):
             await self.push_frame(frame, direction)
 
     async def _process_audio(self, frame: AudioFrame):
-        logger.info(
+        logger.debug(
             f"[VAD ENTRY] buffer_before={len(self.buffer)} "
             f"frame_data={len(frame.data)} "
             f"vad_adapter={'OK' if self.vad_adapter else 'NONE'} "
@@ -117,7 +117,7 @@ class VADProcessor(FrameProcessor):
             else:
                 audio_vad = audio_float32
 
-            logger.info(
+            logger.debug(
                 f"[VAD DEBUG] chunk_samples={len(audio_vad)} "
                 f"sr_vad=16000 "
                 f"min={float(audio_vad.min()):.4f} "
@@ -126,7 +126,7 @@ class VADProcessor(FrameProcessor):
             )
 
             # Log the exact chunk Silero receives — visible on any silent failure
-            logger.info(
+            logger.debug(
                 f"[VAD SILERO IN] shape={audio_vad.shape} dtype={audio_vad.dtype} "
                 f"min={float(audio_vad.min()):.4f} max={float(audio_vad.max()):.4f} "
                 f"rms={float(np.sqrt(np.mean(audio_vad**2))):.4f} sr={target_sr}"
@@ -142,8 +142,7 @@ class VADProcessor(FrameProcessor):
                 )
                 confidence = 0.0
 
-            logger.info(f"[VAD CONFIDENCE] conf={confidence:.4f} "
-                        f"threshold={self.threshold_start}")
+            logger.debug(f"[VAD CONFIDENCE] conf={confidence:.4f} threshold={self.threshold_start}")
 
             # Smart Turn Logic
             if confidence > self.threshold_start:

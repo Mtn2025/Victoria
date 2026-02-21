@@ -127,7 +127,7 @@ class PipelineFactory:
 
         # 1. Instantiate Processors with explicit AudioFormat
         vad = VADProcessor(config, detect_turn_end)
-        stt = STTProcessor(stt_port, audio_format=audio_format)
+        stt = STTProcessor(stt_port, audio_format=audio_format, config=config)
 
         # LLM with optional enhancements
         llm = LLMProcessor(

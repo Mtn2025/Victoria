@@ -7,11 +7,11 @@ Ningún formato se asume por defecto (ver contrato en audio_format.py).
 """
 import asyncio
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from backend.application.processors.frames import Frame, AudioFrame, TextFrame, DataFrame, ControlFrame
 from backend.application.processors.frame_processor import FrameProcessor, FrameDirection
-from backend.domain.ports.stt_port import STTPort, STTSession
+from backend.domain.ports.stt_port import STTPort, STTSession, STTConfig
 from backend.domain.value_objects.audio_format import AudioFormat
 
 logger = logging.getLogger(__name__)
@@ -23,10 +23,11 @@ class STTProcessor(FrameProcessor):
     Consumes Results from STT -> Pushes TextFrames downstream.
     """
 
-    def __init__(self, stt_provider: STTPort, audio_format: Optional[AudioFormat] = None):
+    def __init__(self, stt_provider: STTPort, audio_format: Optional[AudioFormat] = None, config: Any = None):
         super().__init__(name="STTProcessor")
         self.stt_provider = stt_provider
         self.audio_format = audio_format
+        self.config = config  # ConfigDTO — used to build STTConfig at session start
         self.session: Optional[STTSession] = None
         self._reader_task: Optional[asyncio.Task] = None
         logger.info(
@@ -45,10 +46,30 @@ class STTProcessor(FrameProcessor):
                 "PipelineFactory must pass AudioFormat.for_client(config.client_type). "
                 "No default format is assumed to avoid silent mismatch with the STT provider."
             )
+
+        # --- Build STTConfig from ConfigDTO (SSoT: DB → ConfigDTO → here) ---
+        def _get(key, default=None):
+            if self.config is None:
+                return default
+            if isinstance(self.config, dict):
+                return self.config.get(key, default)
+            return getattr(self.config, key, default)
+
+        stt_config = STTConfig(
+            language         = _get('stt_language', 'es-MX'),
+            silence_timeout  = _get('silence_timeout_ms', 1000),
+        )
+        logger.info(
+            f"[STT CFG] language={stt_config.language!r} "
+            f"silence_timeout={stt_config.silence_timeout}ms"
+        )
+
         try:
             # Start the streaming session via the Port
-            self.session = await self.stt_provider.start_stream(format=self.audio_format)
-            
+            self.session = await self.stt_provider.start_stream(
+                format=self.audio_format,
+                config=stt_config,
+            )
             # Start background reader for results
             self._reader_task = asyncio.create_task(self._read_results())
             logger.info(
