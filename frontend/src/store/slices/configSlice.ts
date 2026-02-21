@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { ConfigState, BrowserConfig, TwilioConfig, TelnyxConfig } from '@/types/config'
 import { configService } from '@/services/configService'
+import { agentService } from '@/services/agentService'
 
 // Async Thunks
 export const fetchLanguages = createAsyncThunk(
@@ -40,8 +41,23 @@ export const fetchLLMModels = createAsyncThunk(
 
 export const saveBrowserConfig = createAsyncThunk(
     'config/saveBrowserConfig',
-    async (config: Partial<BrowserConfig>) => {
-        return await configService.updateBrowserConfig(config)
+    async (config: Partial<BrowserConfig>, { getState, rejectWithValue }) => {
+        const state = getState() as { agents: { activeAgent: { agent_uuid: string } | null } }
+        const agentUuid = state.agents.activeAgent?.agent_uuid
+        if (!agentUuid) {
+            console.error('[saveBrowserConfig] No active agent in Redux state. Aborting PATCH.')
+            return rejectWithValue('No active agent')
+        }
+        return await configService.updateBrowserConfig(config, agentUuid)
+    }
+)
+
+// Agent config is ALWAYS fetched from GET /api/agents/active.
+// No agentId or name parameter needed — the backend resolves active agent from DB.
+export const fetchAgentConfig = createAsyncThunk(
+    'config/fetchAgentConfig',
+    async () => {
+        return await agentService.getActiveAgent()
     }
 )
 
@@ -310,6 +326,76 @@ export const configSlice = createSlice({
             state.isLoadingOptions = false
         })
         builder.addCase(saveBrowserConfig.rejected, (state) => {
+            state.isLoadingOptions = false
+        })
+
+        // Fetch Agent Config (Hydration)
+        builder.addCase(fetchAgentConfig.pending, (state) => {
+            state.isLoadingOptions = true
+        })
+        builder.addCase(fetchAgentConfig.fulfilled, (state, action) => {
+            state.isLoadingOptions = false
+            const data = action.payload as any
+
+            // Hydrate Browser Config from Server
+            if (data.system_prompt) state.browser.prompt = data.system_prompt
+            if (data.first_message) state.browser.msg = data.first_message
+            if (data.silence_timeout_ms !== undefined) state.browser.sttSilenceTimeout = data.silence_timeout_ms
+
+            if (data.voice) {
+                if (data.voice.name) state.browser.voiceId = data.voice.name
+                if (data.voice.style) state.browser.voiceStyle = data.voice.style
+                if (data.voice.speed !== undefined) state.browser.voiceSpeed = data.voice.speed
+                if (data.voice.pitch !== undefined) state.browser.voicePitch = data.voice.pitch
+                if (data.voice.volume !== undefined) state.browser.voiceVolume = data.voice.volume
+            }
+
+            if (data.llm_config) {
+                if (data.llm_config.provider) state.browser.provider = data.llm_config.provider
+                if (data.llm_config.model) state.browser.model = data.llm_config.model
+                if (data.llm_config.max_tokens !== undefined) state.browser.tokens = data.llm_config.max_tokens
+                if (data.llm_config.temperature !== undefined) state.browser.temp = data.llm_config.temperature
+
+                // Advanced LLM mapped fields
+                const copyFields = ['responseLength', 'conversationTone', 'conversationFormality',
+                    'conversationPacing', 'contextWindow', 'frequencyPenalty',
+                    'presencePenalty', 'toolChoice', 'dynamicVarsEnabled',
+                    'dynamicVars', 'mode', 'hallucination_blacklist']
+                copyFields.forEach(field => {
+                    if (data.llm_config[field] !== undefined) {
+                        (state.browser as any)[field] = data.llm_config[field]
+                    }
+                })
+            }
+
+            if (data.voice_config_json) {
+                const vc = data.voice_config_json
+                if (vc.voiceStyleDegree !== undefined) state.browser.voiceStyleDegree = vc.voiceStyleDegree
+                if (vc.voiceBgSound !== undefined) state.browser.voiceBgSound = vc.voiceBgSound
+                if (vc.voiceBgUrl !== undefined) state.browser.voiceBgUrl = vc.voiceBgUrl
+            }
+
+            if (data.stt_config) {
+                const stt = data.stt_config
+                if (stt.sttProvider !== undefined) state.browser.sttProvider = stt.sttProvider
+                if (stt.sttModel !== undefined) state.browser.sttModel = stt.sttModel
+                if (stt.sttLang !== undefined) state.browser.sttLang = stt.sttLang
+                if (stt.sttKeywords !== undefined) state.browser.sttKeywords = stt.sttKeywords
+                if (stt.interruption_threshold !== undefined) state.browser.interruption_threshold = stt.interruption_threshold
+                if (stt.vadSensitivity !== undefined) state.browser.vad_threshold = stt.vadSensitivity
+            }
+
+            if (data.tools_config && data.tools_config.length > 0) {
+                const tc = data.tools_config[0]
+                if (tc.tools) state.browser.toolsSchema = JSON.stringify(tc.tools)
+                if (tc.tool_server_url !== undefined) state.browser.toolServerUrl = tc.tool_server_url
+                if (tc.client_tools_enabled !== undefined) state.browser.clientToolsEnabled = tc.client_tools_enabled
+                if (tc.async_execution !== undefined) state.browser.asyncTools = tc.async_execution
+                if (tc.tool_timeout_ms !== undefined) state.browser.toolTimeoutMs = tc.tool_timeout_ms
+                if (tc.error_message !== undefined) state.browser.toolErrorMsg = tc.error_message
+            }
+        })
+        builder.addCase(fetchAgentConfig.rejected, (state) => {
             state.isLoadingOptions = false
         })
     }

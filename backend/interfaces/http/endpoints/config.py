@@ -45,6 +45,7 @@ async def get_agent_config(
         raise HTTPException(status_code=404, detail="Agent not found")
     
     return {
+        "agent_id": agent_id,  # Real DB key — never hardcoded
         "name": agent.name,
         "system_prompt": agent.system_prompt,
         "first_message": agent.first_message,
@@ -56,9 +57,10 @@ async def get_agent_config(
             "volume": agent.voice_config.volume
         },
         "silence_timeout_ms": agent.silence_timeout_ms,
-        # TODO(INT-05): Verify if tools_config should be exposed here.
         "tools_config": agent.tools if hasattr(agent, "tools") else {},
-        "llm_config": agent.llm_config if hasattr(agent, "llm_config") else {}
+        "llm_config": agent.llm_config if hasattr(agent, "llm_config") else {},
+        "stt_config": agent.metadata.get("stt_config", {}) if hasattr(agent, "metadata") else {},
+        "voice_config_json": agent.metadata.get("voice_config_json", {}) if hasattr(agent, "metadata") else {}
     }
 
 @router.patch("/")
@@ -101,7 +103,7 @@ async def update_agent_config(
         return cast_func(val) if cast_func else val
         
     # JSON LLM Config dict mapping
-    if not current.llm_config:
+    if not hasattr(current, "llm_config") or current.llm_config is None:
         current.llm_config = {}
         
     if update.llm_provider is not None:
@@ -112,6 +114,16 @@ async def update_agent_config(
         current.llm_config["max_tokens"] = _parse_val(update.max_tokens, current.llm_config.get("max_tokens", 1024), int)
     if update.temperature is not None:
         current.llm_config["temperature"] = _parse_val(update.temperature, current.llm_config.get("temperature", 0.7), float)
+        
+    # Group A: Extended LLM Fields
+    for field in ["responseLength", "conversationTone", "conversationFormality", 
+                  "conversationPacing", "contextWindow", "frequencyPenalty",
+                  "presencePenalty", "toolChoice", "dynamicVarsEnabled",
+                  "dynamicVars", "mode", "hallucination_blacklist"]:
+        val = getattr(update, field, None)
+        if val is not None:
+            current.llm_config[field] = val
+        
         
     vc = current.voice_config
     
@@ -131,6 +143,28 @@ async def update_agent_config(
         clean_vc_args["name"] = "es-MX-DaliaNeural"
         
     current.voice_config = VoiceConfig(**clean_vc_args)
+    
+    # Store Agent extended Voice JSON (Background sound, style degrees)
+    if not getattr(current, "metadata", None):
+        current.metadata = {}
+    
+    if "voice_config_json" not in current.metadata:
+        current.metadata["voice_config_json"] = {}
+        
+    for field in ["voiceStyleDegree", "voiceBgSound", "voiceBgUrl"]:
+        val = getattr(update, field, None)
+        if val is not None:
+             current.metadata["voice_config_json"][field] = val
+             
+    # Store Agent extended STT JSON
+    if "stt_config" not in current.metadata:
+        current.metadata["stt_config"] = {}
+        
+    for field in ["sttProvider", "sttModel", "sttLang", "sttKeywords", 
+                  "interruption_threshold", "vadSensitivity"]:
+         val = getattr(update, field, None)
+         if val is not None:
+             current.metadata["stt_config"][field] = val
     
     # 3. Save
     await repo.update_agent(current)

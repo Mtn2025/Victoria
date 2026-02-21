@@ -31,7 +31,21 @@ export const historyService = {
     },
 
     getCallDetail: async (id: string): Promise<CallDetail> => {
-        return api.get<CallDetail>(`/history/${id}/detail`)
+        const response = await api.get<any>(`/history/${id}/detail`)
+
+        // Map backend "duration" to frontend "duration_seconds"
+        return {
+            call: {
+                id: response.call.id,
+                start_time: response.call.start_time,
+                end_time: response.call.end_time || null,
+                client_type: response.call.client_type,
+                status: response.call.status,
+                duration_seconds: response.call.duration,
+                extracted_data: response.call.extracted_data
+            },
+            transcripts: response.transcripts
+        }
     },
 
     deleteCalls: async (ids: string[]): Promise<{ deleted: number }> => {

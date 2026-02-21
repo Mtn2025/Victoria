@@ -18,18 +18,43 @@ class ConfigUpdate(BaseModel):
     system_prompt: Optional[str] = None
     first_message: Optional[str] = None
     
+    # LLM Settings
+    responseLength: Optional[str] = None
+    conversationTone: Optional[str] = None
+    conversationFormality: Optional[str] = None
+    conversationPacing: Optional[str] = None
+    contextWindow: Optional[int] = None
+    frequencyPenalty: Optional[float] = None
+    presencePenalty: Optional[float] = None
+    toolChoice: Optional[str] = None
+    dynamicVarsEnabled: Optional[bool] = None
+    dynamicVars: Optional[str] = None
+    mode: Optional[str] = None
+    hallucination_blacklist: Optional[str] = None
+    
     # Text-to-Speech
     voice_name: Optional[str] = None
     voice_style: Optional[str] = None
     voice_speed: Optional[float] = None
     voice_pitch: Optional[float] = None
     voice_volume: Optional[float] = None
+    voiceStyleDegree: Optional[float] = None
+    voiceBgSound: Optional[str] = None
+    voiceBgUrl: Optional[str] = None
+    
+    # STT Settings
+    sttProvider: Optional[str] = None
+    sttModel: Optional[str] = None
+    sttLang: Optional[str] = None
+    sttKeywords: Optional[str] = None
+    interruption_threshold: Optional[float] = None
+    vadSensitivity: Optional[float] = None
     
     # VAD / Silence
     silence_timeout_ms: Optional[int] = None
     
-    # Agent
-    agent_id: str = "default" # Default agent to update
+    # Agent identity — required, no default. Must come from Redux state (hydrated via GET /config/{id}).
+    agent_id: str
     
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None

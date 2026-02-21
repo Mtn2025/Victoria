@@ -11,7 +11,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from backend.infrastructure.config.settings import settings
 from backend.infrastructure.database.session import engine
 from backend.infrastructure.database.models import Base
-from backend.interfaces.http.endpoints import telephony, config, history
+from backend.interfaces.http.endpoints import telephony, config, history, agents
 from backend.interfaces.websocket.endpoints import audio_stream
 
 # Configure logging (Simplified for now, or import from Core)
@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
     
     app.include_router(config.router, prefix="/api", dependencies=[Depends(get_api_key)]) 
     app.include_router(history.router, prefix="/api", dependencies=[Depends(get_api_key)])
+    app.include_router(agents.router, prefix="/api", dependencies=[Depends(get_api_key)])
     
     # Monitoring
     from backend.interfaces.http.endpoints import health

@@ -250,6 +250,14 @@ export interface TelnyxConfig {
     stateInjectionEnabled: boolean
 }
 
+// Agent management types (mirrors backend AgentListItem / ActiveAgentResponse)
+export interface Agent {
+    agent_uuid: string
+    name: string
+    is_active: boolean
+    created_at: string
+}
+
 export interface ConfigState {
     browser: BrowserConfig
     twilio: TwilioConfig

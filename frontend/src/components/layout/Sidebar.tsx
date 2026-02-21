@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "@/hooks/useRedux"
 import { setActiveTab, DashboardTab } from "@/store/slices/uiSlice"
 import { cn } from "@/utils/cn"
 import {
+    Bot,
     Cpu,
     Mic,
     Ear,
@@ -33,6 +34,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
     // --- Pages ---
     { type: 'page', path: '/simulator', label: 'Simulador', icon: Globe }, // Main view
+    { type: 'page', path: '/agents', label: 'Agentes', icon: Bot },
 
     // --- Config Tabs (Update Redux + Ensure on Simulator) ---
     { type: 'config', id: 'model', label: 'Modelo', icon: Cpu },
@@ -55,6 +57,7 @@ export const Sidebar = () => {
     const navigate = useNavigate()
     const location = useLocation()
     const activeTab = useAppSelector((state) => state.ui.activeTab)
+    const activeAgent = useAppSelector((state) => state.agents.activeAgent)
 
     const handleNavigation = (item: NavItem) => {
         if (item.type === 'page' && item.path) {
@@ -97,7 +100,7 @@ export const Sidebar = () => {
                     }
 
                     return (
-                        <div key={index} className="group relative flex items-center justify-center">
+                        <div key={index} className="group relative flex flex-col items-center justify-center w-full">
                             <button
                                 onClick={() => handleNavigation(item)}
                                 title={item.label}
@@ -110,6 +113,16 @@ export const Sidebar = () => {
                             >
                                 <Icon size={20} />
                             </button>
+
+                            {/* Active agent name shown below Bot icon */}
+                            {item.path === '/agents' && (
+                                <span className={cn(
+                                    "text-[9px] leading-tight text-center max-w-[52px] truncate mt-0.5",
+                                    activeAgent ? "text-blue-400" : "text-amber-500"
+                                )}>
+                                    {activeAgent ? activeAgent.name : "Sin agente"}
+                                </span>
+                            )}
 
                             {/* Tooltip */}
                             <div className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-700 font-medium">

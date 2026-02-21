@@ -3,7 +3,8 @@ import { BrowserConfig, TwilioConfig, TelnyxConfig, Voice, Language, VoiceStyle,
 
 // Backend Schema Interface (Partial)
 interface BackendConfigUpdate {
-    agent_id: string
+    // Not sent in body for new /agents/{uuid}/ endpoint — kept optional for legacy compat
+    agent_id?: string
     llm_provider?: string
     llm_model?: string
     max_tokens?: number
@@ -16,35 +17,89 @@ interface BackendConfigUpdate {
     voice_pitch?: number
     voice_volume?: number
     silence_timeout_ms?: number
+    // Additional JSON Fields (LLM, Voice, STT)
+    responseLength?: string
+    conversationTone?: string
+    conversationFormality?: string
+    conversationPacing?: string
+    contextWindow?: number
+    frequencyPenalty?: number
+    presencePenalty?: number
+    toolChoice?: string
+    dynamicVarsEnabled?: boolean
+    dynamicVars?: string
+    mode?: string
+    hallucination_blacklist?: string
+
+    voiceStyleDegree?: number
+    voiceBgSound?: string
+    voiceBgUrl?: string
+
+    sttProvider?: string
+    sttModel?: string
+    sttLang?: string
+    sttKeywords?: string
+    interruption_threshold?: number
+    vadSensitivity?: number
+
     // Allow other fields if backend supports them dynamically
     [key: string]: any
 }
 
 export const configService = {
-    // Config Management
-
-    // Helper to map BrowserConfig to Backend ConfigUpdate
-    updateBrowserConfig: async (config: Partial<BrowserConfig>) => {
-        const payload: BackendConfigUpdate = {
-            agent_id: 'Victoria', // Hardcoded for now, or match current active agent
+    // Helper to PATCH agent config fields — agentUuid comes from Redux (agents.activeAgent.agent_uuid)
+    // Never hardcoded. Never null.
+    updateBrowserConfig: async (config: Partial<BrowserConfig>, agentId: string) => {
+        if (!agentId) {
+            console.error('[configService] updateBrowserConfig called without agentId. Aborting PATCH.')
+            return
         }
+        // UUID is in the URL — no need to repeat it in the body
+        const payload: BackendConfigUpdate = {}
 
         // Map Fields
         if (config.provider) payload.llm_provider = config.provider
         if (config.model) payload.llm_model = config.model
         if (config.tokens) payload.max_tokens = config.tokens
         if (config.temp) payload.temperature = config.temp
-        if (config.msg) payload.system_prompt = config.msg // Assuming msg is system prompt
-        // if (config.prompt) ... ?
+
+        // Fix INT-05/Bug: Correct Mapping of System Prompt & First Message
+        if (config.prompt !== undefined) payload.system_prompt = config.prompt
+        if (config.msg !== undefined) payload.first_message = config.msg
+
+        // Block 3: Additional LLM Settings
+        if (config.responseLength !== undefined) payload.responseLength = config.responseLength
+        if (config.conversationTone !== undefined) payload.conversationTone = config.conversationTone
+        if (config.conversationFormality !== undefined) payload.conversationFormality = config.conversationFormality
+        if (config.conversationPacing !== undefined) payload.conversationPacing = config.conversationPacing
+        if (config.contextWindow !== undefined) payload.contextWindow = config.contextWindow
+        if (config.frequencyPenalty !== undefined) payload.frequencyPenalty = config.frequencyPenalty
+        if (config.presencePenalty !== undefined) payload.presencePenalty = config.presencePenalty
+        if (config.toolChoice !== undefined) payload.toolChoice = config.toolChoice
+        if (config.dynamicVarsEnabled !== undefined) payload.dynamicVarsEnabled = config.dynamicVarsEnabled
+        if (config.dynamicVars !== undefined) payload.dynamicVars = config.dynamicVars
+        if (config.mode !== undefined) payload.mode = config.mode
+        if (config.hallucination_blacklist !== undefined) payload.hallucination_blacklist = config.hallucination_blacklist
 
         if (config.voiceId) payload.voice_name = config.voiceId
         if (config.voiceStyle) payload.voice_style = config.voiceStyle
         if (config.voiceSpeed) payload.voice_speed = config.voiceSpeed
-        if (config.voicePitch) payload.voice_pitch = config.voicePitch
-        if (config.voiceVolume) payload.voice_volume = config.voiceVolume
+        if (config.voicePitch !== undefined) payload.voice_pitch = config.voicePitch // Also fix to allow 0
+        if (config.voiceVolume !== undefined) payload.voice_volume = config.voiceVolume
+
+        if (config.voiceStyleDegree !== undefined) payload.voiceStyleDegree = config.voiceStyleDegree
+        if (config.voiceBgSound !== undefined) payload.voiceBgSound = config.voiceBgSound
+        if (config.voiceBgUrl !== undefined) payload.voiceBgUrl = config.voiceBgUrl
 
         if (config.sttSilenceTimeout !== undefined) payload.silence_timeout_ms = config.sttSilenceTimeout
-        if (config.idleMessage !== undefined) payload.first_message = config.idleMessage // Rough mapping
+
+        // Block 3: Additional STT Settings
+        if (config.sttProvider !== undefined) payload.sttProvider = config.sttProvider
+        if (config.sttModel !== undefined) payload.sttModel = config.sttModel
+        if (config.sttLang !== undefined) payload.sttLang = config.sttLang
+        if (config.sttKeywords !== undefined) payload.sttKeywords = config.sttKeywords
+        if (config.interruption_threshold !== undefined) payload.interruption_threshold = config.interruption_threshold
+        if (config.vad_threshold !== undefined) payload.vadSensitivity = config.vad_threshold // Map var names if different
 
         // INT-05: Map Tools Config
         // We aggregate all tool-related settings into the 'tools_config' dictionary
@@ -69,30 +124,26 @@ export const configService = {
             }
         }
 
-        const response = await api.patch('/config/', payload)
+        const response = await api.patch(`/agents/${agentId}/`, payload)
         return response
     },
 
-    updateTwilioConfig: async (config: Partial<TwilioConfig>) => {
-        // Twilio config is infrastructure specific, might not map to "Agent" entity directly
-        // Backend ConfigUpdate seems focused on "Agent Behavior" (LLM/Voice)
-        // For now, we mimic the old behavior but maybe warn or just send what we can.
-        // If Backend doesn't support infra config via this endpoint, we might fail.
-        // But Phase F goal is to fix "Method Not Allowed".
-        const payload: BackendConfigUpdate = {
-            agent_id: 'Victoria',
-            ...config // Naive spread, backend will ignore unknown fields if Pydantic set to ignore?
-            // Actually Pydantic default is ignore extra.
+    updateTwilioConfig: async (config: Partial<TwilioConfig>, agentId: string) => {
+        if (!agentId) {
+            console.error('[configService] updateTwilioConfig called without agentId. Aborting PATCH.')
+            return
         }
-        return api.patch('/config/', payload)
+        const payload: BackendConfigUpdate = { ...config }
+        return api.patch(`/agents/${agentId}/`, payload)
     },
 
-    updateTelnyxConfig: async (config: Partial<TelnyxConfig>) => {
-        const payload: BackendConfigUpdate = {
-            agent_id: 'Victoria',
-            ...config
+    updateTelnyxConfig: async (config: Partial<TelnyxConfig>, agentId: string) => {
+        if (!agentId) {
+            console.error('[configService] updateTelnyxConfig called without agentId. Aborting PATCH.')
+            return
         }
-        return api.patch('/config/', payload)
+        const payload: BackendConfigUpdate = { ...config }
+        return api.patch(`/agents/${agentId}/`, payload)
     },
 
     // Options / Catalogs

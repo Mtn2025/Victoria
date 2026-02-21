@@ -40,3 +40,8 @@ export interface HistoryBackendResponse {
     total: number
     page: number
 }
+
+export interface CallDetailBackendResponse {
+    call: HistoryBackendCall
+    transcripts: TranscriptLine[]
+}

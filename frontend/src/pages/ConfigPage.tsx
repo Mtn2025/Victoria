@@ -1,6 +1,8 @@
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
 import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
-import { saveBrowserConfig } from "@/store/slices/configSlice"
+import { saveBrowserConfig, fetchAgentConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
 import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -23,9 +25,25 @@ const PROFILES: { id: ProfileId; label: string; icon: LucideIcon }[] = [
 
 export const ConfigPage = () => {
     const dispatch = useAppDispatch()
+    const navigate = useNavigate()
     const activeTab = useAppSelector(state => state.ui.activeTab)
     const activeProfile = useAppSelector(state => state.ui.activeProfile)
     const { browser, isLoadingOptions } = useAppSelector(state => state.config)
+    const activeAgent = useAppSelector(state => state.agents.activeAgent)
+
+    // Hydrate config from the active agent on mount,
+    // and whenever activeAgent changes (e.g. user activates a different agent).
+    useEffect(() => {
+        if (!activeAgent) {
+            // No active agent in Redux — redirect so the user can pick one
+            navigate('/agents')
+            return
+        }
+        // Fetch full config for the active agent. fetchAgentConfig has no params:
+        // it always calls GET /api/agents/active, which the backend resolves from DB.
+        dispatch(fetchAgentConfig())
+    }, [dispatch, navigate, activeAgent])
+
 
     // Form Validation Logic
     const missingFields = []
