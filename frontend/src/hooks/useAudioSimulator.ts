@@ -65,6 +65,10 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
     }, [onDebugLog]);
 
     // Stop Test
+    // IMPORTANT: defined with useCallback but also stored in a ref so that
+    // useEffect cleanup and startTest can always call the *latest* version
+    // without listing stopTest as a dependency (which would cause the useEffect
+    // cleanup to fire on every re-render that recreates stopTest, closing the WS).
     const stopTest = useCallback(() => {
         // DIAG: log a stack trace every time stopTest is called so we can identify
         // which code path is closing the WebSocket.
@@ -99,6 +103,11 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
         outputAnalyser.current = null;
         setIsAgentSpeaking(false);
     }, [addDebugLog]);
+
+    // Stable ref — always points to the latest stopTest without changing identity.
+    // Used by useEffect cleanup and startTest so they don't need stopTest as a dep.
+    const stopTestRef = useRef(stopTest);
+    useEffect(() => { stopTestRef.current = stopTest; }, [stopTest]);
 
     const playAudio = useCallback((base64Data: string) => {
         if (!base64Data || !audioContext.current) return;
@@ -247,17 +256,20 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
             };
 
         } catch (e) {
-            console.error("Connection failed", e);
-            stopTest();
+            console.error('Connection failed', e);
+            stopTestRef.current();
         }
-    }, [simState, initAudioContext, stopTest, playAudio, onTranscript, addDebugLog]);
+    }, [simState, initAudioContext, playAudio, onTranscript, addDebugLog]);
 
-    // Cleanup on unmount
+    // Cleanup on true unmount only.
+    // deps = [] ensures this cleanup runs ONLY when the component unmounts,
+    // NOT on every re-render that changes stopTest identity.
+    // We use stopTestRef.current so we always call the latest version.
     useEffect(() => {
         return () => {
-            stopTest();
+            stopTestRef.current();
         };
-    }, [stopTest]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const initMicrophone = async () => {
         try {
