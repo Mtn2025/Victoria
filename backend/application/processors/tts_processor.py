@@ -154,8 +154,15 @@ class TTSProcessor(FrameProcessor):
 
 
         try:
+            total_bytes = 0
+            chunks_count = 0
             async for audio_chunk in self.tts_port.synthesize_stream(text, voice_config, audio_format):
                 if audio_chunk:
+                    chunk_len = len(audio_chunk)
+                    total_bytes += chunk_len
+                    chunks_count += 1
+                    logger.debug(f"[TTS-CHUNK] Emitting chunk {chunks_count} ({chunk_len} bytes)")
+                    
                     if self.output_callback:
                         # PRIMARY PATH: send directly to transport (WebSocket/Telephony)
                         # TTS is the LAST downstream processor — push_frame(DOWNSTREAM)
@@ -176,5 +183,11 @@ class TTSProcessor(FrameProcessor):
                             ),
                             FrameDirection.UPSTREAM
                         )
+            
+            # [PIPE-10] TTS completed for phrase
+            logger.info(
+                f"[PIPE-10/TTS] Finished. '{text[:30]}...' -> "
+                f"Total {chunks_count} chunks, {total_bytes} bytes."
+            )
         except Exception as e:
             logger.error(f"Synthesis failed: {e}", exc_info=True)

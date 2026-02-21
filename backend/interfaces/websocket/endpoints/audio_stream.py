@@ -166,6 +166,8 @@ async def audio_stream(
                     # synthesized audio is silently dropped (DOWNSTREAM end-of-chain).
                     async def send_tts_audio(audio_bytes: bytes) -> None:
                         try:
+                            # Loguear la salida neta del backend para confirmar el descarte o no
+                            logger.debug(f"[WS-OUT] Routing {len(audio_bytes)} bytes to client")
                             if client == "browser":
                                 await websocket.send_bytes(audio_bytes)
                             else:

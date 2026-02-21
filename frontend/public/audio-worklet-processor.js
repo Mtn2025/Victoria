@@ -3,8 +3,10 @@ class PCMProcessor extends AudioWorkletProcessor {
         super();
 
         // --- 1. Ring Buffer for Output (TTS) ---
-        // Tuned to 10 seconds (16kHz) to handle "Burst Mode" from backend without wrapping.
-        this.bufferSize = 160000;
+        // Tuned to 100 seconds (24kHz) to handle "Burst Mode" from backend without wrapping.
+        // Backend TTS synthesizes a 20-second sentence in ~2 seconds, so we need a
+        // massive buffer to receive all the audio immediately without overwriting the start.
+        this.bufferSize = 2400000;
         this.outBuffer = new Float32Array(this.bufferSize);
         this.writePtr = 0;
         this.readPtr = 0;
