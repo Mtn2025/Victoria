@@ -323,15 +323,21 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                 addDebugLog('AUDIO', { event: 'WORKLET_LOADED' });
 
             } catch (err) {
-                console.error("AudioWorklet Error", err);
+                // AudioWorklet failed (e.g. path not found, browser unsupported).
+                // DO NOT close the WS — the session must stay open so the user can
+                // still hear the greeting. Mic output just won't be sent.
+                console.error('AudioWorklet Error', err);
                 addDebugLog('AUDIO', { event: 'WORKLET_ERROR', error: String(err) });
-                alert("Audio Worklet Error. Ensure /audio-worklet-processor.js exists in public/");
+                // Note: no alert() here — it blocks the browser thread and destabilises WS state.
             }
 
         } catch (e) {
-            console.error("Mic Error", e);
+            // getUserMedia failed (permission denied, no device, non-HTTPS, etc.).
+            // DO NOT call stopTest() — that would close the WebSocket and disconnect
+            // the backend session. The session stays open; the user just can't send audio.
+            // The backend greeting will still play.
+            console.error('Mic Error', e);
             addDebugLog('AUDIO', { event: 'MIC_ERROR', error: String(e) });
-            stopTest();
         }
     };
 
