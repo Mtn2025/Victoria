@@ -3,12 +3,11 @@ from backend.domain.value_objects.audio_format import AudioFormat
 
 class TestAudioFormat:
     def test_browser_factory_method(self):
-        """Should create correct browser audio format."""
+        """Should create correct browser audio format — 24kHz PCM16 (matches frontend AudioWorklet)."""
         format = AudioFormat.for_browser()
-        assert format.sample_rate == 16000
+        assert format.sample_rate == 24000
         assert format.channels == 1
         assert format.encoding == "pcm"
-        # Check immutability indirectly
         assert format.is_browser is True
 
     def test_telephony_factory_method(self):

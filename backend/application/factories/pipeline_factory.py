@@ -107,7 +107,7 @@ class PipelineFactory:
         
         # 1. Instantiate Processors with enhanced DI
         vad = VADProcessor(config, detect_turn_end)
-        stt = STTProcessor(stt_port)
+        stt = STTProcessor(stt_port)              # audio_format injected via push_audio_frame
         
         # LLM with optional enhancements
         llm = LLMProcessor(

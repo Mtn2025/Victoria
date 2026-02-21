@@ -263,6 +263,45 @@ class CallOrchestrator:
             # TODO: Capture assistant text from generate_response output
             # For now, this is a placeholder showing the integration point
 
+    async def push_audio_frame(
+        self,
+        raw_audio: bytes,
+        sample_rate: int = 24000,
+        channels: int = 1,
+    ) -> None:
+        """
+        Inject raw PCM audio bytes into the pipeline as an AudioFrame.
+
+        This is the correct path for browser audio: instead of calling
+        process_audio_uc directly (which bypasses the pipeline), we create
+        an AudioFrame and push it into the first pipeline processor (VAD).
+        The pipeline then handles: VAD → STT → LLM → TTS.
+
+        Args:
+            raw_audio:   Raw PCM16 bytes (already decoded from base64 by the caller).
+            sample_rate: Audio sample rate in Hz (24000 for browser).
+            channels:    Number of channels (1 = mono).
+        """
+        if not self.pipeline or not self.pipeline.processors:
+            logger.warning("push_audio_frame: pipeline not ready, dropping frame")
+            return
+
+        from backend.application.processors.frames import AudioFrame, FrameDirection
+
+        frame = AudioFrame(
+            data=raw_audio,
+            sample_rate=sample_rate,
+            channels=channels,
+        )
+
+        # The first processor in the chain is always VAD
+        first_processor = self.pipeline.processors[0]
+        try:
+            await first_processor.process_frame(frame, FrameDirection.DOWNSTREAM)
+        except Exception as e:
+            logger.error(f"push_audio_frame: error pushing frame: {e}", exc_info=True)
+
+
     async def end_session(self, reason: str = "completed") -> None:
         """
         End the call session with graceful cleanup.

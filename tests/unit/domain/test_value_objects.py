@@ -31,7 +31,7 @@ class TestAudioFormat:
     def test_factories(self):
         """Factories: Should create correct presets."""
         browser = AudioFormat.for_browser()
-        assert browser.sample_rate == 16000
+        assert browser.sample_rate == 24000
         assert browser.encoding == "pcm"
         assert browser.is_browser
 

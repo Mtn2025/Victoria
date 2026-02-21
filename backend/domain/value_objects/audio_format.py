@@ -48,21 +48,23 @@ class AudioFormat:
     @property
     def is_browser(self) -> bool:
         """
-        Check if this is browser-compatible format (16kHz PCM).
-        
+        Check if this is browser-compatible format (24kHz PCM).
+
         Returns:
             True for browser WebSocket formats
         """
-        return self.sample_rate == 16000 and self.encoding == "pcm"
+        return self.sample_rate == 24000 and self.encoding == "pcm"
 
     @classmethod
     def for_browser(cls) -> 'AudioFormat':
         """
-        Factory for Browser usage (High Quality 16kHz PCM).
-        # TODO(INT-01): Frontend (audio_service.ts) must match this configuration.
+        Factory for Browser usage (24kHz PCM16 — matches frontend AudioContext).
+
+        The frontend captures microphone audio at 24kHz PCM16 via AudioWorklet
+        and sends it base64-encoded inside JSON media events.
         """
         return cls(
-            sample_rate=16000,
+            sample_rate=24000,
             encoding="pcm",
             channels=1,
             bits_per_sample=16
