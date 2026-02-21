@@ -38,7 +38,8 @@ def create_app() -> FastAPI:
         title="Victoria Voice Orchestrator",
         description="Hexagonal Architecture Implementation",
         version="2.0.0",
-        lifespan=lifespan
+        lifespan=lifespan,
+        redirect_slashes=False,   # prevents 307 auto-redirect on trailing slash mismatch
     )
 
     # Middleware
