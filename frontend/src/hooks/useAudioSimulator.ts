@@ -337,6 +337,11 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                         else if (msg.event === 'llm_latency') setMetrics(m => ({ ...m, llm_latency: `${msg.data?.duration_ms} ms` }));
                         else if (msg.event === 'tts_latency') setMetrics(m => ({ ...m, tts_latency: `${msg.data?.duration_ms} ms` }));
 
+                    } else if (msg.type === 'clear') {
+                        console.log(`[SIM] Barge-in detected! Clearing frontend audio playback queue. Reason: ${msg.reason}`);
+                        if (processor.current) {
+                            processor.current.port.postMessage({ type: 'clear' });
+                        }
                     } else if (msg.type === 'transcript') {
                         const newMsg: TranscriptMessage = {
                             role: msg.role,

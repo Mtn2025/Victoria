@@ -25,6 +25,11 @@ class PCMProcessor extends AudioWorkletProcessor {
                 this.writeOutput(new Int16Array(data.buffer || data));
             } else if (data && data.type === 'feed') {
                 this.writeOutput(data.buffer);
+            } else if (data && data.type === 'clear') {
+                // Clear the TTS audio buffer immediately
+                this.available = 0;
+                this.writePtr = 0;
+                this.readPtr = 0;
             }
         };
     }

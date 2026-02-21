@@ -146,16 +146,13 @@ class STTProcessor(FrameProcessor):
             return
 
         try:
-            async for text in self.session.get_results():
+            async for text, is_final in self.session.get_results():
                 if text:
-                    logger.debug(f"STT Recognized: {text}")
+                    logger.debug(f"STT Recognized [{'FINAL' if is_final else 'INTERIM'}]: {text}")
                     # Create TextFrame
-                    # TODO: Determine if final or interim. 
-                    # The Port interface `get_results` docstring says "Yields finalized text segments".
-                    # So we assume is_final=True for now.
                     frame = TextFrame(
                         text=text,
-                        is_final=True,
+                        is_final=is_final,
                         role="user", 
                         metadata={"source": "stt"}
                     )

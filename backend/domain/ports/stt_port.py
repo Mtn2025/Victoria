@@ -81,12 +81,12 @@ class STTSession(ABC):
         pass
     
     @abstractmethod
-    async def get_results(self) -> AsyncGenerator[str, None]:
+    async def get_results(self) -> AsyncGenerator[tuple[str, bool], None]:
         """
         Stream transcription results as an async generator.
         
         Yields:
-            Finalized text segments
+            Tuples of (text, is_final)
         """
         yield ""  # Placeholder for type hint
     

@@ -179,9 +179,12 @@ async def audio_stream(
                     # emitted by LLMProcessor on each user STT final + each assistant sentence.
                     async def send_transcript_event(role: str, text: str) -> None:
                         try:
-                            await websocket.send_text(
-                                json.dumps({"type": "transcript", "role": role, "text": text})
-                            )
+                            if role == "clear":
+                                await websocket.send_text(json.dumps({"type": "clear", "reason": text}))
+                            else:
+                                await websocket.send_text(
+                                    json.dumps({"type": "transcript", "role": role, "text": text})
+                                )
                         except Exception as e:
                             logger.warning(f"[TRANSCRIPT→WS] Failed to send: {e}")
 

@@ -75,7 +75,10 @@ class AzureSTTSession(STTSession):
     def _on_recognizing(self, evt):
         """Interim / partial recognition result (not final)."""
         if evt.result.reason == speechsdk.ResultReason.RecognizingSpeech:
-            logger.debug(f"[AzureSTT] Recognizing (partial): {evt.result.text!r}")
+            text = evt.result.text
+            if text:
+                logger.debug(f"[AzureSTT] Recognizing (partial): {text!r}")
+                self._loop.call_soon_threadsafe(self._queue.put_nowait, (text, False))
 
     def _on_recognized(self, evt):
         """Final recognition result — bridge to asyncio via call_soon_threadsafe."""
@@ -91,7 +94,7 @@ class AzureSTTSession(STTSession):
                 # put_nowait called via call_soon_threadsafe so it is
                 # scheduled on the event loop, not called directly from
                 # the Azure C++ thread (which would be unsafe).
-                self._loop.call_soon_threadsafe(self._queue.put_nowait, text)
+                self._loop.call_soon_threadsafe(self._queue.put_nowait, (text, True))
 
                 # Emit event to subscribers (sync callbacks only)
                 duration = evt.result.duration.total_seconds() if evt.result.duration else 0.0
@@ -153,15 +156,15 @@ class AzureSTTSession(STTSession):
         """Subscribe to detailed STT events (sync callback)."""
         self._callbacks.append(callback)
 
-    async def get_results(self) -> AsyncGenerator[str, None]:
+    async def get_results(self) -> AsyncGenerator[tuple[str, bool], None]:
         """
         Async generator that yields finalized transcript segments.
         Polls the thread-safe queue until the session stops.
         """
         while not self._stop_event.is_set():
             try:
-                text = await asyncio.wait_for(self._queue.get(), timeout=0.5)
-                yield text
+                text, is_final = await asyncio.wait_for(self._queue.get(), timeout=0.5)
+                yield text, is_final
             except asyncio.TimeoutError:
                 continue
             except Exception as e:

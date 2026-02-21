@@ -51,36 +51,39 @@ class LLMProcessor(FrameProcessor):
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         if direction == FrameDirection.DOWNSTREAM:
             if isinstance(frame, TextFrame):
-                # Only process final user transcripts
-                if frame.is_final and frame.role == "user":
+                # We process all user transcripts (interim to cancel TTS, final to generate)
+                if frame.role == "user":
                     # [PIPE-8] TextFrame (user transcript) reached LLMProcessor
                     logger.info(
                         f"[PIPE-8/LLM] TextFrame received: "
                         f"role={frame.role!r} is_final={frame.is_final} "
                         f"text={frame.text[:50]!r}"
                     )
-                    logger.info(f"Processing User Input: {frame.text[:30]}...")
                     
-                    # Handle interruption if generation is in progress
+                    # Handle interruption (barge-in / clear playback) on ANY user speech
                     if self._current_task and not self._current_task.done():
                         # Use barge-in use case if available
+                        command = None
                         if self.barge_in_uc:
                             from backend.domain.use_cases.handle_barge_in import BargeInCommand
-                            
-                            command: BargeInCommand = self.barge_in_uc.execute("user_spoke")
-                            
-                            if command.interrupt_audio:
-                                logger.info(f"🛑 Barge-in: {command.reason}")
-                                self._current_task.cancel()
-                            
-                            if command.clear_pipeline:
-                                await self.push_frame(CancelFrame(), direction)
-                        else:
-                            # Fallback to direct cancellation
-                            self._current_task.cancel()
+                            command = self.barge_in_uc.execute("user_spoke")
                         
-                    # Start new generation
-                    self._current_task = asyncio.create_task(self._handle_user_text(frame.text))
+                        if not command or command.interrupt_audio:
+                            logger.info(f"🛑 [Barge-In] Interrupting audio/generation for speech: {frame.text[:30]!r}")
+                            self._current_task.cancel()
+                            await self.push_frame(CancelFrame(), direction)
+                            
+                            # Fast-track clear signal to browser to stop buffering/playback
+                            if self.transcript_callback:
+                                try:
+                                    await self.transcript_callback("clear", "barge-in")
+                                except Exception as cb_err:
+                                    logger.warning(f"Failed to send clear signal: {cb_err}")
+                        
+                    # ONLY Start new generation if this is a FINAL transcript
+                    if frame.is_final:
+                        logger.info(f"Processing Final User Input: {frame.text[:30]}...")
+                        self._current_task = asyncio.create_task(self._handle_user_text(frame.text))
                 
                 # We do NOT pass the user frame downstream? 
                 # Aggregator/Reporter usually handles the "User" transcript visibility.
