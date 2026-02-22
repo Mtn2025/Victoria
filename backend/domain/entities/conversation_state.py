@@ -126,6 +126,7 @@ class ConversationFSM:
             ConversationState.LISTENING: {
                 ConversationState.PROCESSING,
                 ConversationState.SPEAKING,  # Direct speak (greeting)
+                ConversationState.INTERRUPTED, # Late barge-in against frontend playback
             },
             ConversationState.PROCESSING: {
                 ConversationState.SPEAKING,
@@ -181,6 +182,7 @@ class ConversationFSM:
         allowed_states = {
             ConversationState.SPEAKING,
             ConversationState.PROCESSING,
+            ConversationState.LISTENING,  # Backend might be LISTENING while frontend is still playing buffer!
         }
         
         can = self._state in allowed_states

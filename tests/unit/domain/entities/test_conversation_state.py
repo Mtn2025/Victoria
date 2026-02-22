@@ -69,13 +69,13 @@ class TestConversationFSM:
         assert can is True
     
     @pytest.mark.asyncio
-    async def test_cannot_interrupt_from_listening(self):
-        """Test can_interrupt returns False from LISTENING."""
+    async def test_can_interrupt_from_listening(self):
+        """Test can_interrupt returns True from LISTENING to allow deferred barge-ins against frontend buffers."""
         fsm = ConversationFSM(ConversationState.LISTENING)
         
         can = await fsm.can_interrupt()
         
-        assert can is False
+        assert can is True
     
     @pytest.mark.asyncio
     async def test_barge_in_flow(self):
