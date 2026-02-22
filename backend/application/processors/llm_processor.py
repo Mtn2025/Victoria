@@ -61,24 +61,29 @@ class LLMProcessor(FrameProcessor):
                     )
                     
                     # Handle interruption (barge-in / clear playback) on ANY user speech
-                    if self._current_task and not self._current_task.done():
-                        # Use barge-in use case if available
-                        command = None
-                        if self.barge_in_uc:
-                            from backend.domain.use_cases.handle_barge_in import BargeInCommand
-                            command = self.barge_in_uc.execute("user_spoke")
+                    # ALWAYS attempt barge-in, regardless of whether generation is still running,
+                    # because TTS might still be playing in the browser!
+                    command = None
+                    if self.barge_in_uc:
+                        from backend.domain.use_cases.handle_barge_in import BargeInCommand
+                        command = self.barge_in_uc.execute("user_spoke")
+                    
+                    if not command or command.interrupt_audio:
+                        logger.info(f"🛑 [Barge-In] Interrupting audio/generation for speech: {frame.text[:30]!r}")
                         
-                        if not command or command.interrupt_audio:
-                            logger.info(f"🛑 [Barge-In] Interrupting audio/generation for speech: {frame.text[:30]!r}")
+                        # Stop generation if active
+                        if self._current_task and not self._current_task.done():
                             self._current_task.cancel()
-                            await self.push_frame(CancelFrame(), direction)
                             
-                            # Fast-track clear signal to browser to stop buffering/playback
-                            if self.transcript_callback:
-                                try:
-                                    await self.transcript_callback("clear", "barge-in")
-                                except Exception as cb_err:
-                                    logger.warning(f"Failed to send clear signal: {cb_err}")
+                        # Clear TTS queue and frontend buffer
+                        await self.push_frame(CancelFrame(), direction)
+                        
+                        # Fast-track clear signal to browser to stop buffering/playback
+                        if self.transcript_callback:
+                            try:
+                                await self.transcript_callback("clear", "barge-in")
+                            except Exception as cb_err:
+                                logger.warning(f"Failed to send clear signal: {cb_err}")
                         
                     # ONLY Start new generation if this is a FINAL transcript
                     if frame.is_final:
