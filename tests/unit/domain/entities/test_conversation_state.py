@@ -69,13 +69,27 @@ class TestConversationFSM:
         assert can is True
     
     @pytest.mark.asyncio
-    async def test_can_interrupt_from_listening(self):
-        """Test can_interrupt returns True from LISTENING to allow deferred barge-ins against frontend buffers."""
-        fsm = ConversationFSM(ConversationState.LISTENING)
+    async def test_can_late_interrupt_from_listening_after_speaking(self):
+        """Test can_interrupt returns True from LISTENING if the assistant just spoke (late barge-in allowed)."""
+        fsm = ConversationFSM()
+        await fsm.transition(ConversationState.LISTENING, "start")
+        await fsm.transition(ConversationState.SPEAKING, "tts")
+        await fsm.transition(ConversationState.LISTENING, "audio_done")
         
         can = await fsm.can_interrupt()
-        
         assert can is True
+
+    @pytest.mark.asyncio
+    async def test_cannot_late_interrupt_twice(self):
+        """Test can_interrupt returns False from LISTENING if a barge-in already occurred."""
+        fsm = ConversationFSM()
+        await fsm.transition(ConversationState.LISTENING, "start")
+        await fsm.transition(ConversationState.SPEAKING, "tts")
+        await fsm.transition(ConversationState.INTERRUPTED, "user_barge_in")
+        await fsm.transition(ConversationState.LISTENING, "ready_for_input")
+        
+        can = await fsm.can_interrupt()
+        assert can is False
     
     @pytest.mark.asyncio
     async def test_barge_in_flow(self):

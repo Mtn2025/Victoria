@@ -53,6 +53,7 @@ class ConversationFSM:
             initial_state: Starting state (default: IDLE)
         """
         self._state = initial_state
+        self._can_late_interrupt = False  # Track if we can do a late barge-in against frontend buffer
         logger.info(f"🎯 FSM initialized: {initial_state.value}")
     
     @property
@@ -85,6 +86,12 @@ class ConversationFSM:
         
         old_state = self._state
         self._state = new_state
+        
+        # Track allowance for late interruptions (barge-in against frontend slow playback)
+        if new_state in (ConversationState.SPEAKING, ConversationState.PROCESSING):
+            self._can_late_interrupt = True
+        elif new_state == ConversationState.INTERRUPTED:
+            self._can_late_interrupt = False
         
         logger.info(
             f"🔄 State transition: {old_state.value} → {new_state.value} "
@@ -182,10 +189,13 @@ class ConversationFSM:
         allowed_states = {
             ConversationState.SPEAKING,
             ConversationState.PROCESSING,
-            ConversationState.LISTENING,  # Backend might be LISTENING while frontend is still playing buffer!
         }
         
         can = self._state in allowed_states
+        
+        # Allow late interruption from LISTENING only once after speaking/processing
+        if self._state == ConversationState.LISTENING and self._can_late_interrupt:
+            can = True
         
         if not can:
             logger.debug(
