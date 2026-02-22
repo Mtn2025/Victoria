@@ -5,7 +5,7 @@ Part of the Application Layer (Hexagonal Architecture).
 FASE 3B Enhancement: Added ProcessorChain, async lifecycle, convenience functions.
 """
 import logging
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
 
 from backend.application.processors.frame_processor import FrameProcessor
 from backend.application.processors.stt_processor import STTProcessor
