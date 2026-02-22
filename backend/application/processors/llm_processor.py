@@ -101,6 +101,22 @@ class LLMProcessor(FrameProcessor):
                 if self._current_task and not self._current_task.done():
                     self._current_task.cancel()
                 await self.push_frame(frame, direction)
+                
+            elif isinstance(frame, UserStartedSpeakingFrame):
+                # Eager Barge-in: React instantly to VAD without waiting for STT partials
+                logger.info(f"🛑 [Eager Barge-In] Interrupting audio/generation immediately on VAD trigger")
+                
+                if self._current_task and not self._current_task.done():
+                    self._current_task.cancel()
+                    
+                await self.push_frame(CancelFrame(), direction)
+                if self.transcript_callback:
+                    try:
+                        await self.transcript_callback("clear", "vad-barge-in")
+                    except Exception as cb_err:
+                        logger.warning(f"Failed to send clear signal: {cb_err}")
+                        
+                await self.push_frame(frame, direction)
             
             else:
                 await self.push_frame(frame, direction)
