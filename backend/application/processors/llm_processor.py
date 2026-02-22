@@ -29,7 +29,7 @@ class LLMProcessor(FrameProcessor):
         config: Any, 
         conversation_history: List[Dict[str, str]], 
         execute_tool_use_case: Optional[ExecuteToolUseCase] = None,
-        handle_barge_in_uc: Optional[Any] = None,  # HandleBargeInUseCase
+        on_interruption_callback: Optional[Callable] = None,
         context: Optional[Dict[str, Any]] = None,
         transcript_callback = None,      # async def cb(role: str, text: str) -> None
     ):
@@ -38,7 +38,7 @@ class LLMProcessor(FrameProcessor):
         self.config = config
         self.conversation_history = conversation_history
         self.execute_tool = execute_tool_use_case
-        self.barge_in_uc = handle_barge_in_uc
+        self.on_interruption_callback = on_interruption_callback
         self.context = context or {}
         # Transcript callback — sends real-time STT/LLM turns to the Simulator panel.
         # async def transcript_callback(role: str, text: str) -> None
@@ -60,30 +60,9 @@ class LLMProcessor(FrameProcessor):
                         f"text={frame.text[:50]!r}"
                     )
                     
-                    # Handle interruption (barge-in / clear playback) on ANY user speech
-                    # ALWAYS attempt barge-in, regardless of whether generation is still running,
-                    # because TTS might still be playing in the browser!
-                    command = None
-                    if self.barge_in_uc:
-                        from backend.domain.use_cases.handle_barge_in import BargeInCommand
-                        command = self.barge_in_uc.execute("user_spoke")
-                    
-                    if not command or command.interrupt_audio:
-                        logger.info(f"🛑 [Barge-In] Interrupting audio/generation for speech: {frame.text[:30]!r}")
-                        
-                        # Stop generation if active
-                        if self._current_task and not self._current_task.done():
-                            self._current_task.cancel()
-                            
-                        # Clear TTS queue and frontend buffer
-                        await self.push_frame(CancelFrame(), direction)
-                        
-                        # Fast-track clear signal to browser to stop buffering/playback
-                        if self.transcript_callback:
-                            try:
-                                await self.transcript_callback("clear", "barge-in")
-                            except Exception as cb_err:
-                                logger.warning(f"Failed to send clear signal: {cb_err}")
+                    # Report interruption (barge-in) to Orchestrator on ANY user speech
+                    if self.on_interruption_callback:
+                        await self.on_interruption_callback(frame.text)
                         
                     # ONLY Start new generation if this is a FINAL transcript
                     if frame.is_final:
@@ -103,18 +82,10 @@ class LLMProcessor(FrameProcessor):
                 await self.push_frame(frame, direction)
                 
             elif isinstance(frame, UserStartedSpeakingFrame):
-                # Eager Barge-in: React instantly to VAD without waiting for STT partials
-                logger.info(f"🛑 [Eager Barge-In] Interrupting audio/generation immediately on VAD trigger")
-                
-                if self._current_task and not self._current_task.done():
-                    self._current_task.cancel()
-                    
-                await self.push_frame(CancelFrame(), direction)
-                if self.transcript_callback:
-                    try:
-                        await self.transcript_callback("clear", "vad-barge-in")
-                    except Exception as cb_err:
-                        logger.warning(f"Failed to send clear signal: {cb_err}")
+                # Eager Barge-in: Report upstream instantly on VAD trigger
+                logger.info(f"🛑 [Eager Barge-In] VAD trigger received, notifying Orchestrator")
+                if self.on_interruption_callback:
+                    await self.on_interruption_callback("vad-trigger")
                         
                 await self.push_frame(frame, direction)
             

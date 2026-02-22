@@ -82,7 +82,7 @@ class PipelineFactory:
         conversation_history: List[dict],
         control_channel: Optional[Any] = None,
         fsm: Optional[ConversationFSM] = None,
-        handle_barge_in_uc: Optional[HandleBargeInUseCase] = None,
+        on_interruption_callback: Optional[Callable] = None,
         stream_id: Optional[str] = None,
         output_callback = None,          # async def cb(audio_bytes: bytes) -> None
         transcript_callback = None,      # async def cb(role: str, text: str) -> None
@@ -100,7 +100,7 @@ class PipelineFactory:
             conversation_history: Shared conversation history
             control_channel: Optional control signal channel (FASE 3A)
             fsm: Optional conversation FSM (FASE 3A)
-            handle_barge_in_uc: Optional barge-in handler (FASE 2.6)
+            on_interruption_callback: Optional callback for orchestrator to handle barge-in
             stream_id: Optional trace ID for logging
             output_callback: Coroutine called with each synthesized audio chunk.
                 Route TTS output → WebSocket/Telephony transport.
@@ -140,7 +140,7 @@ class PipelineFactory:
             config=config,
             conversation_history=conversation_history,
             execute_tool_use_case=execute_tool,
-            handle_barge_in_uc=handle_barge_in_uc,  # FASE 2.6 integration
+            on_interruption_callback=on_interruption_callback,  # FASE 2.6 integration decoupled
             transcript_callback=transcript_callback, # -> Simulator real-time panel
         )
 
@@ -164,7 +164,7 @@ class PipelineFactory:
 
         logger.info(
             f"✅ Pipeline configured: {len(processors)} processors "
-            f"(Tools: {bool(execute_tool)}, Barge-in: {bool(handle_barge_in_uc)}, "
+            f"(Tools: {bool(execute_tool)}, Barge-in Callback: {bool(on_interruption_callback)}, "
             f"Output: {'callback' if output_callback else 'NONE ⚠️'})"
         )
 

@@ -208,7 +208,7 @@ class CallOrchestrator:
                 # Create use cases for pipeline
                 detect_turn_end_uc = DetectTurnEndUseCase()
                 execute_tool_uc = ExecuteToolUseCase(self.tools)
-                handle_barge_in_uc = HandleBargeInUseCase()
+                self.handle_barge_in_uc = HandleBargeInUseCase()
                 
                 # Build pipeline via factory.
                 # Convert Agent entity → ConfigDTO (flat) so every processor
@@ -223,7 +223,7 @@ class CallOrchestrator:
                     conversation_history=self.conversation_history,
                     control_channel=self.control_channel,
                     fsm=self.fsm,
-                    handle_barge_in_uc=handle_barge_in_uc,
+                    on_interruption_callback=self.handle_interruption,
                     stream_id=stream_id,
                     output_callback=audio_output_callback,       # TTS → WebSocket return path
                     transcript_callback=transcript_callback,     # STT/LLM → simulator panel
@@ -445,13 +445,18 @@ class CallOrchestrator:
     async def handle_interruption(self, text: str = "") -> None:
         """
         Handle user interruption (barge-in).
-        
-        FASE 3: FSM-validated interruption handling.
-        
-        Args:
-            text: Optional partial transcription causing interruption
+        Called by downstream processors when user speech is detected.
         """
-        # Only interrupt if FSM allows it
+        # 1. Evaluate Domain Logic (if applicable)
+        if hasattr(self, 'handle_barge_in_uc') and self.handle_barge_in_uc:
+            try:
+                command = self.handle_barge_in_uc.execute("user_spoke")
+                if not command.interrupt_audio:
+                    return
+            except Exception as e:
+                logger.error(f"Barge-In use case error: {e}")
+                
+        # 2. Only interrupt if FSM allows it
         if not await self.fsm.can_interrupt():
             logger.debug(
                 f"🛑 Interruption ignored - state={self.fsm.state.value} "
@@ -459,22 +464,39 @@ class CallOrchestrator:
             )
             return
         
-        logger.info(f"🛑 Interruption detected: {text[:50] if text else 'VAD'}")
+        logger.info(f"🛑 Orchestrator executing Barge-in override: {text[:50] if text else 'VAD'}")
         
-        # Transition: SPEAKING/PROCESSING → INTERRUPTED
+        # 3. INTERRUPT PIPELINE (PUSH CANCEL FRAME)
+        if hasattr(self, 'pipeline') and self.pipeline and self.pipeline.processors:
+            from backend.application.processors.frames import CancelFrame, FrameDirection
+            try:
+                logger.info("🛑 Pushing CancelFrame to pipeline")
+                await self.pipeline.processors[0].process_frame(CancelFrame(), FrameDirection.DOWNSTREAM)
+            except Exception as e:
+                logger.error(f"Failed to push CancelFrame: {e}")
+
+        # 4. CLEAR FRONTEND BUFFER
+        if hasattr(self, '_transcript_callback') and self._transcript_callback:
+            try:
+                await self._transcript_callback("clear", f"barge-in-orchestrator")
+                logger.debug("✅ Clear signal sent to frontend through Orchestrator")
+            except Exception as e:
+                logger.error(f"Failed to send clear signal: {e}")
+
+        # 5. FSM Transition: SPEAKING/PROCESSING → INTERRUPTED
         await self.fsm.transition(
             ConversationState.INTERRUPTED,
             f"user_spoke: {text[:30]}" if text else "vad_detected"
         )
         
-        # Send interrupt signal to control channel
+        # 6. Send interrupt signal to control channel
         await send_interrupt(
             self.control_channel,
             reason="user_spoke" if text else "vad_detected",
             text=text
         )
         
-        # Transition: INTERRUPTED → LISTENING
+        # 7. Transition: INTERRUPTED → LISTENING
         await self.fsm.transition(ConversationState.LISTENING, "ready_for_input")
         
         # Update interaction time
