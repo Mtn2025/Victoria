@@ -6,9 +6,9 @@ import asyncio
 import logging
 import re
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-from backend.application.processors.frames import Frame, TextFrame, CancelFrame, EndTaskFrame
+from backend.application.processors.frames import Frame, TextFrame, CancelFrame, EndTaskFrame, UserStartedSpeakingFrame
 from backend.application.processors.frame_processor import FrameProcessor, FrameDirection
 from backend.domain.ports.llm_port import LLMPort, LLMRequest, LLMMessage
 from backend.domain.use_cases.execute_tool import ExecuteToolUseCase
