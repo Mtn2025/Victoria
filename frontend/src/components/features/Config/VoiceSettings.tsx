@@ -133,88 +133,83 @@ export const VoiceSettings = () => {
                     }
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Setup Options (Left Column) */}
-                        <div className="space-y-4">
+                        {/* Fila 1 */}
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Proveedor TTS</label>
+                            <Select
+                                value={browser.voiceProvider}
+                                onChange={(e) => update('voiceProvider', e.target.value)}
+                                className="w-full"
+                            >
+                                {availableTTSProviders.length === 0 && <option value="azure" disabled>Cargando proveedores...</option>}
+                                {availableTTSProviders.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </Select>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
+                            <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed flex items-center gap-2">
+                                <span className="text-[12px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 border border-slate-600 font-mono flex items-baseline">
+                                    {activeAgent?.language || 'es-MX'}
+                                </span>
+                                Automático
+                            </div>
+                            <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
+                                <AlertCircle size={10} className="text-blue-400" />
+                                El Agente dicta el idioma general.
+                            </p>
+                        </div>
+
+                        {/* Fila 2 */}
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Género</label>
+                            <Select
+                                value={browser.voiceGender}
+                                onChange={(e) => update('voiceGender', e.target.value)}
+                                disabled={isLoadingOptions || availableVoices.length === 0}
+                                className="w-full"
+                            >
+                                <option value="female">Femenino</option>
+                                <option value="male">Masculino</option>
+                                {otherVoices.length > 0 && <option value="other">Otros / Sin Categoria</option>}
+                            </Select>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
+                            <Select
+                                value={browser.voiceId}
+                                onChange={(e) => update('voiceId', e.target.value)}
+                                disabled={isLoadingOptions || availableVoices.length === 0}
+                                className="w-full"
+                            >
+                                <option value="" disabled>Seleccionar Voz...</option>
+                                {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
+
+                                {filteredVoices.map(v => (
+                                    <option key={v.id} value={v.id}>{v.name}</option>
+                                ))}
+                            </Select>
+                        </div>
+
+                        {/* Fila 3 (Estilo Emocional, condicional a si hay estilos) */}
+                        {availableStyles.length > 0 && (
                             <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Proveedor TTS</label>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
                                 <Select
-                                    value={browser.voiceProvider}
-                                    onChange={(e) => update('voiceProvider', e.target.value)}
+                                    value={browser.voiceStyle}
+                                    onChange={(e) => update('voiceStyle', e.target.value)}
                                     className="w-full"
                                 >
-                                    {availableTTSProviders.length === 0 && <option value="azure" disabled>Cargando proveedores...</option>}
-                                    {availableTTSProviders.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    <option value="">(Default)</option>
+                                    {availableStyles.map(s => (
+                                        <option key={s.id} value={s.id}>{s.label}</option>
                                     ))}
                                 </Select>
                             </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
-                                <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed flex items-center gap-2">
-                                    <span className="text-[12px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 border border-slate-600 font-mono flex items-baseline">
-                                        {activeAgent?.language || 'es-MX'}
-                                    </span>
-                                    Automático
-                                </div>
-                                <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
-                                    <AlertCircle size={10} className="text-blue-400" />
-                                    El Agente dicta el idioma general.
-                                </p>
-                            </div>
-
-                            {/* Gender Selection */}
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Género</label>
-                                <Select
-                                    value={browser.voiceGender}
-                                    onChange={(e) => update('voiceGender', e.target.value)}
-                                    disabled={isLoadingOptions || availableVoices.length === 0}
-                                    className="w-full"
-                                >
-                                    <option value="female">Femenino</option>
-                                    <option value="male">Masculino</option>
-                                    {otherVoices.length > 0 && <option value="other">Otros / Sin Categoria</option>}
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Voice Definition (Right Column) */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
-                                <Select
-                                    value={browser.voiceId}
-                                    onChange={(e) => update('voiceId', e.target.value)}
-                                    disabled={isLoadingOptions || availableVoices.length === 0}
-                                    className="w-full"
-                                >
-                                    <option value="" disabled>Seleccionar Voz...</option>
-                                    {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
-
-                                    {filteredVoices.map(v => (
-                                        <option key={v.id} value={v.id}>{v.name}</option>
-                                    ))}
-                                </Select>
-                            </div>
-
-                            {/* Style Selection (Conditional) */}
-                            {availableStyles.length > 0 && (
-                                <div>
-                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
-                                    <Select
-                                        value={browser.voiceStyle}
-                                        onChange={(e) => update('voiceStyle', e.target.value)}
-                                        className="w-full"
-                                    >
-                                        <option value="">(Default)</option>
-                                        {availableStyles.map(s => (
-                                            <option key={s.id} value={s.id}>{s.label}</option>
-                                        ))}
-                                    </Select>
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
 
                     {/* Sliders Section */}
