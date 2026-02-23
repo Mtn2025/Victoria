@@ -1,3 +1,4 @@
+import React, { Suspense } from 'react'
 import { Provider } from 'react-redux'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { store } from './store/store'
@@ -33,7 +34,9 @@ function AppRoutes() {
                     element={
                         <FeatureGate feature="HISTORY_LIST">
                             {/* Dynamic import here — component only loaded when flag is true */}
-                            <LazyHistoryPage />
+                            <Suspense fallback={<div className="flex items-center justify-center p-10 text-slate-500 text-sm">Cargando historial...</div>}>
+                                <LazyHistoryPage />
+                            </Suspense>
                         </FeatureGate>
                     }
                 />
@@ -43,7 +46,9 @@ function AppRoutes() {
                     path="agents"
                     element={
                         <FeatureGate feature="AGENTS_LIST">
-                            <LazyAgentsPanel />
+                            <Suspense fallback={<div className="flex items-center justify-center p-10 text-slate-500 text-sm">Cargando agentes...</div>}>
+                                <LazyAgentsPanel />
+                            </Suspense>
                         </FeatureGate>
                     }
                 />
@@ -56,17 +61,8 @@ function AppRoutes() {
 }
 
 // ── Lazy wrappers (evitan cargar código de features desactivadas) ────────────
-const LazyHistoryPage = () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { HistoryPage } = require('./pages/HistoryPage')
-    return <HistoryPage />
-}
-
-const LazyAgentsPanel = () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { AgentsPanel } = require('./components/features/Agents/AgentsPanel')
-    return <AgentsPanel />
-}
+const LazyHistoryPage = React.lazy(() => import('./pages/HistoryPage').then(module => ({ default: module.HistoryPage })))
+const LazyAgentsPanel = React.lazy(() => import('./components/features/Agents/AgentsPanel').then(module => ({ default: module.AgentsPanel })))
 
 function App() {
     const apiKey = localStorage.getItem('api_key')
