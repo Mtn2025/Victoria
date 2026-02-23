@@ -9,10 +9,9 @@ from typing import Dict, List, Any
 # Provider -> List of Dicts [{"id": model_id, "name": display_name, "voice_safe": bool}]
 SUPPORTED_LLM_MODELS: Dict[str, List[Dict[str, Any]]] = {
     "groq": [
-        {"id": "llama-3.1-8b-instant", "name": "Llama 3.1 8B", "voice_safe": True},
-        {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B", "voice_safe": True},
-        {"id": "mixtral-8x7b-32768", "name": "Mixtral 8x7B", "voice_safe": True},
-        {"id": "gemma2-9b-it", "name": "Gemma 2 9B", "voice_safe": False},
+        {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B (Rápido)", "voice_safe": True},
+        {"id": "llama-3.1-8b-instant", "name": "Llama 3.1 8B (Ultra Rápido)", "voice_safe": True},
+        {"id": "mixtral-8x7b-32768", "name": "Mixtral 8x7B (Equilibrado)", "voice_safe": True}
     ],
     "azure": [
         {"id": "gpt-4o", "name": "GPT-4o", "voice_safe": True},
