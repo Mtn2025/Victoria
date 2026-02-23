@@ -23,7 +23,7 @@ import {
 } from '@/store/slices/agentsSlice'
 import {
     Bot, Plus, Settings, Loader2, AlertCircle,
-    Trash2, Pencil, ArrowRight, X, Check
+    Trash2, Pencil, ArrowRight, X, Check, Search
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Button } from '@/components/ui/Button'
@@ -215,6 +215,7 @@ export const AgentsPanel = () => {
 
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newAgentName, setNewAgentName] = useState('')
+    const [searchQuery, setSearchQuery] = useState('')
     const [creating, setCreating] = useState(false)
     const [managedAgent, setManagedAgent] = useState<Agent | null>(null)
 
@@ -260,19 +261,50 @@ export const AgentsPanel = () => {
     return (
         <div className="flex flex-col h-full w-full">
             {/* Header */}
-            <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-slate-900/50 backdrop-blur shrink-0">
+            <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-slate-900/50 backdrop-blur shrink-0 gap-4">
                 <div className="flex items-center gap-2">
                     <Bot size={18} className="text-blue-400" />
-                    <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase">Agentes</h2>
+                    <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase shrink-0">Agentes</h2>
                 </div>
+
+                {/* Search Bar */}
+                <div className="flex-1 max-w-sm relative hidden sm:block">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-slate-500" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar agente..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm text-slate-200"
+                    />
+                </div>
+
                 <Button
                     variant="primary"
                     onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5"
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 shrink-0"
                 >
                     <Plus size={14} />
                     Nuevo Agente
                 </Button>
+            </div>
+
+            {/* Mobile Search Bar (visible only on small screens if needed) */}
+            <div className="sm:hidden px-4 pt-3 pb-1 shrink-0">
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-slate-500" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar agente..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 outline-none focus:border-blue-500 text-sm text-slate-200"
+                    />
+                </div>
             </div>
 
             {/* Content */}
@@ -301,55 +333,63 @@ export const AgentsPanel = () => {
                     </div>
                 )}
 
-                {agents.map((agent) => (
-                    /* CARD — clickeable → activa agente y navega a /config */
-                    <div
-                        key={agent.agent_uuid}
-                        onClick={() => handleCardClick(agent)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && handleCardClick(agent)}
-                        className={cn(
-                            "flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
-                            agent.is_active
-                                ? "bg-blue-900/20 border-blue-500/40 ring-1 ring-blue-500/20 hover:ring-blue-500/40"
-                                : "bg-slate-800/50 border-slate-700/50 hover:border-slate-500 hover:bg-slate-800"
-                        )}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={cn(
-                                "w-8 h-8 rounded-full flex items-center justify-center",
-                                agent.is_active ? "bg-blue-600" : "bg-slate-700"
-                            )}>
-                                <Bot size={16} className="text-white" />
+                {agents
+                    .filter(agent => agent.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((agent) => (
+                        /* CARD — clickeable → activa agente y navega a /config */
+                        <div
+                            key={agent.agent_uuid}
+                            onClick={() => handleCardClick(agent)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={e => e.key === 'Enter' && handleCardClick(agent)}
+                            className={cn(
+                                "flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
+                                agent.is_active
+                                    ? "bg-blue-900/20 border-blue-500/40 ring-1 ring-blue-500/20 hover:ring-blue-500/40"
+                                    : "bg-slate-800/50 border-slate-700/50 hover:border-slate-500 hover:bg-slate-800"
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    "w-8 h-8 rounded-full flex items-center justify-center",
+                                    agent.is_active ? "bg-blue-600" : "bg-slate-700"
+                                )}>
+                                    <Bot size={16} className="text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                                        {agent.name}
+                                        {agent.is_active && (
+                                            <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">
+                                                ACTIVO
+                                            </span>
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {new Date(agent.created_at).toLocaleDateString('es-MX')}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                                    {agent.name}
-                                    {agent.is_active && (
-                                        <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">
-                                            ACTIVO
-                                        </span>
-                                    )}
-                                </p>
-                                <p className="text-xs text-slate-500 mt-0.5">
-                                    {new Date(agent.created_at).toLocaleDateString('es-MX')}
-                                </p>
-                            </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                            {/* ⚙️ — open manage modal (stopPropagation: does NOT trigger card click) */}
-                            <button
-                                onClick={(e) => handleManageClick(e, agent)}
-                                title="Gestionar agente"
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
-                            >
-                                <Settings size={14} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {/* ⚙️ — open manage modal (stopPropagation: does NOT trigger card click) */}
+                                <button
+                                    onClick={(e) => handleManageClick(e, agent)}
+                                    title="Gestionar agente"
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
+                                >
+                                    <Settings size={14} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                {!loading && agents.length > 0 &&
+                    agents.filter(agent => agent.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                        <div className="text-center py-10 text-slate-500 text-sm">
+                            No se encontraron agentes que coincidan con "{searchQuery}".
+                        </div>
+                    )}
             </div>
 
             {/* Create Agent Modal */}

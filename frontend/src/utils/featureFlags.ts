@@ -24,7 +24,7 @@ export const FEATURES = {
     SIMULATOR_CONFIG: true,        // Panel izquierdo (pestañas Config)
 
     // ── FASE 7: Agentes — activar después de verificar E2E ─────────────────
-    AGENTS_LIST: false,            // Listar agentes desde DB
+    AGENTS_LIST: true,             // Listar agentes desde DB
     AGENTS_CREATE: false,          // Crear nuevo agente
     AGENTS_EDIT: false,            // Editar agente existente
     AGENTS_ACTIVATE: false,        // Activar/desactivar agente

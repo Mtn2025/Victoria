@@ -97,8 +97,13 @@ export const Sidebar = () => {
                     const Icon = item.icon
 
                     // Is this item gated and disabled?
-                    const isDisabled = (item.featureKey && !FEATURES[item.featureKey]) ||
+                    let isDisabled = (item.featureKey && !FEATURES[item.featureKey]) ||
                         (item.type === 'config' && !item.featureKey)
+
+                    // NEW RULE: If it's a config tab, it MUST have an active agent to click it.
+                    if (item.type === 'config' && !activeAgent) {
+                        isDisabled = true
+                    }
 
                     // Determine Active State
                     let isActive = false
@@ -148,7 +153,10 @@ export const Sidebar = () => {
                             {/* Tooltip */}
                             <div className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-700 font-medium">
                                 {item.label}
-                                {isDisabled && <span className="ml-1 text-slate-500">(próx. fase)</span>}
+                                {isDisabled && (item.type === 'config' && !activeAgent && FEATURES[item.featureKey!]
+                                    ? <span className="ml-1 text-slate-500">(Requiere Agent Activo)</span>
+                                    : <span className="ml-1 text-slate-500">(próx. fase)</span>
+                                )}
                             </div>
                         </div>
                     )
