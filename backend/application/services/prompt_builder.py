@@ -78,6 +78,11 @@ class PromptBuilder:
         if formality in formality_instructions:
             style_block.append(f"- Formalidad: {formality_instructions[formality]}")
 
+        # --- BILINGUAL INTELLIGENCE (ROOT LANGUAGE) ---
+        agent_lang = get_cfg('stt_language') or get_cfg('voice_language') or 'es-MX'
+        language_instruction = f"- Idioma Obligatorio de Respuesta: Debes responder ESTRICTAMENTE en el idioma correspondiente al código '{agent_lang}'."
+        style_block.append(language_instruction)
+
         dynamic_instructions = "\n".join(style_block)
 
         final_prompt = f"""{base_prompt}

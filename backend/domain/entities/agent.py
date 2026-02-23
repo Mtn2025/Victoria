@@ -28,6 +28,7 @@ class Agent:
     name: str
     system_prompt: str
     voice_config: VoiceConfig
+    language: str = "es-MX"
     first_message: str = ""
     silence_timeout_ms: int = 1000
     tools: List[Dict[str, Any]] = field(default_factory=list)
@@ -51,6 +52,8 @@ class Agent:
              raise ValueError("Agent system prompt cannot be empty")
         if self.silence_timeout_ms <= 0:
             raise ValueError("Silence timeout must be positive")
+        if not self.language:
+            self.language = "es-MX"
 
     def get_greeting(self) -> Optional[str]:
         """Get the initial greeting message if defined."""

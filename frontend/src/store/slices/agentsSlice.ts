@@ -36,7 +36,7 @@ export const fetchActiveAgent = createAsyncThunk(
 
 export const createAgent = createAsyncThunk(
     'agents/createAgent',
-    async (name: string) => agentService.createAgent(name)
+    async (payload: { name: string, language: string }) => agentService.createAgent(payload.name, payload.language)
 )
 
 export const activateAgent = createAsyncThunk(
@@ -88,6 +88,7 @@ const agentsSlice = createSlice({
                 ? {
                     agent_uuid: action.payload.agent_uuid,
                     name: action.payload.name,
+                    language: action.payload.language,
                     is_active: action.payload.is_active,
                     created_at: action.payload.created_at,
                 }

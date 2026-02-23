@@ -72,11 +72,11 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
         voice_speed         = float(vc.speed),
         voice_pitch         = int(vc.pitch),
         voice_volume        = int(vc.volume),
-        voice_language      = llm.get('voice_language', 'es-MX'),
+        voice_language      = getattr(agent, "language", "es-MX") or "es-MX",  # SSoT Root Language
 
         # --- STT ---
         stt_provider        = meta.get('stt_config', {}).get('sttProvider', 'azure'),  # canonical front key
-        stt_language        = meta.get('stt_config', {}).get('sttLang', 'es-MX'),
+        stt_language        = getattr(agent, "language", "es-MX") or "es-MX",  # SSoT Root Language
         silence_timeout_ms  = agent.silence_timeout_ms,
 
         # --- Runtime ---

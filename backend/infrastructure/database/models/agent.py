@@ -20,6 +20,7 @@ class AgentModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
                                                   server_default=func.now())
     system_prompt: Mapped[str] = mapped_column(Text)
+    language: Mapped[str] = mapped_column(String, default="es-MX")
 
     # Voice Config
     voice_provider: Mapped[str] = mapped_column(String, default="azure")

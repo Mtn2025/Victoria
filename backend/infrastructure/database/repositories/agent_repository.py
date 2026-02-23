@@ -37,6 +37,7 @@ def _model_to_agent(agent_model: AgentModel) -> Agent:
         name=agent_model.name,
         system_prompt=agent_model.system_prompt,
         voice_config=voice_config,
+        language=getattr(agent_model, "language", "es-MX") or "es-MX",
         first_message=agent_model.first_message,
         silence_timeout_ms=agent_model.silence_timeout_ms,
         agent_uuid=agent_model.agent_uuid,
@@ -91,6 +92,7 @@ class SqlAlchemyAgentRepository(AgentRepository):
             self.session.add(agent_model)
 
         agent_model.system_prompt = agent.system_prompt
+        agent_model.language = getattr(agent, "language", "es-MX")
         agent_model.first_message = agent.first_message
         agent_model.silence_timeout_ms = agent.silence_timeout_ms
 
@@ -134,6 +136,7 @@ class SqlAlchemyAgentRepository(AgentRepository):
             name=agent.name,
             agent_uuid=agent.agent_uuid,
             system_prompt=agent.system_prompt,
+            language=getattr(agent, "language", "es-MX"),
             first_message=agent.first_message,
             silence_timeout_ms=agent.silence_timeout_ms,
             is_active=False,

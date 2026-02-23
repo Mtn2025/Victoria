@@ -13,6 +13,7 @@ class AgentListItem(BaseModel):
 
     agent_uuid: str
     name: str
+    language: str
     is_active: bool
     created_at: datetime
 
@@ -21,12 +22,14 @@ class AgentCreateRequest(BaseModel):
     """Request schema for creating a new agent."""
     name: str = Field(..., min_length=1, max_length=100,
                       description="Display name for the new agent")
+    language: str = Field(default="es-MX", description="Root language code of the agent")
 
 
 class AgentCreateResponse(BaseModel):
     """Response after successfully creating an agent."""
     agent_uuid: str
     name: str
+    language: str
     is_active: bool
     created_at: datetime
 
@@ -38,6 +41,7 @@ class ActiveAgentResponse(BaseModel):
     """
     agent_uuid: str
     name: str
+    language: str
     is_active: bool
     created_at: datetime
 

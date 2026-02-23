@@ -29,6 +29,13 @@ import { cn } from '@/utils/cn'
 import { Button } from '@/components/ui/Button'
 import { Agent } from '@/types/config'
 
+const LANGUAGE_MAP: Record<string, { label: string; flag: string }> = {
+    'es-MX': { label: 'Español (México)', flag: '🇲🇽' },
+    'en-US': { label: 'English (US)', flag: '🇺🇸' },
+    'es-ES': { label: 'Español (España)', flag: '🇪🇸' },
+    'pt-BR': { label: 'Português (Brasil)', flag: '🇧🇷' }
+}
+
 // --------------------------------------------------------------------- //
 // Manage Agent Modal                                                      //
 // --------------------------------------------------------------------- //
@@ -217,6 +224,7 @@ export const AgentsPanel = () => {
     const [newAgentName, setNewAgentName] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [creating, setCreating] = useState(false)
+    const [newAgentLanguage, setNewAgentLanguage] = useState('es-MX')
     const [managedAgent, setManagedAgent] = useState<Agent | null>(null)
 
     useEffect(() => {
@@ -252,9 +260,10 @@ export const AgentsPanel = () => {
     const handleCreate = async () => {
         if (!newAgentName.trim()) return
         setCreating(true)
-        await dispatch(createAgent(newAgentName.trim()))
+        await dispatch(createAgent({ name: newAgentName.trim(), language: newAgentLanguage }))
         setCreating(false)
         setNewAgentName('')
+        setNewAgentLanguage('es-MX')
         setShowCreateModal(false)
     }
 
@@ -365,6 +374,9 @@ export const AgentsPanel = () => {
                                                 ACTIVO
                                             </span>
                                         )}
+                                        <span className="text-[11px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                            {LANGUAGE_MAP[agent.language]?.flag || '🌍'} {LANGUAGE_MAP[agent.language]?.label || agent.language}
+                                        </span>
                                     </p>
                                     <p className="text-xs text-slate-500 mt-0.5">
                                         {new Date(agent.created_at).toLocaleDateString('es-MX')}
@@ -409,6 +421,20 @@ export const AgentsPanel = () => {
                             className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 mb-4"
                             autoFocus
                         />
+
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Idioma Base</label>
+                        <select
+                            value={newAgentLanguage}
+                            onChange={(e) => setNewAgentLanguage(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 mb-6 cursor-pointer appearance-none"
+                        >
+                            {Object.entries(LANGUAGE_MAP).map(([code, info]) => (
+                                <option key={code} value={code}>
+                                    {info.flag} {info.label} ({code})
+                                </option>
+                            ))}
+                        </select>
+
                         <div className="flex gap-2">
                             <button
                                 onClick={() => { setShowCreateModal(false); setNewAgentName('') }}

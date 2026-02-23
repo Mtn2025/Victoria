@@ -8,6 +8,7 @@ import { Agent } from '@/types/config'
 
 interface ActiveAgentResponse extends Agent {
     system_prompt: string
+    language: string
     first_message: string
     silence_timeout_ms: number
     voice: {
@@ -30,8 +31,8 @@ export const agentService = {
     },
 
     /** Create a new agent with system-default configuration. */
-    createAgent: async (name: string): Promise<Agent> => {
-        return await api.post<Agent>('/agents', { name })
+    createAgent: async (name: string, language: string = 'es-MX'): Promise<Agent> => {
+        return await api.post<Agent>('/agents', { name, language })
     },
 
     /** Return the active agent with its full configuration. Returns null on 404. */

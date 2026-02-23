@@ -254,6 +254,7 @@ export interface TelnyxConfig {
 export interface Agent {
     agent_uuid: string
     name: string
+    language: string
     is_active: boolean
     created_at: string
 }

@@ -6,8 +6,8 @@ import { Ear, Radio } from 'lucide-react'
 
 export const TranscriberSettings = () => {
     const dispatch = useAppDispatch()
-    // Use browser config and availableLanguages from store
-    const { browser, availableLanguages } = useAppSelector(state => state.config)
+    // Use browser config from store
+    const { browser } = useAppSelector(state => state.config)
 
     const update = (key: keyof BrowserConfig, value: any) => {
         dispatch(updateBrowserConfig({ [key]: value }))
@@ -31,7 +31,7 @@ export const TranscriberSettings = () => {
                         onChange={(e) => update('sttProvider', e.target.value)}
                     >
                         <option value="azure">Azure Speech</option>
-                        <option value="deepgram">Deepgram</option>
+                        <option value="deepgram" disabled>Deepgram (Próximamente)</option>
                         <option value="groq">Groq Whisper</option>
                     </Select>
                 </div>
@@ -50,20 +50,8 @@ export const TranscriberSettings = () => {
                 </div>
             </div>
 
-            {/* Language & Keywords */}
+            {/* Keywords */}
             <div className="space-y-4">
-                <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma</label>
-                    <Select
-                        value={browser.sttLang}
-                        onChange={(e) => update('sttLang', e.target.value)}
-                    >
-                        {availableLanguages.map(l => (
-                            <option key={l.id} value={l.id}>{l.name}</option>
-                        ))}
-                    </Select>
-                </div>
-
                 <div>
                     <div className="flex justify-between mb-2">
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Keywords Boosting</label>

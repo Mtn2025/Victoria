@@ -10,7 +10,7 @@ import { configService } from '@/services/configService'
 
 export const VoiceSettings = () => {
     const dispatch = useAppDispatch()
-    const { browser, availableLanguages, availableVoices, availableStyles, isLoadingOptions } = useAppSelector(state => state.config)
+    const { browser, availableVoices, availableStyles, isLoadingOptions } = useAppSelector(state => state.config)
     const [previewLoading, setPreviewLoading] = useState(false)
 
     // Initial Load - Fetch Languages for current Provider
@@ -20,12 +20,14 @@ export const VoiceSettings = () => {
         }
     }, [dispatch, browser.voiceProvider])
 
-    // Fetch Voices when Provider or Language Changes
+    // Fetch Voices when Provider changes (Language is fixed to Agent's Base Language)
+    const { activeAgent } = useAppSelector(state => state.agents)
+
     useEffect(() => {
-        if (browser.voiceProvider && browser.voiceLang) {
-            dispatch(fetchVoices({ provider: browser.voiceProvider, language: browser.voiceLang }))
+        if (browser.voiceProvider && activeAgent?.language) {
+            dispatch(fetchVoices({ provider: browser.voiceProvider, language: activeAgent.language }))
         }
-    }, [dispatch, browser.voiceProvider, browser.voiceLang])
+    }, [dispatch, browser.voiceProvider, activeAgent?.language])
 
     // Fetch Styles when Voice Changes
     useEffect(() => {
@@ -37,9 +39,7 @@ export const VoiceSettings = () => {
     const update = (key: keyof BrowserConfig, value: any) => {
         // Cascade Rules for Voice Configuration
         if (key === 'voiceProvider') {
-            dispatch(updateBrowserConfig({ voiceProvider: value, voiceLang: '', voiceId: '', voiceStyle: '' }))
-        } else if (key === 'voiceLang') {
-            dispatch(updateBrowserConfig({ voiceLang: value, voiceId: '', voiceStyle: '' }))
+            dispatch(updateBrowserConfig({ voiceProvider: value, voiceId: '', voiceStyle: '' }))
         } else if (key === 'voiceId') {
             dispatch(updateBrowserConfig({ voiceId: value, voiceStyle: '' }))
         } else {
@@ -105,21 +105,22 @@ export const VoiceSettings = () => {
                         className="w-full"
                     >
                         <option value="azure">Azure Open AI / Speech</option>
-                        <option value="elevenlabs">ElevenLabs</option>
+                        <option value="elevenlabs" disabled>ElevenLabs (Próximamente)</option>
                         <option value="openai">OpenAI TTS</option>
                     </Select>
 
                     <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma</label>
-                        <Select
-                            value={browser.voiceLang}
-                            onChange={(e) => update('voiceLang', e.target.value)}
-                            disabled={isLoadingOptions}
-                        >
-                            {availableLanguages.map(l => (
-                                <option key={l.id} value={l.id}>{l.name}</option>
-                            ))}
-                        </Select>
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
+                        <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed flex items-center gap-2">
+                            <span className="text-[12px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 border border-slate-600 font-mono flex items-baseline">
+                                {activeAgent?.language || 'es-MX'}
+                            </span>
+                            Automático
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
+                            <AlertCircle size={10} className="text-blue-400" />
+                            El Agente dicta el idioma general STT/TTS.
+                        </p>
                     </div>
                 </div>
 
