@@ -6,10 +6,16 @@ import { fetchAgentConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
 import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
 import { FEATURES } from "@/utils/featureFlags"
-import { ComingSoon } from "@/components/ui/ComingSoon"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
 import { VoiceSettings } from '@/components/features/Config/VoiceSettings'
 import { TranscriberSettings } from '@/components/features/Config/TranscriberSettings'
+import { ToolsSettings } from '@/components/features/Config/ToolsSettings'
+import { FlowSettings } from '@/components/features/Config/FlowSettings'
+import { ConnectivitySettings } from '@/components/features/Config/ConnectivitySettings'
+import { AdvancedSettings } from '@/components/features/Config/AdvancedSettings'
+import { CampaignSettings } from '@/components/features/Config/CampaignSettings'
+import { AnalysisSettings } from '@/components/features/Config/AnalysisSettings'
+import { SystemSettings } from '@/components/features/Config/SystemSettings'
 import { useAutoSave } from '@/components/features/Config/hooks/useAutoSave'
 import { Check, Loader2, XCircle } from 'lucide-react'
 
@@ -56,23 +62,15 @@ export const ConfigPage = () => {
         if (activeTab === 'model') return <ModelSettings />
         if (activeTab === 'voice') return <VoiceSettings />
         if (activeTab === 'transcriber') return <TranscriberSettings />
+        if (activeTab === 'tools') return <ToolsSettings />
+        if (activeTab === 'flow') return <FlowSettings />
+        if (activeTab === 'connectivity') return <ConnectivitySettings />
+        if (activeTab === 'advanced') return <AdvancedSettings />
+        if (activeTab === 'campaigns') return <CampaignSettings />
+        if (activeTab === 'analysis') return <AnalysisSettings />
+        if (activeTab === 'system') return <SystemSettings />
 
-        // All other tabs: stub while being reconstructed
-        const TAB_NAMES: Record<string, string> = {
-            connectivity: 'Conectividad (Twilio / Telnyx)',
-            tools: 'Herramientas Externas',
-            advanced: 'Configuración Avanzada',
-            campaigns: 'Campañas',
-            analysis: 'Análisis de Llamadas',
-            flow: 'Flujo y Orquestación',
-            system: 'Sistema y Gobernanza',
-        }
-        return (
-            <ComingSoon
-                tabName={TAB_NAMES[activeTab] ?? activeTab}
-                reason="Esta sección estará disponible en la próxima fase de reconstrucción."
-            />
-        )
+        return <div className="text-white p-4">Panel en reconstrucción.</div>
     }
 
     return (
