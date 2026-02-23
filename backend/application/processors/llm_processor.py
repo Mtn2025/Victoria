@@ -117,8 +117,17 @@ class LLMProcessor(FrameProcessor):
     async def _generate_llm_response(self, tool_result_message: Optional[Dict[str, Any]] = None):
         """Generate response recursively (handling tools)."""
         
-        # Build Messages
-        messages = [LLMMessage(role=msg["role"], content=msg["content"]) for msg in self.conversation_history]
+        # Apply Context Window (truncate history if needed)
+        # Default to 10 if not set as per frontend slider default
+        context_window = get_cfg('context_window', get_cfg('contextWindow', 10))
+        
+        # We always keep the first message (optional greeting) if it exists, 
+        # and then the last N-1 messages based on context_window
+        if len(self.conversation_history) > context_window:
+            history_to_keep = self.conversation_history[-context_window:]
+            messages = [LLMMessage(role=msg["role"], content=msg["content"]) for msg in history_to_keep]
+        else:
+            messages = [LLMMessage(role=msg["role"], content=msg["content"]) for msg in self.conversation_history]
         
         if tool_result_message:
             messages.append(LLMMessage(role=tool_result_message["role"], content=tool_result_message["content"]))
@@ -146,11 +155,16 @@ class LLMProcessor(FrameProcessor):
         request = LLMRequest(
             messages=messages,
             model=get_cfg('llm_model', 'llama-3.3-70b-versatile'),
-            temperature=get_cfg('temperature', 0.7),
-            max_tokens=get_cfg('max_tokens', 600),
+            temperature=get_cfg('temperature', 0.5), # Default updated to 0.5 based on frontend
+            max_tokens=get_cfg('max_tokens', get_cfg('tokens', 1024)), # Frontend uses 'tokens' key
             system_prompt=system_prompt,
             tools=tools,
-            metadata={"trace_id": self.trace_id}
+            metadata={
+                "trace_id": self.trace_id,
+                "tool_choice": get_cfg('tool_choice', get_cfg('toolChoice', 'auto'))
+            },
+            frequency_penalty=get_cfg('frequency_penalty', get_cfg('frequencyPenalty', 0.0)),
+            presence_penalty=get_cfg('presence_penalty', get_cfg('presencePenalty', 0.0))
         )
         
         full_response_buffer = ""

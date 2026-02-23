@@ -43,8 +43,10 @@ class GroqLLMAdapter(LLMPort):
                 # Read 'llm_model' (canonical since Rep D), fallback to legacy 'model'
                 model=llm_cfg.get('llm_model') or llm_cfg.get('model', self.default_model),
                 messages=messages,
-                temperature=llm_cfg.get('temperature', 0.7),
-                max_tokens=llm_cfg.get('max_tokens', 600),
+                temperature=llm_cfg.get('temperature', 0.5),
+                max_tokens=llm_cfg.get('max_tokens', 1024),
+                frequency_penalty=llm_cfg.get('frequency_penalty', 0.0),
+                presence_penalty=llm_cfg.get('presence_penalty', 0.0),
                 stream=False
             )
 
@@ -67,13 +69,33 @@ class GroqLLMAdapter(LLMPort):
             if request.system_prompt:
                  messages.insert(0, {"role": "system", "content": request.system_prompt})
             
-            stream = await self.client.chat.completions.create(
-                model=request.model or self.default_model,
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-                stream=True
-            )
+            # Preparar Tool Choice
+            tool_choice_arg = "auto"
+            if request.metadata and 'tool_choice' in request.metadata:
+                choice = request.metadata['tool_choice']
+                if choice == "none":
+                    tool_choice_arg = "none"
+                elif choice == "required":
+                    tool_choice_arg = "required"
+                else:
+                    tool_choice_arg = "auto"
+            
+            # Si no hay tools, tool_choice debe ser omitido o None para evitar errores de API
+            api_kwargs = {
+                "model": request.model or self.default_model,
+                "messages": messages,
+                "temperature": request.temperature,
+                "max_tokens": request.max_tokens,
+                "frequency_penalty": request.frequency_penalty,
+                "presence_penalty": request.presence_penalty,
+                "stream": True
+            }
+            
+            if request.tools:
+                api_kwargs["tools"] = request.tools
+                api_kwargs["tool_choice"] = tool_choice_arg
+            
+            stream = await self.client.chat.completions.create(**api_kwargs)
             
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
