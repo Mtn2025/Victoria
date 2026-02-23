@@ -152,6 +152,16 @@ class LLMProcessor(FrameProcessor):
                 return self.config.get(key, default)
             return getattr(self.config, key, default)
 
+        # Parse Stop Sequences (Blacklist)
+        stop_sequences = None
+        blacklist_str = get_cfg('hallucination_blacklist', '')
+        if blacklist_str and isinstance(blacklist_str, str):
+            # Split by comma, strip whitespace, remove empty
+            parsed_stops = [s.strip() for s in blacklist_str.split(',') if s.strip()]
+            if parsed_stops:
+                # Groq/OpenAI limit stop sequences to max 4 items usually
+                stop_sequences = parsed_stops[:4]
+
         request = LLMRequest(
             messages=messages,
             model=get_cfg('llm_model', 'llama-3.3-70b-versatile'),
@@ -164,7 +174,8 @@ class LLMProcessor(FrameProcessor):
                 "tool_choice": get_cfg('tool_choice', get_cfg('toolChoice', 'auto'))
             },
             frequency_penalty=get_cfg('frequency_penalty', get_cfg('frequencyPenalty', 0.0)),
-            presence_penalty=get_cfg('presence_penalty', get_cfg('presencePenalty', 0.0))
+            presence_penalty=get_cfg('presence_penalty', get_cfg('presencePenalty', 0.0)),
+            stop_sequences=stop_sequences
         )
         
         full_response_buffer = ""

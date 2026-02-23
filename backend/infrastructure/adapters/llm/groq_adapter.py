@@ -47,6 +47,7 @@ class GroqLLMAdapter(LLMPort):
                 max_tokens=llm_cfg.get('max_tokens', 1024),
                 frequency_penalty=llm_cfg.get('frequency_penalty', 0.0),
                 presence_penalty=llm_cfg.get('presence_penalty', 0.0),
+                stop=llm_cfg.get('stop_sequences', None),
                 stream=False
             )
 
@@ -90,6 +91,9 @@ class GroqLLMAdapter(LLMPort):
                 "presence_penalty": request.presence_penalty,
                 "stream": True
             }
+            
+            if request.stop_sequences:
+                api_kwargs["stop"] = request.stop_sequences
             
             if request.tools:
                 api_kwargs["tools"] = request.tools

@@ -66,6 +66,7 @@ class LLMRequest:
     # Advanced LLM Controls
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
+    stop_sequences: Optional[List[str]] = None
 
 
 class LLMPort(ABC):
