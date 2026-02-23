@@ -182,6 +182,12 @@ class LLMProcessor(FrameProcessor):
         sentence_buffer = ""
         should_end_call = False
         
+        # --- FLOW CONFIG: Response Delay (Pacing) ---
+        response_delay_ms = get_cfg('pacing_response_delay_ms', 0)
+        if response_delay_ms > 0:
+             logger.info(f"⏳ [Pacing] Waiting {response_delay_ms}ms before querying LLM...")
+             await asyncio.sleep(response_delay_ms / 1000.0)
+        
         # Streaming
         async for chunk in self.llm_port.generate_stream(request):
             # Function Call
@@ -255,6 +261,17 @@ class LLMProcessor(FrameProcessor):
         # Update History
         if full_response_buffer.strip():
             self.conversation_history.append({"role": "assistant", "content": full_response_buffer})
+            
+            # --- FLOW CONFIG: End-call phrases detection ---
+            end_call_phrases = get_cfg('pacing_end_call_phrases', [])
+            if end_call_phrases:
+                 norm_response = "".join(c for c in full_response_buffer.lower() if c.isalnum() or c.isspace()).strip()
+                 for phrase in end_call_phrases:
+                     norm_phrase = "".join(c for c in phrase.lower() if c.isalnum() or c.isspace()).strip()
+                     if norm_phrase and (norm_response == norm_phrase or norm_response.endswith(norm_phrase)):
+                         logger.info(f"🛑 [Pacing] End Call Phrase detected: '{phrase}'")
+                         should_end_call = True
+                         break
             
         # End Signal
         if should_end_call:

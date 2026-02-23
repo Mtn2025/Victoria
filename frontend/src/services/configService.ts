@@ -41,6 +41,17 @@ interface BackendConfigUpdate {
     interruption_threshold?: number
     vadSensitivity?: number
     silence_timeout_ms?: number
+    // Flow Config
+    barge_in_enabled?: boolean
+    barge_in_sensitivity?: number
+    barge_in_phrases?: string[]
+    amd_enabled?: boolean
+    amd_sensitivity?: number
+    amd_action?: string
+    amd_message?: string
+    pacing_response_delay_ms?: number
+    pacing_hyphenation?: boolean
+    pacing_end_call_phrases?: string[]
     // Tools
     tools_config?: Record<string, unknown>
 }
@@ -121,6 +132,28 @@ export const configService = {
                 tool_timeout_ms: config.toolTimeoutMs,
                 error_message: config.toolErrorMsg,
             }
+        }
+
+        // --- FLOW CONFIG (Barge-in, AMD, Pacing) ---
+        if (config.bargeInEnabled !== undefined) payload.barge_in_enabled = config.bargeInEnabled
+        if (config.interruptionSensitivity !== undefined) payload.barge_in_sensitivity = config.interruptionSensitivity
+        if (config.voicemailDetectionEnabled !== undefined) payload.amd_enabled = config.voicemailDetectionEnabled
+        if (config.voicemailMessage !== undefined) payload.amd_message = config.voicemailMessage
+        if (config.amdSensitivity !== undefined) payload.amd_sensitivity = config.amdSensitivity
+        if (config.amdAction !== undefined) payload.amd_action = config.amdAction
+        if (config.responseDelaySeconds !== undefined) payload.pacing_response_delay_ms = config.responseDelaySeconds
+        if (config.hyphenationEnabled !== undefined) payload.pacing_hyphenation = config.hyphenationEnabled
+
+        // Convert comma-separated string back to array for the API
+        if (config.interruptionPhrases !== undefined) {
+            payload.barge_in_phrases = config.interruptionPhrases
+                ? config.interruptionPhrases.split(',').map((p: string) => p.trim()).filter(Boolean)
+                : []
+        }
+        if (config.endCallPhrases !== undefined) {
+            payload.pacing_end_call_phrases = config.endCallPhrases
+                ? config.endCallPhrases.split(',').map((p: string) => p.trim()).filter(Boolean)
+                : []
         }
 
         return api.patch(`/agents/${agentId}`, payload)

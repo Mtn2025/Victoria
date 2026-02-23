@@ -147,6 +147,14 @@ class TTSProcessor(FrameProcessor):
         client_type = get_cfg('client_type', 'browser')  # browser=24kHz PCM; twilio=8kHz mulaw
         audio_format = AudioFormat.for_client(client_type)
         
+        # --- FLOW CONFIG: Hyphenation (Fluency Pauses) ---
+        if get_cfg('pacing_hyphenation', False):
+             # Inject subtle human-like pauses at grammatical boundaries
+             text = text.replace(",", ", <break time='150ms'/>")
+             text = text.replace(".", ". <break time='300ms'/>")
+             if not text.endswith("/>"):
+                 text += " <break time='150ms'/>"
+                 
         logger.info(f"Synthesizing FULL TEXT: {text!r} (Voice: {voice_config.name})")
         # [PIPE-9] TTS synthesis starting
         logger.info(

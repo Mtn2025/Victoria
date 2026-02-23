@@ -42,27 +42,10 @@ class ExtractionResult:
     Result of post-call conversation extraction.
     Contains structured data extracted from conversation.
     """
-    summary: str
-    intent: str
-    sentiment: str
-    entities: dict[str, Any] = field(default_factory=dict)
-    next_action: str = "do_nothing"
+    summary: str = ""
+    is_success: bool = False
+    sentiment_score: float = 0.0
     raw_data: dict = field(default_factory=dict)
-    
-    def __post_init__(self):
-        """Validate extracted data."""
-        valid_intents = {"agendar_cita", "consulta", "queja", "irrelevante", "buzon"}
-        if self.intent not in valid_intents:
-            # Default to irrelevante if invalid
-            object.__setattr__(self, 'intent', 'irrelevante')
-        
-        valid_sentiments = {"positive", "neutral", "negative"}
-        if self.sentiment not in valid_sentiments:
-            object.__setattr__(self, 'sentiment', 'neutral')
-        
-        valid_actions = {"follow_up", "do_nothing"}
-        if self.next_action not in valid_actions:
-            object.__setattr__(self, 'next_action', 'do_nothing')
 
 
 class ExtractionError(Exception):

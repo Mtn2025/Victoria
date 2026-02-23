@@ -54,6 +54,19 @@ class ConfigUpdate(BaseModel):
     # VAD / Silence
     silence_timeout_ms: Optional[int] = None
     
+    # Flow Config (Barge-in, AMD, Pacing)
+    barge_in_enabled: Optional[bool] = None
+    barge_in_sensitivity: Optional[float] = None
+    barge_in_phrases: Optional[str] = None
+    amd_enabled: Optional[bool] = None
+    amd_sensitivity: Optional[float] = None
+    amd_action: Optional[str] = None
+    amd_message: Optional[str] = None
+    pacing_response_delay_ms: Optional[int] = None
+    pacing_wait_for_greeting: Optional[bool] = None
+    pacing_hyphenation: Optional[bool] = None
+    pacing_end_call_phrases: Optional[str] = None
+    
     # Agent identity — optional when patching via /agents/{uuid} (UUID is already in the URL).
     # Still accepted if sent by legacy callers.
     agent_id: Optional[str] = None

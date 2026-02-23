@@ -9,7 +9,7 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-from backend.application.processors.frames import Frame, AudioFrame, TextFrame, DataFrame, ControlFrame
+from backend.application.processors.frames import Frame, AudioFrame, TextFrame, DataFrame, ControlFrame, UserStartedSpeakingFrame
 from backend.application.processors.frame_processor import FrameProcessor, FrameDirection
 from backend.domain.ports.stt_port import STTPort, STTSession, STTConfig
 from backend.domain.value_objects.audio_format import AudioFormat
@@ -30,6 +30,15 @@ class STTProcessor(FrameProcessor):
         self.config = config  # ConfigDTO — used to build STTConfig at session start
         self.session: Optional[STTSession] = None
         self._reader_task: Optional[asyncio.Task] = None
+        
+        # --- FLOW CONFIG: Semantic Barge-In ---
+        self.barge_in_phrases = []
+        if config:
+            if isinstance(config, dict):
+                self.barge_in_phrases = config.get('barge_in_phrases', [])
+            else:
+                self.barge_in_phrases = getattr(config, 'barge_in_phrases', [])
+                
         logger.info(
             f"[STT INIT] audio_format declared: "
             f"sr={audio_format.sample_rate if audio_format else 'NONE'} "
@@ -149,6 +158,18 @@ class STTProcessor(FrameProcessor):
             async for text, is_final in self.session.get_results():
                 if text:
                     logger.debug(f"STT Recognized [{'FINAL' if is_final else 'INTERIM'}]: {text}")
+                    
+                    # --- FLOW CONFIG: Semantic Barge-In (Force Stop) ---
+                    if self.barge_in_phrases:
+                        norm_text = "".join(c for c in text.lower() if c.isalnum() or c.isspace()).strip()
+                        for phrase in self.barge_in_phrases:
+                            norm_phrase = "".join(c for c in phrase.lower() if c.isalnum() or c.isspace()).strip()
+                            # Check if the exact phrase word exists in the transcript
+                            if norm_phrase and f" {norm_phrase} " in f" {norm_text} ":
+                                logger.info(f"🛑 [Semantic Barge-In] Force stop word detected: '{phrase}'")
+                                await self.push_frame(UserStartedSpeakingFrame(), FrameDirection.DOWNSTREAM)
+                                break # Prevents triggering multiple times per result
+                    
                     # Create TextFrame
                     frame = TextFrame(
                         text=text,

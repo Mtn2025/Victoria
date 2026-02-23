@@ -50,6 +50,19 @@ class ConfigDTO:
     stt_language: str = "es-MX"
     silence_timeout_ms: int = 1000
 
+    # Flow Config (Barge-in, AMD, Pacing)
+    barge_in_enabled: bool = True
+    barge_in_sensitivity: float = 0.5
+    barge_in_phrases: list[str] = field(default_factory=list)
+    amd_enabled: bool = False
+    amd_sensitivity: float = 0.5
+    amd_action: str = "hangup"
+    amd_message: str = "Hola, he detectado un buzón. Por favor devuelva la llamada."
+    pacing_response_delay_ms: int = 0
+    pacing_wait_for_greeting: bool = False
+    pacing_hyphenation: bool = False
+    pacing_end_call_phrases: list[str] = field(default_factory=list)
+
     # VAD Config
     # These are the canonical defaults for Silero VAD.
     # All processors MUST read from this object — never hardcode.
@@ -80,7 +93,11 @@ class ConfigDTO:
     extraction_schema: Optional[Any] = None
     sentiment_analysis: bool = False
     webhook_url: Optional[str] = None
+    webhook_secret: Optional[str] = None
     log_webhook_url: Optional[str] = None
+    pii_redaction_enabled: bool = False
+    cost_tracking_enabled: bool = False
+    retention_days: int = 30
 
     # System
     concurrency_limit: int = 10

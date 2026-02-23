@@ -45,6 +45,22 @@ class VADProcessor(FrameProcessor):
         # Configurable params
         self.confirmation_window_ms = getattr(config, 'vad_confirmation_window_ms', 200)
         self.confirmation_enabled   = getattr(config, 'vad_enable_confirmation',    True)
+        
+        # --- FLOW CONFIG: Barge In Settings ---
+        self.barge_in_enabled = getattr(config, 'barge_in_enabled', True)
+        
+        # Maps 0.0 (Hard) to 1.0 (Easy) 
+        # Easy = threshold 0.2, window 50ms
+        # Hard = threshold 0.6, window 400ms
+        # Default (0.5) = threshold 0.4, window 225ms
+        sensitivity = float(getattr(config, 'barge_in_sensitivity', 0.5))
+        
+        # Interpolate threshold_start (inverted logic)
+        self.threshold_start = 0.6 - (sensitivity * 0.4) 
+        self.threshold_return = self.threshold_start - 0.15 # Keep gap
+        
+        # Interpolate confirmation_window (inverted logic)
+        self.confirmation_window_ms = int(400 - (sensitivity * 350))
 
         # Determine VAD target sample rate from client_type
         client_type    = getattr(config, 'client_type', 'browser')
@@ -145,7 +161,7 @@ class VADProcessor(FrameProcessor):
             logger.debug(f"[VAD CONFIDENCE] conf={confidence:.4f} threshold={self.threshold_start}")
 
             # Smart Turn Logic
-            if confidence > self.threshold_start:
+            if confidence > self.threshold_start and self.barge_in_enabled:
                 self.silence_frames = 0
                 self.speech_frames += 1
 

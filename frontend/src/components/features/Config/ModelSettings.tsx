@@ -4,7 +4,6 @@ import { updateBrowserConfig, fetchLLMProviders, fetchLLMModels } from "@/store/
 import { Label } from "@/components/ui/Label"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
-import { Textarea } from "@/components/ui/Textarea"
 import { Accordion } from '@/components/ui/Accordion'
 import { AlertTriangle, Brain, MessageSquare, Shield } from "lucide-react"
 import TextareaAutosize from 'react-textarea-autosize'

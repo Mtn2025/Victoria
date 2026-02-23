@@ -22,6 +22,8 @@ class CallStatus(str, Enum):
     FAILED = "failed"
     BUSY = "busy"
     NO_ANSWER = "no_answer"
+    VOICEMAIL = "voicemail"
+    VOICEMAIL_DELAYED = "voicemail_delayed"
 
 
 @dataclass
@@ -47,12 +49,24 @@ class Call:
 
     def end(self, reason: str = "completed") -> None:
         """End the call and record duration."""
-        if self.status in [CallStatus.COMPLETED, CallStatus.FAILED]:
+        if self.status in [CallStatus.COMPLETED, CallStatus.FAILED, CallStatus.BUSY, CallStatus.NO_ANSWER, CallStatus.VOICEMAIL]:
             return # Already ended
         
-        # Determine status based on reason (simple heuristic for now)
-        is_failure = reason.lower() in ["failed", "error", "timeout", "system_error"]
-        self.status = CallStatus.FAILED if is_failure else CallStatus.COMPLETED
+        # Determine status based on reason
+        lower_reason = reason.lower()
+        if lower_reason in ["busy", "no-answer", "no_answer"]:
+            self.status = CallStatus.NO_ANSWER if "answer" in lower_reason else CallStatus.BUSY
+        elif lower_reason in ["failed", "error", "timeout", "system_error", "canceled"]:
+            self.status = CallStatus.FAILED
+        elif lower_reason in ["voicemail", "machine_start", "machine_end_beep", "machine_end_other"]:
+            # Voicemail Time Heuristic: >12s implies delayed voicemail (did not pick up)
+            elapsed_seconds = (datetime.now(timezone.utc) - self.start_time).total_seconds()
+            if elapsed_seconds > 12.0:
+                self.status = CallStatus.VOICEMAIL_DELAYED
+            else:
+                self.status = CallStatus.VOICEMAIL
+        else:
+            self.status = CallStatus.COMPLETED
         
         self.end_time = datetime.now(timezone.utc)
         self.metadata["termination_reason"] = reason

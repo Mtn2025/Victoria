@@ -132,8 +132,9 @@ export interface BrowserConfig {
     voicemailDetectionEnabled: boolean
     voicemailMessage: string
     machineDetectionSensitivity: number
+    amdSensitivity: number
+    amdAction: string
     responseDelaySeconds: number
-    waitForGreeting: boolean
     hyphenationEnabled: boolean
     endCallPhrases: string
 

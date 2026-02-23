@@ -171,8 +171,9 @@ const initialState: ConfigState = {
         voicemailDetectionEnabled: false,
         voicemailMessage: '',
         machineDetectionSensitivity: 0.7,
+        amdSensitivity: 0.5,
+        amdAction: 'hangup',
         responseDelaySeconds: 0.5,
-        waitForGreeting: false,
         hyphenationEnabled: false,
         endCallPhrases: '[]',
 

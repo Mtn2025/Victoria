@@ -63,7 +63,7 @@ export const MainLayout = () => {
     useEffect(() => {
         if (!FEATURES.AGENTS_LIST) return
         import('@/store/slices/agentsSlice').then(({ fetchActiveAgent }) => {
-            dispatch(fetchActiveAgent() as Parameters<typeof dispatch>[0])
+            dispatch(fetchActiveAgent() as unknown as Parameters<typeof dispatch>[0])
         })
     }, [dispatch])
 

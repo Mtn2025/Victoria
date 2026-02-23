@@ -13,6 +13,40 @@ interface CallDetailModalProps {
 export const CallDetailModal: React.FC<CallDetailModalProps> = ({ call, isOpen, onClose, transcript }) => {
     if (!call) return null
 
+    const getStatusStyle = (status: string | undefined | null) => {
+        if (!status) return 'bg-slate-700 text-slate-300'
+        switch (status.toLowerCase()) {
+            case 'completed': return 'bg-green-900/40 text-green-400 border border-green-700/50'
+            case 'voicemail': return 'bg-purple-900/40 text-purple-400 border border-purple-700/50'
+            case 'voicemail_delayed': return 'bg-purple-900/20 text-purple-300 border border-purple-800/50'
+            case 'busy': return 'bg-orange-900/40 text-orange-400 border border-orange-700/50'
+            case 'no_answer': return 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/50'
+            case 'failed':
+            case 'canceled': return 'bg-red-900/40 text-red-400 border border-red-700/50'
+            case 'in_progress':
+            case 'ringing':
+            case 'dialing': return 'bg-blue-900/40 text-blue-400 border border-blue-700/50 animate-pulse'
+            default: return 'bg-slate-700 text-slate-300'
+        }
+    }
+
+    const getStatusLabel = (status: string | undefined | null) => {
+        if (!status) return 'N/A'
+        switch (status.toLowerCase()) {
+            case 'completed': return 'Completada'
+            case 'voicemail': return 'Buzón Directo'
+            case 'voicemail_delayed': return 'Buzón (Timbres)'
+            case 'busy': return 'Rechazado'
+            case 'no_answer': return 'Sin Respuesta'
+            case 'failed': return 'Fallida'
+            case 'canceled': return 'Cancelada'
+            case 'in_progress': return 'En curso'
+            case 'ringing': return 'Timbrando'
+            case 'dialing': return 'Marcando'
+            default: return status
+        }
+    }
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Detalle de Llamada" size="xl">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
@@ -22,10 +56,8 @@ export const CallDetailModal: React.FC<CallDetailModalProps> = ({ call, isOpen, 
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-slate-400 text-xs uppercase tracking-wider">Estado</span>
-                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${call.status === 'completed' ? 'bg-green-900/40 text-green-400' :
-                                'bg-slate-700 text-slate-300'
-                                }`}>
-                                {call.status || 'Desconocido'}
+                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getStatusStyle(call.status)}`}>
+                                {getStatusLabel(call.status)}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-2xl font-mono text-white">

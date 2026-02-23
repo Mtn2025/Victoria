@@ -12,10 +12,10 @@ from backend.domain.entities.conversation import Conversation
 from backend.domain.ports.llm_port import LLMPort
 from backend.domain.ports.llm_port import LLMRequest, LLMMessage
 from backend.domain.value_objects.extraction_schema import (
-    ExtractionSchema,
     ExtractionResult,
     ExtractionError
 )
+from backend.domain.ports.config_repository_port import ConfigDTO
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +45,17 @@ class ExtractionService:
     def __init__(
         self,
         llm_port: LLMPort,
-        schema: Optional[ExtractionSchema] = None
+        config: Optional[ConfigDTO] = None
     ):
         """
         Initialize extraction service.
         
         Args:
             llm_port: LLM implementation for extraction
-            schema: Optional custom extraction schema (uses default if None)
+            config: Agent dynamic configuration
         """
         self.llm_port = llm_port
-        self.schema = schema or ExtractionSchema.default_schema()
+        self.config = config
     
     async def extract_from_conversation(
         self,
@@ -115,7 +115,7 @@ class ExtractionService:
             
             logger.info(
                 f"✅ [EXTRACTION] Success for call {call_id}: "
-                f"intent={result.intent}, sentiment={result.sentiment}"
+                f"is_success={result.is_success}, sentiment={result.sentiment_score}"
             )
             
             return result
@@ -130,24 +130,64 @@ class ExtractionService:
     
     def _build_system_prompt(self) -> str:
         """
-        Build system prompt with schema definition.
-        
-        Returns:
-            System prompt string
+        Build system prompt with dynamic config values from the agent.
         """
-        schema_json = json.dumps(self.schema.fields, indent=2, ensure_ascii=False)
+        base_prompt = "Eres un analista experto de llamadas telefónicas. Tu tarea es extraer información estructurada del diálogo que te proporcionaré, en formato JSON estricto.\n\n"
         
-        return (
-            "Eres un analista experto de llamadas telefónicas. "
-            "Tu tarea es extraer información estructurada del diálogo "
-            "que te proporcionaré, en formato JSON estricto.\n\n"
+        # User defined Analysis Prompt
+        if self.config and self.config.analysis_prompt:
+            base_prompt += f"INSTRUCCIONES PRINCIPALES:\n{self.config.analysis_prompt}\n\n"
+            
+        # Success Rubric
+        if self.config and self.config.success_rubric:
+            base_prompt += f"CRITERIO DE ÉXITO DE LA LLAMADA (Evaluador):\nEvalúa si la llamada fue un éxito basado en lo siguiente y retorna un booleano en 'is_success':\n{self.config.success_rubric}\n\n"
+            
+        # PII Redaction
+        if self.config and getattr(self.config, 'pii_redaction_enabled', False):
+            base_prompt += "CENSURA PII ACTIVADA: Debes censurar cualquier dato sensible (tarjetas de crédito, SSN, contraseñas) reemplazándolos por asteriscos **** en el JSON final.\n\n"
+
+        # Construct Schema Expected
+        schema_format = {}
+        
+        # Parse User Schema if present
+        if self.config and getattr(self.config, 'extraction_schema', None):
+            user_schema = self.config.extraction_schema
+            if isinstance(user_schema, str):
+                try:
+                    schema_format = json.loads(user_schema)
+                except json.JSONDecodeError:
+                    pass
+            elif isinstance(user_schema, dict):
+                schema_format = user_schema
+                
+        # If no user schema, use default
+        if not schema_format:
+            schema_format = {
+                "summary": "Resumen breve de la conversación (1-2 frases)",
+                "intent": "Intención principal: agendar_cita | consulta | queja | irrelevante | buzon",
+                "extracted_entities": {
+                    "name": "Nombre del usuario (si se mencionó)",
+                    "phone": "Teléfono alternativo (si se mencionó)"
+                }
+            }
+
+        # Ensure core fields are present for Victoria metrics
+        schema_format["summary"] = schema_format.get("summary", "Resumen ejecutivo de la llamada")
+        schema_format["is_success"] = "Booleano si cumplió el criterio de éxito"
+        if self.config and getattr(self.config, 'sentiment_analysis', False):
+            schema_format["sentiment_score"] = "Número float entre -1.0 y 1.0 (Muy negativo a Muy Positivo)"
+        
+        schema_json = json.dumps(schema_format, indent=2, ensure_ascii=False)
+        
+        base_prompt += (
             "REGLAS IMPORTANTES:\n"
             "1. No inventes datos que no estén en el diálogo\n"
             "2. Si no hay información para un campo, usa null\n"
-            "3. Sigue exactamente el schema proporcionado\n"
-            "4. Retorna SOLO el JSON, sin texto adicional\n\n"
-            f"SCHEMA ESPERADO:\n{schema_json}"
+            "3. Sigue exactamente la estructura del schema JSON proporcionado\n"
+            "4. Retorna SOLO el JSON válido, sin delimitadores como ```json ni texto adicional\n\n"
+            f"SCHEMA JSON ESPERADO:\n{schema_json}"
         )
+        return base_prompt
     
     def _format_conversation(self, conversation: Conversation) -> str:
         """
@@ -179,9 +219,7 @@ class ExtractionService:
         """
         return ExtractionResult(
             summary=data.get("summary", ""),
-            intent=data.get("intent", "irrelevante"),
-            sentiment=data.get("sentiment", "neutral"),
-            entities=data.get("extracted_entities", {}),
-            next_action=data.get("next_action", "do_nothing"),
+            is_success=data.get("is_success", False),
+            sentiment_score=float(data.get("sentiment_score", 0.0)),
             raw_data=data
         )

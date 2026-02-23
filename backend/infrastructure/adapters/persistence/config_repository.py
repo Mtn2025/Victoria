@@ -87,6 +87,15 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                     agent.llm_config[key] = value
                 elif key.startswith("tool_") and agent.tools_config is not None:
                     agent.tools_config[key] = value
+                elif (key.startswith("barge_") or key.startswith("amd_") or key.startswith("pacing_")) and agent.flow_config is not None:
+                    # SQLAlchemy JSON in-place mutations might need flag_modified or re-assignment
+                    updated_flow = dict(agent.flow_config)
+                    updated_flow[key] = value
+                    agent.flow_config = updated_flow
+                elif key in ["analysis_prompt", "success_rubric", "extraction_schema", "sentiment_analysis", "webhook_url", "webhook_secret", "log_webhook_url", "pii_redaction_enabled", "cost_tracking_enabled", "retention_days"]:
+                    current_analysis = dict(agent.analysis_config) if agent.analysis_config else {}
+                    current_analysis[key] = value
+                    agent.analysis_config = current_analysis
             
             await session.commit()
             await session.refresh(agent)
@@ -121,6 +130,31 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 tools_config={
                     "enabled": config.async_tools,
                     "timeout_ms": config.tool_timeout_ms,
+                },
+                flow_config={
+                    "barge_in_enabled": config.barge_in_enabled,
+                    "barge_in_sensitivity": config.barge_in_sensitivity,
+                    "barge_in_phrases": config.barge_in_phrases,
+                    "amd_enabled": config.amd_enabled,
+                    "amd_sensitivity": config.amd_sensitivity,
+                    "amd_action": config.amd_action,
+                    "amd_message": config.amd_message,
+                    "pacing_response_delay_ms": config.pacing_response_delay_ms,
+                    "pacing_wait_for_greeting": config.pacing_wait_for_greeting,
+                    "pacing_hyphenation": config.pacing_hyphenation,
+                    "pacing_end_call_phrases": config.pacing_end_call_phrases,
+                },
+                analysis_config={
+                    "analysis_prompt": config.analysis_prompt,
+                    "success_rubric": config.success_rubric,
+                    "extraction_schema": config.extraction_schema,
+                    "sentiment_analysis": config.sentiment_analysis,
+                    "webhook_url": config.webhook_url,
+                    "webhook_secret": config.webhook_secret,
+                    "log_webhook_url": config.log_webhook_url,
+                    "pii_redaction_enabled": config.pii_redaction_enabled,
+                    "cost_tracking_enabled": config.cost_tracking_enabled,
+                    "retention_days": config.retention_days,
                 }
             )
             
@@ -139,6 +173,8 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         # Extract from JSON configs with defaults
         llm_config = agent.llm_config or {}
         tools_config = agent.tools_config or {}
+        flow_config = agent.flow_config or {}
+        analysis_config = agent.analysis_config or {}
         
         return ConfigDTO(
             # LLM Config
@@ -166,4 +202,27 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             # Tools
             async_tools=tools_config.get("enabled", False),
             tool_timeout_ms=tools_config.get("timeout_ms", 5000),
+            # Flow Config
+            barge_in_enabled=flow_config.get("barge_in_enabled", True),
+            barge_in_sensitivity=flow_config.get("barge_in_sensitivity", 0.5),
+            barge_in_phrases=flow_config.get("barge_in_phrases", []),
+            amd_enabled=flow_config.get("amd_enabled", False),
+            amd_sensitivity=flow_config.get("amd_sensitivity", 0.5),
+            amd_action=flow_config.get("amd_action", "hangup"),
+            amd_message=flow_config.get("amd_message", "Hola, he detectado un buzón."),
+            pacing_response_delay_ms=flow_config.get("pacing_response_delay_ms", 0),
+            pacing_wait_for_greeting=flow_config.get("pacing_wait_for_greeting", False),
+            pacing_hyphenation=flow_config.get("pacing_hyphenation", False),
+            pacing_end_call_phrases=flow_config.get("pacing_end_call_phrases", []),
+            # Analysis
+            analysis_prompt=analysis_config.get("analysis_prompt", None),
+            success_rubric=analysis_config.get("success_rubric", None),
+            extraction_schema=analysis_config.get("extraction_schema", None),
+            sentiment_analysis=analysis_config.get("sentiment_analysis", False),
+            webhook_url=analysis_config.get("webhook_url", None),
+            webhook_secret=analysis_config.get("webhook_secret", None),
+            log_webhook_url=analysis_config.get("log_webhook_url", None),
+            pii_redaction_enabled=analysis_config.get("pii_redaction_enabled", False),
+            cost_tracking_enabled=analysis_config.get("cost_tracking_enabled", False),
+            retention_days=analysis_config.get("retention_days", 30),
         )

@@ -30,6 +30,40 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
         return <div className="text-center py-8 text-slate-500 italic">No hay historial disponible.</div>
     }
 
+    const getStatusStyle = (status: string | undefined | null) => {
+        if (!status) return 'bg-slate-700 text-slate-300'
+        switch (status.toLowerCase()) {
+            case 'completed': return 'bg-green-900/40 text-green-400 border border-green-700/50'
+            case 'voicemail': return 'bg-purple-900/40 text-purple-400 border border-purple-700/50'
+            case 'voicemail_delayed': return 'bg-purple-900/20 text-purple-300 border border-purple-800/50'
+            case 'busy': return 'bg-orange-900/40 text-orange-400 border border-orange-700/50'
+            case 'no_answer': return 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/50'
+            case 'failed':
+            case 'canceled': return 'bg-red-900/40 text-red-400 border border-red-700/50'
+            case 'in_progress':
+            case 'ringing':
+            case 'dialing': return 'bg-blue-900/40 text-blue-400 border border-blue-700/50 animate-pulse'
+            default: return 'bg-slate-700 text-slate-300'
+        }
+    }
+
+    const getStatusLabel = (status: string | undefined | null) => {
+        if (!status) return 'N/A'
+        switch (status.toLowerCase()) {
+            case 'completed': return 'Completada'
+            case 'voicemail': return 'Buzón Directo'
+            case 'voicemail_delayed': return 'Buzón (Timbres)'
+            case 'busy': return 'Rechazado'
+            case 'no_answer': return 'Sin Respuesta'
+            case 'failed': return 'Fallida'
+            case 'canceled': return 'Cancelada'
+            case 'in_progress': return 'En curso'
+            case 'ringing': return 'Timbrando'
+            case 'dialing': return 'Marcando'
+            default: return status
+        }
+    }
+
     return (
         <div className="overflow-x-auto rounded border border-slate-700 h-full">
             <table className="w-full text-xs text-left text-slate-400">
@@ -80,7 +114,9 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                                 {call.duration_seconds ? `${call.duration_seconds}s` : <span className="text-yellow-500 animate-pulse">En curso</span>}
                             </td>
                             <td className="px-4 py-2">
-                                <span className="uppercase text-[10px] font-bold opacity-70">{call.status || 'N/A'}</span>
+                                <span className={`uppercase text-[10px] font-bold px-2 py-0.5 rounded ${getStatusStyle(call.status)}`}>
+                                    {getStatusLabel(call.status)}
+                                </span>
                             </td>
                             <td className="px-4 py-2">
                                 <button

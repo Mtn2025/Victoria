@@ -38,6 +38,8 @@ class AgentModel(Base):
     llm_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     voice_config_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     stt_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    flow_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    analysis_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     calls: Mapped[List["CallModel"]] = relationship(back_populates="agent")
 

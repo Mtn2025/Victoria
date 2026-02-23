@@ -53,6 +53,8 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
     llm  = agent.llm_config or {}
     vc   = agent.voice_config  # VoiceConfig value object — guaranteed by Agent.__post_init__
     meta = getattr(agent, 'metadata', {}) or {}
+    flow = getattr(agent, 'flow_config', {}) or {}
+    analysis = getattr(agent, 'analysis_config', {}) or {}
 
     return ConfigDTO(
         # --- LLM (from agent.llm_config JSON — keys are 'llm_provider'/'llm_model' since Rep D fix) ---
@@ -81,8 +83,32 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
         stt_language        = getattr(agent, "language", "es-MX") or "es-MX",  # SSoT Root Language
         silence_timeout_ms  = agent.silence_timeout_ms,
 
+        # --- Flow Config ---
+        barge_in_enabled         = flow.get('barge_in_enabled', True),
+        barge_in_sensitivity     = float(flow.get('barge_in_sensitivity', 0.5)),
+        barge_in_phrases         = flow.get('barge_in_phrases', []),
+        amd_enabled              = flow.get('amd_enabled', False),
+        amd_sensitivity          = float(flow.get('amd_sensitivity', 0.5)),
+        amd_action               = flow.get('amd_action', 'hangup'),
+        amd_message              = flow.get('amd_message', 'Hola, devolvemos la llamada de Ubrokers.'),
+        pacing_response_delay_ms = int(flow.get('pacing_response_delay_ms', 0) * 1000), # UI is in seconds -> ms
+        pacing_wait_for_greeting = flow.get('pacing_wait_for_greeting', False),
+        pacing_hyphenation       = flow.get('pacing_hyphenation', False),
+        pacing_end_call_phrases  = flow.get('pacing_end_call_phrases', []),
+
         # --- Runtime ---
         client_type = llm.get('client_type', 'browser'),
+        
+        # --- Analysis Post-Call ---
+        analysis_prompt       = analysis.get('analysis_prompt', None),
+        success_rubric        = analysis.get('success_rubric', None),
+        extraction_schema     = analysis.get('extraction_schema', None),
+        sentiment_analysis    = analysis.get('sentiment_analysis', False),
+        webhook_url           = analysis.get('webhook_url', None),
+        webhook_secret        = analysis.get('webhook_secret', None),
+        pii_redaction_enabled = analysis.get('pii_redaction_enabled', False),
+        cost_tracking_enabled = analysis.get('cost_tracking_enabled', False),
+        retention_days        = analysis.get('retention_days', 30),
     )
 
 
@@ -246,7 +272,10 @@ class CallOrchestrator:
             
             # STEP 7: Send initial greeting (FASE 3B)
             greeting_audio = None
-            if agent.first_message and self.synthesize_text_uc and self.tts_port:
+            llm_config = getattr(agent, 'llm_config', {}) or {}
+            wait_for_greeting = llm_config.get('mode') == 'listen-first'
+            
+            if agent.first_message and self.synthesize_text_uc and self.tts_port and not wait_for_greeting:
                 logger.info(f"👋 Greeting: {agent.first_message[:50]}...")
                 try:
                     # Use the agent's existing voice_config (already a VoiceConfig VO)
@@ -401,7 +430,10 @@ class CallOrchestrator:
             if self.current_call.conversation.turns and self.llm_port:
                 try:
                     from backend.application.services.extraction_service import ExtractionService
-                    extraction = ExtractionService(llm_port=self.llm_port)
+                    from backend.application.services.webhook_service import WebhookService
+                    
+                    config = _agent_to_config_dto(self.current_call.agent)
+                    extraction = ExtractionService(llm_port=self.llm_port, config=config)
                     result = await extraction.extract_from_conversation(
                         self.current_call.conversation,
                         call_id=self.current_call.id.value
@@ -409,6 +441,13 @@ class CallOrchestrator:
                     # Persist in call.metadata so call_repository.save() stores it
                     self.current_call.update_metadata("extracted_data", result.raw_data)
                     logger.info("✅ Post-call extraction saved to call metadata")
+                    
+                    # Dispatch to external CRM Webhook
+                    webhook_service = WebhookService(config)
+                    import asyncio
+                    # Run post call webhook independently so it doesn't block ending the call UI
+                    asyncio.create_task(webhook_service.dispatch_post_call(result, self.current_call.id.value))
+                    
                 except Exception as e:
                     # Non-fatal: log and continue — call record still saved
                     logger.warning(f"⚠️ Post-call extraction failed (non-fatal): {e}")
