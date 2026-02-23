@@ -2,15 +2,16 @@ import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
 import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
-import { saveBrowserConfig, fetchAgentConfig } from "@/store/slices/configSlice"
+import { fetchAgentConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
 import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
 import { FEATURES } from "@/utils/featureFlags"
-import { Button } from "@/components/ui/Button"
 import { ComingSoon } from "@/components/ui/ComingSoon"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
 import { VoiceSettings } from '@/components/features/Config/VoiceSettings'
 import { TranscriberSettings } from '@/components/features/Config/TranscriberSettings'
+import { useAutoSave } from '@/components/features/Config/hooks/useAutoSave'
+import { Check, Loader2, XCircle } from 'lucide-react'
 
 // -----------------------------------------------------------------
 // Tabs activos: model, voice, transcriber
@@ -28,7 +29,7 @@ export const ConfigPage = () => {
     const navigate = useNavigate()
     const activeTab = useAppSelector(state => state.ui.activeTab)
     const activeProfile = useAppSelector(state => state.ui.activeProfile)
-    const { browser, isLoadingOptions } = useAppSelector(state => state.config)
+    const { browser } = useAppSelector(state => state.config)
     const activeAgent = useAppSelector(state => state.agents.activeAgent)
 
     // Hydrate config from the active agent on mount,
@@ -42,29 +43,14 @@ export const ConfigPage = () => {
         dispatch(fetchAgentConfig())
     }, [dispatch, navigate, activeAgent])
 
-
     // Form Validation Logic — only for active (non-stub) browser profile
     const missingFields = []
     if (!browser.provider) missingFields.push("Proveedor LLM")
     if (!browser.model) missingFields.push("Modelo LLM")
     if (!browser.voiceId) missingFields.push("Voz (TTS)")
 
-    const isBrowserValid = missingFields.length === 0
-    const isValid = activeProfile === 'browser' ? isBrowserValid : true
-
-    // Active tabs have real backend connections.
-    // All others redirect to ComingSoon — their components are preserved but not imported.
-    const ACTIVE_TABS = ['model', 'voice', 'transcriber']
-    const isActiveTab = ACTIVE_TABS.includes(activeTab)
-
-    const handleSave = async () => {
-        if (activeProfile !== 'browser') {
-            // Twilio/Telnyx: no backend endpoint yet — show stub message
-            // TODO: Implement Twilio/Telnyx save when backend supports it
-            return
-        }
-        await dispatch(saveBrowserConfig(browser)).unwrap()
-    }
+    // Setup zero-click auto-save
+    const { saveStatus } = useAutoSave(800)
 
     const renderTabContent = () => {
         if (activeTab === 'model') return <ModelSettings />
@@ -121,10 +107,42 @@ export const ConfigPage = () => {
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                <div className="flex items-center space-x-2 text-blue-400 mb-4">
-                    <h3 className="text-lg font-bold text-white tracking-tight first-letter:uppercase">
-                        {activeTab}
-                    </h3>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2 text-blue-400">
+                        <h3 className="text-lg font-bold text-white tracking-tight first-letter:uppercase">
+                            {activeTab}
+                        </h3>
+                    </div>
+
+                    {/* Auto-Save Toast Status */}
+                    {activeProfile === 'browser' && (
+                        <div className="flex items-center gap-2 h-7 px-3 rounded-full text-[11px] font-medium transition-all bg-slate-800 border border-slate-700">
+                            {saveStatus === 'saving' && (
+                                <>
+                                    <Loader2 size={12} className="animate-spin text-blue-400" />
+                                    <span className="text-blue-400">Guardando...</span>
+                                </>
+                            )}
+                            {saveStatus === 'saved' && (
+                                <>
+                                    <Check size={12} className="text-emerald-400" />
+                                    <span className="text-emerald-400">
+                                        Guardado exitoso
+                                    </span>
+                                </>
+                            )}
+                            {saveStatus === 'error' && (
+                                <>
+                                    <XCircle size={12} className="text-red-400" />
+                                    <span className="text-red-400">Error al guardar</span>
+                                    {/* Make it clickable later to open logs panel */}
+                                </>
+                            )}
+                            {saveStatus === 'idle' && (
+                                <span className="text-slate-500">Sin cambios</span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-1">
@@ -132,27 +150,13 @@ export const ConfigPage = () => {
                 </div>
             </div>
 
-            {/* Footer Actions — only shown for active (non-stub) tabs */}
-            {isActiveTab && activeProfile === 'browser' && (
-                <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50 space-y-3">
-
-                    {/* Validation Warning */}
-                    {missingFields.length > 0 && (
-                        <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 p-2 rounded-md">
-                            <AlertCircle className="w-4 h-4 shrink-0" />
-                            <span>Faltan campos obligatorios para guardar: {missingFields.join(", ")}</span>
-                        </div>
-                    )}
-
-                    <Button
-                        className="w-full"
-                        variant="primary"
-                        data-testid="btn-save-config"
-                        onClick={handleSave}
-                        disabled={isLoadingOptions || !isValid}
-                    >
-                        {isLoadingOptions ? "Guardando..." : "Guardar Configuración"}
-                    </Button>
+            {/* Footer Actions — validation block */}
+            {activeProfile === 'browser' && missingFields.length > 0 && (
+                <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
+                    <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 p-2 rounded-md">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>Faltan campos obligatorios para operar: {missingFields.join(", ")}</span>
+                    </div>
                 </div>
             )}
 
@@ -161,7 +165,7 @@ export const ConfigPage = () => {
                 <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
                     <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 border border-slate-700/40 p-2 rounded-md">
                         <AlertCircle className="w-4 h-4 shrink-0 text-slate-600" />
-                        <span>El guardado para {activeProfile === 'twilio' ? 'Twilio' : 'Telnyx'} se implementará en una próxima fase.</span>
+                        <span>Las configuraciones de telefonía {activeProfile === 'twilio' ? 'Twilio' : 'Telnyx'} se implementarán en una próxima fase.</span>
                     </div>
                 </div>
             )}

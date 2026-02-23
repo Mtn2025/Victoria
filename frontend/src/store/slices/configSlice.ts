@@ -244,7 +244,9 @@ const initialState: ConfigState = {
     availableLLMProviders: [],
     availableLLMModels: [],
 
-    isLoadingOptions: false
+    isLoadingOptions: false,
+    saveStatus: 'idle',
+    lastSaved: null
 }
 
 export const configSlice = createSlice({
@@ -262,6 +264,12 @@ export const configSlice = createSlice({
         },
         setLoadingOptions: (state, action: PayloadAction<boolean>) => {
             state.isLoadingOptions = action.payload
+        },
+        setSaveStatus: (state, action: PayloadAction<'idle' | 'saving' | 'saved' | 'error'>) => {
+            state.saveStatus = action.payload
+        },
+        setLastSaved: (state, action: PayloadAction<string>) => {
+            state.lastSaved = action.payload
         }
     },
     extraReducers: (builder) => {
@@ -320,13 +328,14 @@ export const configSlice = createSlice({
 
         // Save Browser Config
         builder.addCase(saveBrowserConfig.pending, (state) => {
-            state.isLoadingOptions = true
+            state.saveStatus = 'saving'
         })
         builder.addCase(saveBrowserConfig.fulfilled, (state) => {
-            state.isLoadingOptions = false
+            state.saveStatus = 'saved'
+            state.lastSaved = new Date().toISOString()
         })
         builder.addCase(saveBrowserConfig.rejected, (state) => {
-            state.isLoadingOptions = false
+            state.saveStatus = 'error'
         })
 
         // Fetch Agent Config (Hydration)
@@ -402,5 +411,5 @@ export const configSlice = createSlice({
     }
 })
 
-export const { updateBrowserConfig, updateTwilioConfigState, updateTelnyxConfigState, setLoadingOptions } = configSlice.actions
+export const { updateBrowserConfig, updateTwilioConfigState, updateTelnyxConfigState, setLoadingOptions, setSaveStatus, setLastSaved } = configSlice.actions
 export default configSlice.reducer

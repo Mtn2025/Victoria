@@ -273,4 +273,6 @@ export interface ConfigState {
 
     // UI State
     isLoadingOptions: boolean
+    saveStatus: 'idle' | 'saving' | 'saved' | 'error'
+    lastSaved: string | null
 }

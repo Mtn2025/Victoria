@@ -5,7 +5,8 @@ import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { BrowserConfig } from '@/types/config'
-import { Play, AlertCircle, Volume2 } from 'lucide-react'
+import { Accordion } from '@/components/ui/Accordion'
+import { Play, AlertCircle, Volume2, Sparkles, Settings2 } from 'lucide-react'
 import { configService } from '@/services/configService'
 
 export const VoiceSettings = () => {
@@ -268,166 +269,177 @@ export const VoiceSettings = () => {
                 </p>
             </div>
 
-            <div className="border-t border-white/5 my-4" />
+            {/* Advanced Voice Accordions */}
+            <div className="space-y-3 pt-6">
 
-            {/* ELEVENLABS ADVANCED */}
-            {browser.voiceProvider === 'elevenlabs' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                    <h3 className="text-sm font-bold text-green-400 uppercase tracking-wider flex items-center gap-2">
-                        🧪 ElevenLabs Avanzado
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                <span>Estabilidad</span>
-                                <span className="text-green-400">{browser.voiceStability}</span>
-                            </label>
-                            <input
-                                type="range"
-                                aria-label="Estabilidad"
-                                min="0" max="1" step="0.05"
-                                value={browser.voiceStability}
-                                onChange={(e) => update('voiceStability', parseFloat(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-                            />
-                            <p className="text-[10px] text-slate-500">Más bajo = Más emotivo/varía.</p>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                <span>Similitud / Claridad</span>
-                                <span className="text-green-400">{browser.voiceSimilarityBoost}</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0" max="1" step="0.05"
-                                value={browser.voiceSimilarityBoost}
-                                onChange={(e) => update('voiceSimilarityBoost', parseFloat(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-                            />
-                            <p className="text-[10px] text-slate-500">Más alto = Más fiel a la voz original.</p>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                <span>Exageración Estilo</span>
-                                <span className="text-green-400">{browser.voiceStyleExaggeration}</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0" max="1" step="0.05"
-                                value={browser.voiceStyleExaggeration}
-                                onChange={(e) => update('voiceStyleExaggeration', parseFloat(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-                            />
-                        </div>
-
-                        <div className="space-y-2 flex flex-col justify-center">
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={browser.voiceSpeakerBoost}
-                                    onChange={(e) => update('voiceSpeakerBoost', e.target.checked)}
-                                    className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
-                                />
-                                <span className="text-xs text-slate-300">Boost Speaker (Mejor Calidad)</span>
-                            </label>
-                            <label className="flex items-center space-x-2 cursor-pointer mt-2">
-                                <input
-                                    type="checkbox"
-                                    checked={browser.voiceMultilingual}
-                                    onChange={(e) => update('voiceMultilingual', e.target.checked)}
-                                    className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
-                                />
-                                <span className="text-xs text-slate-300">Modo Multilingüe (v2)</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="border-t border-white/5 my-4" />
-
-            {/* HUMANIZATION */}
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-pink-400 uppercase tracking-wider flex items-center gap-2">
-                    🗣️ Humanización
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-pink-500/50 transition-colors">
-                        <input
-                            type="checkbox"
-                            checked={browser.voiceFillerInjection}
-                            onChange={(e) => update('voiceFillerInjection', e.target.checked)}
-                            className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-pink-500"
-                        />
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-slate-200">Inyección de "Muletillas"</span>
-                            <span className="text-[10px] text-slate-500">Agrega "eh...", "hmm..." natural</span>
-                        </div>
-                    </label>
-
-                    <label className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-pink-500/50 transition-colors">
-                        <input
-                            type="checkbox"
-                            checked={browser.voiceBackchanneling}
-                            onChange={(e) => update('voiceBackchanneling', e.target.checked)}
-                            className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-pink-500"
-                        />
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-slate-200">Escucha Activa</span>
-                            <span className="text-[10px] text-slate-500">Dice "ajá", "sí" mientras escuchas</span>
-                        </div>
-                    </label>
-                </div>
-
-                <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Normalización de Texto</label>
-                    <Select
-                        value={browser.textNormalizationRule}
-                        onChange={(e) => update('textNormalizationRule', e.target.value)}
+                {/* ELEVENLABS ADVANCED */}
+                {browser.voiceProvider === 'elevenlabs' && (
+                    <Accordion
+                        className="border-green-500/30"
+                        headerClassName="hover:bg-green-900/20"
+                        title={
+                            <span className="text-sm font-bold text-green-400 uppercase tracking-wider flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                Ajustes Precisos (ElevenLabs)
+                            </span>
+                        }
                     >
-                        <option value="auto">🤖 Automático (Default)</option>
-                        <option value="verbal">🗣️ Verbalizado ("123" -&gt; "ciento veintitrés")</option>
-                    </Select>
-                </div>
-            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                            <div className="space-y-2">
+                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    <span>Estabilidad</span>
+                                    <span className="text-green-400">{browser.voiceStability}</span>
+                                </label>
+                                <input
+                                    type="range"
+                                    aria-label="Estabilidad"
+                                    min="0" max="1" step="0.05"
+                                    value={browser.voiceStability}
+                                    onChange={(e) => update('voiceStability', parseFloat(e.target.value))}
+                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                />
+                                <p className="text-[10px] text-slate-500">Más bajo = Más emotivo/varía.</p>
+                            </div>
 
-            <div className="border-t border-white/5 my-4" />
+                            <div className="space-y-2">
+                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    <span>Similitud / Claridad</span>
+                                    <span className="text-green-400">{browser.voiceSimilarityBoost}</span>
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0" max="1" step="0.05"
+                                    value={browser.voiceSimilarityBoost}
+                                    onChange={(e) => update('voiceSimilarityBoost', parseFloat(e.target.value))}
+                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                />
+                                <p className="text-[10px] text-slate-500">Más alto = Más fiel a la voz original.</p>
+                            </div>
 
-            {/* TECH SETTINGS */}
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    ⚙️ Ajustes Técnicos
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Latencia / Calidad</label>
+                            <div className="space-y-2">
+                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    <span>Exageración Estilo</span>
+                                    <span className="text-green-400">{browser.voiceStyleExaggeration}</span>
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0" max="1" step="0.05"
+                                    value={browser.voiceStyleExaggeration}
+                                    onChange={(e) => update('voiceStyleExaggeration', parseFloat(e.target.value))}
+                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                />
+                            </div>
+
+                            <div className="space-y-2 flex flex-col justify-center">
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={browser.voiceSpeakerBoost}
+                                        onChange={(e) => update('voiceSpeakerBoost', e.target.checked)}
+                                        className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
+                                    />
+                                    <span className="text-xs text-slate-300">Boost Speaker (Mejor Calidad)</span>
+                                </label>
+                                <label className="flex items-center space-x-2 cursor-pointer mt-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={browser.voiceMultilingual}
+                                        onChange={(e) => update('voiceMultilingual', e.target.checked)}
+                                        className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
+                                    />
+                                    <span className="text-xs text-slate-300">Modo Multilingüe (v2)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </Accordion>
+                )}
+
+                <div className="border-t border-white/5 my-4" />
+
+                {/* HUMANIZATION Accordion */}
+                <Accordion
+                    title={
+                        <span className="text-sm font-bold text-pink-400 uppercase tracking-wider flex items-center gap-2">
+                            🗣️ Humanización Activa
+                        </span>
+                    }
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                        <label className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-pink-500/50 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={browser.voiceFillerInjection}
+                                onChange={(e) => update('voiceFillerInjection', e.target.checked)}
+                                className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-pink-500"
+                            />
+                            <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-slate-200">Inyección de "Muletillas"</span>
+                                <span className="text-[10px] text-slate-500">Agrega "eh...", "hmm..." natural</span>
+                            </div>
+                        </label>
+
+                        <label className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-pink-500/50 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={browser.voiceBackchanneling}
+                                onChange={(e) => update('voiceBackchanneling', e.target.checked)}
+                                className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-pink-500"
+                            />
+                            <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-slate-200">Escucha Activa</span>
+                                <span className="text-[10px] text-slate-500">Dice "ajá", "sí" mientras escuchas</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Normalización de Texto</label>
                         <Select
-                            value={browser.ttsLatencyOptimization}
-                            onChange={(e) => update('ttsLatencyOptimization', parseInt(e.target.value))}
+                            value={browser.textNormalizationRule}
+                            onChange={(e) => update('textNormalizationRule', e.target.value)}
                         >
-                            <option value="0">⭐ Calidad Máxima (Default)</option>
-                            <option value="1">🚀 Latencia Baja (Normal)</option>
-                            <option value="2">⚡ Latencia Ultra Baja</option>
-                            <option value="3">🔥 Modo Turbo (Menor Calidad)</option>
+                            <option value="auto">🤖 Automático (Default)</option>
+                            <option value="verbal">🗣️ Verbalizado ("123" -&gt; "ciento veintitrés")</option>
                         </Select>
                     </div>
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Formato de Salida</label>
-                        <Select
-                            value={browser.ttsOutputFormat}
-                            onChange={(e) => update('ttsOutputFormat', e.target.value)}
-                        >
-                            <option value="pcm_16000">PCM 16kHz (WAV)</option>
-                            <option value="pcm_8000">PCM 8kHz (Teléfono)</option>
-                            <option value="mp3_44100_128">MP3 44.1kHz 128kbps</option>
-                            <option value="ulaw_8000">Mu-Law 8kHz (Telephony)</option>
-                        </Select>
+                </Accordion>
+
+                {/* TECH SETTINGS Accordion */}
+                <Accordion
+                    title={
+                        <span className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <Settings2 className="w-4 h-4" />
+                            Ajustes Técnicos de Audio
+                        </span>
+                    }
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Latencia / Calidad (Streaming)</label>
+                            <Select
+                                value={browser.ttsLatencyOptimization}
+                                onChange={(e) => update('ttsLatencyOptimization', parseInt(e.target.value))}
+                            >
+                                <option value="0">⭐ Calidad Máxima (Default)</option>
+                                <option value="1">🚀 Latencia Baja (Normal)</option>
+                                <option value="2">⚡ Latencia Ultra Baja</option>
+                                <option value="3">🔥 Modo Turbo (Menor Calidad)</option>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Formato de Salida (Codec)</label>
+                            <Select
+                                value={browser.ttsOutputFormat}
+                                onChange={(e) => update('ttsOutputFormat', e.target.value)}
+                            >
+                                <option value="pcm_16000">PCM 16kHz (Mejor Voz)</option>
+                                <option value="pcm_8000">PCM 8kHz (Telefónico Estándar)</option>
+                                <option value="mp3_44100_128">MP3 44.1kHz 128kbps (Web)</option>
+                                <option value="ulaw_8000">Mu-Law 8kHz (SIP/PBX Antiguo)</option>
+                            </Select>
+                        </div>
                     </div>
-                </div>
+                </Accordion>
             </div>
         </div>
     )

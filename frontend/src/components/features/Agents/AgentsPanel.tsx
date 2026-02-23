@@ -260,11 +260,17 @@ export const AgentsPanel = () => {
     const handleCreate = async () => {
         if (!newAgentName.trim()) return
         setCreating(true)
-        await dispatch(createAgent({ name: newAgentName.trim(), language: newAgentLanguage }))
+        const agent = await dispatch(createAgent({ name: newAgentName.trim(), language: newAgentLanguage })).unwrap()
+
+        // Activate and Navigate
+        await dispatch(activateAgent(agent.agent_uuid))
+        dispatch(fetchActiveAgent())
+
         setCreating(false)
         setNewAgentName('')
         setNewAgentLanguage('es-MX')
         setShowCreateModal(false)
+        navigate('/config')
     }
 
     return (
@@ -342,7 +348,8 @@ export const AgentsPanel = () => {
                     </div>
                 )}
 
-                {agents
+                {[...agents]
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .filter(agent => agent.name.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((agent) => (
                         /* CARD — clickeable → activa agente y navega a /config */

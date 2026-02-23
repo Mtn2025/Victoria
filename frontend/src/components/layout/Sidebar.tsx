@@ -32,6 +32,7 @@ interface NavItem {
     path?: string        // For page items
     // Feature flag key that gates this item. If undefined → always accessible.
     featureKey?: keyof typeof FEATURES
+    isTelephonyOnly?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -39,14 +40,14 @@ const NAV_ITEMS: NavItem[] = [
     { type: 'page', path: '/agents', label: 'Agentes', icon: Bot, featureKey: 'AGENTS_LIST' },
 
     // ── Config Tabs (activar uno por uno por fase) ──────────────────────────
-    { type: 'config', id: 'model', label: 'Modelo', icon: Cpu, featureKey: 'CONFIG_MODEL' },
+    { type: 'config', id: 'model', label: 'Asistente', icon: Cpu, featureKey: 'CONFIG_MODEL' },
     { type: 'config', id: 'voice', label: 'Voz', icon: Mic, featureKey: 'CONFIG_VOICE' },
     { type: 'config', id: 'transcriber', label: 'Oído', icon: Ear, featureKey: 'CONFIG_TRANSCRIBER' },
     { type: 'config', id: 'tools', label: 'Herramientas', icon: Briefcase },
-    { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone },
+    { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone, isTelephonyOnly: true },
     { type: 'config', id: 'flow', label: 'Flujo', icon: GitCompare },
     { type: 'config', id: 'analysis', label: 'Análisis', icon: Activity },
-    { type: 'config', id: 'connectivity', label: 'Conectividad', icon: Zap },
+    { type: 'config', id: 'connectivity', label: 'Conectividad', icon: Zap, isTelephonyOnly: true },
     { type: 'config', id: 'system', label: 'Sistema', icon: Shield },
     { type: 'config', id: 'advanced', label: 'Avanzado', icon: Settings },
 
@@ -59,6 +60,7 @@ export const Sidebar = () => {
     const navigate = useNavigate()
     const location = useLocation()
     const activeTab = useAppSelector((state) => state.ui.activeTab)
+    const activeProfile = useAppSelector((state) => state.ui.activeProfile)
     const activeAgent = useAppSelector((state) => state.agents.activeAgent)
 
     const handleNavigation = (item: NavItem) => {
@@ -95,6 +97,11 @@ export const Sidebar = () => {
             <div className="flex-1 w-full px-2 space-y-2 flex flex-col items-center overflow-y-auto custom-scrollbar">
                 {NAV_ITEMS.map((item, index) => {
                     const Icon = item.icon
+
+                    // Telephony specific tabs hidden from Browser profile
+                    if ((item as any).isTelephonyOnly && activeProfile === 'browser') {
+                        return null
+                    }
 
                     // Is this item gated and disabled?
                     let isDisabled = (item.featureKey && !FEATURES[item.featureKey]) ||
