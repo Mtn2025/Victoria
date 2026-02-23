@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux"
 import { updateBrowserConfig, fetchLLMProviders, fetchLLMModels } from "@/store/slices/configSlice"
 import { Label } from "@/components/ui/Label"
@@ -12,6 +12,10 @@ export const ModelSettings = () => {
     const dispatch = useAppDispatch()
     const config = useAppSelector(state => state.config.browser)
     const { availableLLMProviders, availableLLMModels, isLoadingOptions } = useAppSelector(state => state.config)
+
+    // Estado para controlar qué acordeón está abierto. 'core' por defecto.
+    const [openSection, setOpenSection] = useState<string | null>('core')
+
 
     useEffect(() => {
         if (availableLLMProviders.length === 0) {
@@ -31,83 +35,99 @@ export const ModelSettings = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-            {/* LLM Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label>Proveedor LLM</Label>
-                    <Select
-                        value={config.provider}
-                        disabled={isLoadingOptions}
-                        onChange={(e) => {
-                            const newProvider = e.target.value
-                            handleChange('provider', newProvider)
-                            // We do not reset the model synchronously because models need to be fetched first.
-                            // However, we clear the model until the new ones arrive or let the backend/thunk handle default.
-                            handleChange('model', '')
-                        }}
-                    >
-                        {availableLLMProviders.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Modelo LLM</Label>
-                    <Select
-                        value={config.model}
-                        disabled={isLoadingOptions}
-                        onChange={(e) => handleChange('model', e.target.value)}
-                    >
-                        <option value="" disabled>Seleccionar Modelo...</option>
-                        {availableLLMModels.map(m => (
-                            <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                    </Select>
-                </div>
-            </div>
-
-            {/* Prompt Engineering (Always Visible Core) */}
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label className="flex justify-between">
-                        <span>System Prompt</span>
-                        <span className="text-xs text-blue-400">Instrucciones Madre</span>
-                    </Label>
-                    <Textarea
-                        data-testid="input-system-prompt"
-                        value={config.prompt}
-                        onChange={(e) => handleChange('prompt', e.target.value)}
-                        rows={6}
-                        className="font-mono text-xs"
-                        placeholder="Eres un asistente útil..."
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        data-testid="input-initial-msg"
-                        label="Mensaje Inicial"
-                        value={config.msg}
-                        onChange={(e) => handleChange('msg', e.target.value)}
-                    />
-
-                    <div className="space-y-2">
-                        <Label>Modo Inicio</Label>
-                        <Select
-                            value={config.mode}
-                            onChange={(e) => handleChange('mode', e.target.value as 'speak-first' | 'listen-first')}
-                        >
-                            <option value="speak-first">Hablar Primero (Agente Saluda)</option>
-                            <option value="listen-first">Escuchar Primero (Usuario Habla)</option>
-                        </Select>
-                    </div>
-                </div>
-            </div>
-
             {/* AI Control Accordions */}
-            <div className="space-y-3 pt-6">
+            <div className="space-y-3">
+                {/* Core Config */}
+                <Accordion
+                    isOpen={openSection === 'core'}
+                    onToggle={() => setOpenSection(openSection === 'core' ? null : 'core')}
+                    className="border-blue-500/30"
+                    headerClassName="hover:bg-blue-900/20"
+                    title={
+                        <span className="text-sm font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                            <Brain className="w-4 h-4" />
+                            Configuración Base (LLM & Prompt)
+                        </span>
+                    }
+                >
+                    <div className="space-y-6">
+                        {/* LLM Selection */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Proveedor LLM</Label>
+                                <Select
+                                    value={config.provider}
+                                    disabled={isLoadingOptions}
+                                    onChange={(e) => {
+                                        const newProvider = e.target.value
+                                        handleChange('provider', newProvider)
+                                        handleChange('model', '')
+                                    }}
+                                >
+                                    {availableLLMProviders.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Modelo LLM</Label>
+                                <Select
+                                    value={config.model}
+                                    disabled={isLoadingOptions}
+                                    onChange={(e) => handleChange('model', e.target.value)}
+                                >
+                                    <option value="" disabled>Seleccionar Modelo...</option>
+                                    {availableLLMModels.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Prompt Engineering */}
+                        <div className="space-y-4 pt-2">
+                            <div className="space-y-2">
+                                <Label className="flex justify-between">
+                                    <span>System Prompt</span>
+                                    <span className="text-xs text-blue-400">Instrucciones Madre</span>
+                                </Label>
+                                <Textarea
+                                    data-testid="input-system-prompt"
+                                    value={config.prompt}
+                                    onChange={(e) => handleChange('prompt', e.target.value)}
+                                    rows={6}
+                                    className="font-mono text-xs"
+                                    placeholder="Eres un asistente útil..."
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    data-testid="input-initial-msg"
+                                    label="Mensaje Inicial"
+                                    value={config.msg}
+                                    onChange={(e) => handleChange('msg', e.target.value)}
+                                />
+
+                                <div className="space-y-2">
+                                    <Label>Modo Inicio</Label>
+                                    <Select
+                                        value={config.mode}
+                                        onChange={(e) => handleChange('mode', e.target.value as 'speak-first' | 'listen-first')}
+                                    >
+                                        <option value="speak-first">Hablar Primero (Agente Saluda)</option>
+                                        <option value="listen-first">Escuchar Primero (Usuario Habla)</option>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Accordion>
+
                 {/* Conversation Style */}
                 <Accordion
+                    isOpen={openSection === 'style'}
+                    onToggle={() => setOpenSection(openSection === 'style' ? null : 'style')}
                     title={
                         <span className="text-sm font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
                             <MessageSquare className="w-4 h-4" />
@@ -175,6 +195,8 @@ export const ModelSettings = () => {
 
                 {/* Advanced Controls */}
                 <Accordion
+                    isOpen={openSection === 'advanced'}
+                    onToggle={() => setOpenSection(openSection === 'advanced' ? null : 'advanced')}
                     className="border-purple-500/30"
                     headerClassName="hover:bg-purple-900/20"
                     title={
@@ -298,6 +320,8 @@ export const ModelSettings = () => {
 
                 {/* Safety */}
                 <Accordion
+                    isOpen={openSection === 'safety'}
+                    onToggle={() => setOpenSection(openSection === 'safety' ? null : 'safety')}
                     className="border-red-500/30"
                     headerClassName="hover:bg-red-900/20"
                     title={

@@ -13,6 +13,7 @@ export const VoiceSettings = () => {
     const dispatch = useAppDispatch()
     const { browser, availableVoices, availableStyles, isLoadingOptions } = useAppSelector(state => state.config)
     const [previewLoading, setPreviewLoading] = useState(false)
+    const [openSection, setOpenSection] = useState<string | null>('core')
 
     // Initial Load - Fetch Languages for current Provider
     useEffect(() => {
@@ -97,184 +98,191 @@ export const VoiceSettings = () => {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Provider & Language */}
-                <div className="space-y-4">
-                    <Select
-                        value={browser.voiceProvider}
-                        onChange={(e) => update('voiceProvider', e.target.value)}
-                        className="w-full"
-                    >
-                        <option value="azure">Azure Open AI / Speech</option>
-                        <option value="elevenlabs" disabled>ElevenLabs (Próximamente)</option>
-                        <option value="openai">OpenAI TTS</option>
-                    </Select>
-
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
-                        <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed flex items-center gap-2">
-                            <span className="text-[12px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 border border-slate-600 font-mono flex items-baseline">
-                                {activeAgent?.language || 'es-MX'}
-                            </span>
-                            Automático
-                        </div>
-                        <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
-                            <AlertCircle size={10} className="text-blue-400" />
-                            El Agente dicta el idioma general STT/TTS.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Voice Selection */}
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
-                        <Select
-                            value={browser.voiceId}
-                            onChange={(e) => update('voiceId', e.target.value)}
-                            disabled={isLoadingOptions || availableVoices.length === 0}
-                        >
-                            <option value="" disabled>Seleccionar Voz...</option>
-                            {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
-
-                            {femaleVoices.length > 0 && (
-                                <optgroup label="Femenino">
-                                    {femaleVoices.map(v => (
-                                        <option key={v.id} value={v.id}>{v.name}</option>
-                                    ))}
-                                </optgroup>
-                            )}
-
-                            {maleVoices.length > 0 && (
-                                <optgroup label="Masculino">
-                                    {maleVoices.map(v => (
-                                        <option key={v.id} value={v.id}>{v.name}</option>
-                                    ))}
-                                </optgroup>
-                            )}
-
-                            {/* Uncategorized (e.g. ElevenLabs fallback) */}
-                            {availableVoices.filter(v => v.gender !== 'female' && v.gender !== 'male' && v.gender !== 'Mujer' && v.gender !== 'Hombre' && v.gender !== 'Female' && v.gender !== 'Male').map(v => (
-                                <option key={v.id} value={v.id}>{v.name}</option>
-                            ))}
-                        </Select>
-                    </div>
-
-                    {/* Style Selection (Conditional) */}
-                    {availableStyles.length > 0 && (
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
+            {/* Main Content Areas inside Accordions */}
+            <div className="space-y-3">
+                {/* Core Config */}
+                <Accordion
+                    isOpen={openSection === 'core'}
+                    onToggle={() => setOpenSection(openSection === 'core' ? null : 'core')}
+                    className="border-blue-500/30"
+                    headerClassName="hover:bg-blue-900/20"
+                    title={
+                        <span className="text-sm font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                            <Volume2 className="w-4 h-4" />
+                            Configuración Base (Voz & Tono)
+                        </span>
+                    }
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Provider & Language */}
+                        <div className="space-y-4">
                             <Select
-                                value={browser.voiceStyle}
-                                onChange={(e) => update('voiceStyle', e.target.value)}
+                                value={browser.voiceProvider}
+                                onChange={(e) => update('voiceProvider', e.target.value)}
+                                className="w-full"
                             >
-                                <option value="">(Default)</option>
-                                {availableStyles.map(s => (
-                                    <option key={s.id} value={s.id}>{s.label}</option>
-                                ))}
+                                <option value="azure">Azure Open AI / Speech</option>
+                                <option value="elevenlabs" disabled>ElevenLabs (Próximamente)</option>
+                                <option value="openai">OpenAI TTS</option>
+                            </Select>
+
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
+                                <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed flex items-center gap-2">
+                                    <span className="text-[12px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 border border-slate-600 font-mono flex items-baseline">
+                                        {activeAgent?.language || 'es-MX'}
+                                    </span>
+                                    Automático
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
+                                    <AlertCircle size={10} className="text-blue-400" />
+                                    El Agente dicta el idioma general STT/TTS.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Voice Selection */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
+                                <Select
+                                    value={browser.voiceId}
+                                    onChange={(e) => update('voiceId', e.target.value)}
+                                    disabled={isLoadingOptions || availableVoices.length === 0}
+                                >
+                                    <option value="" disabled>Seleccionar Voz...</option>
+                                    {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
+
+                                    {femaleVoices.length > 0 && (
+                                        <optgroup label="Femenino">
+                                            {femaleVoices.map(v => (
+                                                <option key={v.id} value={v.id}>{v.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    )}
+
+                                    {maleVoices.length > 0 && (
+                                        <optgroup label="Masculino">
+                                            {maleVoices.map(v => (
+                                                <option key={v.id} value={v.id}>{v.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    )}
+
+                                    {/* Uncategorized (e.g. ElevenLabs fallback) */}
+                                    {availableVoices.filter(v => v.gender !== 'female' && v.gender !== 'male' && v.gender !== 'Mujer' && v.gender !== 'Hombre' && v.gender !== 'Female' && v.gender !== 'Male').map(v => (
+                                        <option key={v.id} value={v.id}>{v.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
+
+                            {/* Style Selection (Conditional) */}
+                            {availableStyles.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
+                                    <Select
+                                        value={browser.voiceStyle}
+                                        onChange={(e) => update('voiceStyle', e.target.value)}
+                                    >
+                                        <option value="">(Default)</option>
+                                        {availableStyles.map(s => (
+                                            <option key={s.id} value={s.id}>{s.label}</option>
+                                        ))}
+                                    </Select>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sliders Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+                        {/* Speed */}
+                        <div>
+                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                                <span>Velocidad</span>
+                                <span className="text-blue-400">{browser.voiceSpeed}x</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="2.0"
+                                step="0.1"
+                                value={browser.voiceSpeed}
+                                onChange={(e) => update('voiceSpeed', parseFloat(e.target.value))}
+                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                            />
+                        </div>
+
+                        {/* Pitch */}
+                        <div>
+                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                                <span>Tono (Pitch)</span>
+                                <span className="text-purple-400">{browser.voicePitch}st</span>
+                            </label>
+                            <input
+                                type="range"
+                                min="-12"
+                                max="12"
+                                step="1"
+                                value={browser.voicePitch}
+                                onChange={(e) => update('voicePitch', parseInt(e.target.value))}
+                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                            />
+                        </div>
+
+                        {/* Style Degree */}
+                        {browser.voiceStyle && (
+                            <div>
+                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                                    <span>Intensidad Estilo</span>
+                                    <span className="text-pink-400">{browser.voiceStyleDegree}</span>
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="2.0"
+                                    step="0.1"
+                                    value={browser.voiceStyleDegree}
+                                    onChange={(e) => update('voiceStyleDegree', parseFloat(e.target.value))}
+                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Background Sound */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                        <div>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Sonido de Fondo</label>
+                            <Select
+                                value={browser.voiceBgSound}
+                                onChange={(e) => update('voiceBgSound', e.target.value)}
+                            >
+                                <option value="none">🔇 Silencio</option>
+                                <option value="office">🏢 Oficina</option>
+                                <option value="cafe">☕ Cafetería</option>
+                                <option value="callcenter">📞 Call Center</option>
+                                <option value="custom">🔗 URL Personalizada</option>
                             </Select>
                         </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Sliders Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
-                {/* Speed */}
-                <div>
-                    <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                        <span>Velocidad</span>
-                        <span className="text-blue-400">{browser.voiceSpeed}x</span>
-                    </label>
-                    <input
-                        type="range"
-                        min="0.5"
-                        max="2.0"
-                        step="0.1"
-                        value={browser.voiceSpeed}
-                        onChange={(e) => update('voiceSpeed', parseFloat(e.target.value))}
-                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    />
-                </div>
-
-                {/* Pitch */}
-                <div>
-                    <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                        <span>Tono (Pitch)</span>
-                        <span className="text-purple-400">{browser.voicePitch}st</span>
-                    </label>
-                    <input
-                        type="range"
-                        min="-12"
-                        max="12"
-                        step="1"
-                        value={browser.voicePitch}
-                        onChange={(e) => update('voicePitch', parseInt(e.target.value))}
-                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                    />
-                </div>
-
-                {/* Style Degree */}
-                {browser.voiceStyle && (
-                    <div>
-                        <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                            <span>Intensidad Estilo</span>
-                            <span className="text-pink-400">{browser.voiceStyleDegree}</span>
-                        </label>
-                        <input
-                            type="range"
-                            min="0.1"
-                            max="2.0"
-                            step="0.1"
-                            value={browser.voiceStyleDegree}
-                            onChange={(e) => update('voiceStyleDegree', parseFloat(e.target.value))}
-                            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
-                        />
+                        {browser.voiceBgSound === 'custom' && (
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">URL Audio</label>
+                                <Input
+                                    value={browser.voiceBgUrl}
+                                    onChange={(e) => update('voiceBgUrl', e.target.value)}
+                                    placeholder="https://example.com/audio.mp3"
+                                />
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
-
-            {/* Background Sound */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                <div>
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Sonido de Fondo</label>
-                    <Select
-                        value={browser.voiceBgSound}
-                        onChange={(e) => update('voiceBgSound', e.target.value)}
-                    >
-                        <option value="none">🔇 Silencio</option>
-                        <option value="office">🏢 Oficina</option>
-                        <option value="cafe">☕ Cafetería</option>
-                        <option value="callcenter">📞 Call Center</option>
-                        <option value="custom">🔗 URL Personalizada</option>
-                    </Select>
-                </div>
-                {browser.voiceBgSound === 'custom' && (
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">URL Audio</label>
-                        <Input
-                            value={browser.voiceBgUrl}
-                            onChange={(e) => update('voiceBgUrl', e.target.value)}
-                            placeholder="https://example.com/audio.mp3"
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Disclaimer */}
-            <div className="flex items-start gap-2 p-3 bg-blue-900/20 border border-blue-500/20 rounded-lg text-xs text-blue-200">
-                <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <p>
-                    Los cambios se aplican automáticamente a la sesión del simulador. Asegúrate de que el idioma de voz coincida con el idioma de transcripción para evitar alucinaciones.
-                </p>
-            </div>
-
-            {/* Advanced Voice Accordions */}
-            <div className="space-y-3 pt-6">
+                </Accordion>
 
                 {/* ELEVENLABS ADVANCED */}
                 {browser.voiceProvider === 'elevenlabs' && (
                     <Accordion
+                        isOpen={openSection === 'elevenlabs'}
+                        onToggle={() => setOpenSection(openSection === 'elevenlabs' ? null : 'elevenlabs')}
                         className="border-green-500/30"
                         headerClassName="hover:bg-green-900/20"
                         title={
@@ -358,6 +366,8 @@ export const VoiceSettings = () => {
 
                 {/* HUMANIZATION Accordion */}
                 <Accordion
+                    isOpen={openSection === 'humanization'}
+                    onToggle={() => setOpenSection(openSection === 'humanization' ? null : 'humanization')}
                     title={
                         <span className="text-sm font-bold text-pink-400 uppercase tracking-wider flex items-center gap-2">
                             🗣️ Humanización Activa
@@ -406,6 +416,8 @@ export const VoiceSettings = () => {
 
                 {/* TECH SETTINGS Accordion */}
                 <Accordion
+                    isOpen={openSection === 'tech'}
+                    onToggle={() => setOpenSection(openSection === 'tech' ? null : 'tech')}
                     title={
                         <span className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                             <Settings2 className="w-4 h-4" />

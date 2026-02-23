@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { Select } from '@/components/ui/Select'
@@ -9,6 +10,8 @@ export const TranscriberSettings = () => {
     const dispatch = useAppDispatch()
     // Use browser config from store
     const { browser } = useAppSelector(state => state.config)
+
+    const [openSection, setOpenSection] = useState<string | null>('core')
 
     const update = (key: keyof BrowserConfig, value: any) => {
         dispatch(updateBrowserConfig({ [key]: value }))
@@ -22,40 +25,54 @@ export const TranscriberSettings = () => {
                 Configuración de Transcripción (STT)
             </h3>
 
-            {/* Provider & Model */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Proveedor STT</label>
-                    <Select
-                        aria-label="Proveedor STT"
-                        value={browser.sttProvider}
-                        onChange={(e) => update('sttProvider', e.target.value)}
-                    >
-                        <option value="azure">Azure Speech</option>
-                        <option value="deepgram" disabled>Deepgram (Próximamente)</option>
-                        <option value="groq">Groq Whisper</option>
-                    </Select>
-                </div>
+            {/* Main Content Areas inside Accordions */}
+            <div className="space-y-3">
+                {/* Core Config */}
+                <Accordion
+                    isOpen={openSection === 'core'}
+                    onToggle={() => setOpenSection(openSection === 'core' ? null : 'core')}
+                    className="border-emerald-500/30"
+                    headerClassName="hover:bg-emerald-900/20"
+                    title={
+                        <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <Ear className="w-4 h-4" />
+                            Configuración Base (Motor STT)
+                        </span>
+                    }
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Proveedor STT</label>
+                            <Select
+                                aria-label="Proveedor STT"
+                                value={browser.sttProvider}
+                                onChange={(e) => update('sttProvider', e.target.value)}
+                            >
+                                <option value="azure">Azure Speech</option>
+                                <option value="deepgram" disabled>Deepgram (Próximamente)</option>
+                                <option value="groq">Groq Whisper</option>
+                            </Select>
+                        </div>
 
-                <div className="space-y-4">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Modelo</label>
-                    <Select
-                        aria-label="Modelo"
-                        value={browser.sttModel}
-                        onChange={(e) => update('sttModel', e.target.value)}
-                    >
-                        <option value="nova-2">Nova-2 (Fastest)</option>
-                        <option value="enhanced">Enhanced (Azure)</option>
-                        <option value="whisper-large">Whisper Large</option>
-                    </Select>
-                </div>
-            </div>
-
-            {/* Acordeones Avanzados */}
-            <div className="space-y-3 pt-6">
+                        <div className="space-y-4">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Modelo</label>
+                            <Select
+                                aria-label="Modelo"
+                                value={browser.sttModel}
+                                onChange={(e) => update('sttModel', e.target.value)}
+                            >
+                                <option value="nova-2">Nova-2 (Fastest)</option>
+                                <option value="enhanced">Enhanced (Azure)</option>
+                                <option value="whisper-large">Whisper Large</option>
+                            </Select>
+                        </div>
+                    </div>
+                </Accordion>
 
                 {/* Keywords Accordion */}
                 <Accordion
+                    isOpen={openSection === 'keywords'}
+                    onToggle={() => setOpenSection(openSection === 'keywords' ? null : 'keywords')}
                     title={
                         <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                             <Settings2 className="w-4 h-4" />
@@ -82,6 +99,8 @@ export const TranscriberSettings = () => {
 
                 {/* VAD & Thresholds Accordion */}
                 <Accordion
+                    isOpen={openSection === 'vad'}
+                    onToggle={() => setOpenSection(openSection === 'vad' ? null : 'vad')}
                     title={
                         <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                             <Radio className="w-4 h-4" />
@@ -189,6 +208,8 @@ export const TranscriberSettings = () => {
 
                 {/* Intelligence & Booleans */}
                 <Accordion
+                    isOpen={openSection === 'intelligence'}
+                    onToggle={() => setOpenSection(openSection === 'intelligence' ? null : 'intelligence')}
                     title={
                         <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                             <Brain className="w-4 h-4" />
