@@ -22,6 +22,9 @@ interface ActiveAgentResponse extends Agent {
     stt_config: Record<string, unknown>
     voice_config_json: Record<string, unknown>
     tools_config: Record<string, unknown>
+    flow_config: Record<string, unknown>
+    analysis_config: Record<string, unknown>
+    system_config: Record<string, unknown>
 }
 
 export const agentService = {

@@ -94,6 +94,10 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 current_analysis = dict(agent.analysis_config) if agent.analysis_config else {}
                 current_analysis[key] = value
                 agent.analysis_config = current_analysis
+            elif key in ["concurrency_limit", "spend_limit_daily", "environment", "privacy_mode", "audit_log_enabled"]:
+                current_system = dict(agent.system_config) if agent.system_config else {}
+                current_system[key] = value
+                agent.system_config = current_system
         
         await self._session.commit()
         await self._session.refresh(agent)
@@ -152,6 +156,13 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "pii_redaction_enabled": config.pii_redaction_enabled,
                 "cost_tracking_enabled": config.cost_tracking_enabled,
                 "retention_days": config.retention_days,
+            },
+            system_config={
+                "concurrency_limit": config.concurrency_limit,
+                "spend_limit_daily": config.spend_limit_daily,
+                "environment": config.environment,
+                "privacy_mode": config.privacy_mode,
+                "audit_log_enabled": config.audit_log_enabled,
             }
         )
         
@@ -172,6 +183,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         tools_config = agent.tools_config or {}
         flow_config = agent.flow_config or {}
         analysis_config = agent.analysis_config or {}
+        system_config = agent.system_config or {}
         
         return ConfigDTO(
             # LLM Config
@@ -222,4 +234,10 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             pii_redaction_enabled=analysis_config.get("pii_redaction_enabled", False),
             cost_tracking_enabled=analysis_config.get("cost_tracking_enabled", False),
             retention_days=analysis_config.get("retention_days", 30),
+            # System
+            concurrency_limit=system_config.get("concurrency_limit", 1),
+            spend_limit_daily=system_config.get("spend_limit_daily", 10.0),
+            environment=system_config.get("environment", "development"),
+            privacy_mode=system_config.get("privacy_mode", False),
+            audit_log_enabled=system_config.get("audit_log_enabled", False),
         )

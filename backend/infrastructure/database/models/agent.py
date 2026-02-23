@@ -40,6 +40,7 @@ class AgentModel(Base):
     stt_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     flow_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     analysis_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    system_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     calls: Mapped[List["CallModel"]] = relationship(back_populates="agent")
 

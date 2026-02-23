@@ -64,6 +64,12 @@ interface BackendConfigUpdate {
     pii_redaction_enabled?: boolean
     cost_tracking_enabled?: boolean
     retention_days?: number
+    // System
+    concurrency_limit?: number
+    spend_limit_daily?: number
+    environment?: string
+    privacy_mode?: boolean
+    audit_log_enabled?: boolean
 }
 
 export const configService = {
@@ -175,6 +181,13 @@ export const configService = {
         if (config.piiRedactionEnabled !== undefined) payload.pii_redaction_enabled = config.piiRedactionEnabled
         if (config.costTrackingEnabled !== undefined) payload.cost_tracking_enabled = config.costTrackingEnabled
         if (config.retentionDays !== undefined) payload.retention_days = config.retentionDays
+
+        // --- SYSTEM & GOVERNANCE ---
+        if (config.concurrencyLimit !== undefined) payload.concurrency_limit = config.concurrencyLimit
+        if (config.spendLimitDaily !== undefined) payload.spend_limit_daily = config.spendLimitDaily
+        if (config.environment !== undefined) payload.environment = config.environment
+        if (config.privacyMode !== undefined) payload.privacy_mode = config.privacyMode
+        if (config.auditLogEnabled !== undefined) payload.audit_log_enabled = config.auditLogEnabled
 
         if (config.extractionSchema !== undefined) {
             try {

@@ -115,6 +115,7 @@ async def get_active_agent(
         voice_config_json=active.metadata.get("voice_config_json") or {},
         flow_config=active.metadata.get("flow_config") or {},
         analysis_config=active.metadata.get("analysis_config") or {},
+        system_config=active.metadata.get("system_config") or {},
         # Read real tools_config from domain (never hardcoded)
         tools_config=active.tools[0] if active.tools else {},
     )

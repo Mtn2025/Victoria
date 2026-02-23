@@ -82,6 +82,13 @@ class ConfigUpdate(BaseModel):
     cost_tracking_enabled: Optional[bool] = None
     retention_days: Optional[int] = None
     
+    # System / Governance
+    concurrency_limit: Optional[int] = None
+    spend_limit_daily: Optional[float] = None
+    environment: Optional[str] = None
+    privacy_mode: Optional[bool] = None
+    audit_log_enabled: Optional[bool] = None
+
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
 

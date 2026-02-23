@@ -60,6 +60,7 @@ class ActiveAgentResponse(BaseModel):
     tools_config: Dict[str, Any]
     flow_config: Dict[str, Any]
     analysis_config: Dict[str, Any]
+    system_config: Dict[str, Any]
 
 
 class AgentUpdateNameRequest(BaseModel):

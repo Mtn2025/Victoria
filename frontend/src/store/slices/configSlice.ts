@@ -451,6 +451,15 @@ export const configSlice = createSlice({
                 }
             }
 
+            if ((data as any).system_config) {
+                const sys = (data as any).system_config
+                if (sys.concurrency_limit !== undefined) state.browser.concurrencyLimit = sys.concurrency_limit
+                if (sys.spend_limit_daily !== undefined) state.browser.spendLimitDaily = sys.spend_limit_daily
+                if (sys.environment !== undefined) state.browser.environment = sys.environment
+                if (sys.privacy_mode !== undefined) state.browser.privacyMode = sys.privacy_mode
+                if (sys.audit_log_enabled !== undefined) state.browser.auditLogEnabled = sys.audit_log_enabled
+            }
+
             if (data.tools_config && data.tools_config.length > 0) {
                 const tc = data.tools_config[0]
                 if (tc.tools) state.browser.toolsSchema = JSON.stringify(tc.tools)
