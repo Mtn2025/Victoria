@@ -5,6 +5,7 @@ import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
 import { saveBrowserConfig, fetchAgentConfig } from "@/store/slices/configSlice"
 import { cn } from "@/utils/cn"
 import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
+import { FEATURES } from "@/utils/featureFlags"
 import { Button } from "@/components/ui/Button"
 import { ComingSoon } from "@/components/ui/ComingSoon"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
@@ -33,13 +34,11 @@ export const ConfigPage = () => {
     // Hydrate config from the active agent on mount,
     // and whenever activeAgent changes (e.g. user activates a different agent).
     useEffect(() => {
-        if (!activeAgent) {
-            // No active agent in Redux — redirect so the user can pick one
+        // Only redirect if AGENTS_LIST feature is active, otherwise we trap the user
+        if (!activeAgent && FEATURES.AGENTS_LIST) {
             navigate('/agents')
             return
         }
-        // Fetch full config for the active agent. fetchAgentConfig has no params:
-        // it always calls GET /api/agents/active, which the backend resolves from DB.
         dispatch(fetchAgentConfig())
     }, [dispatch, navigate, activeAgent])
 
