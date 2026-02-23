@@ -40,6 +40,7 @@ async def list_agents(
         AgentListItem(
             agent_uuid=a.agent_uuid,
             name=a.name,
+            language=a.language,
             is_active=a.is_active,
             created_at=a.created_at,
         )
@@ -58,13 +59,14 @@ async def create_agent(
     """Create a new agent with system-default configuration."""
     use_case = CreateAgentUseCase(repo)
     try:
-        agent = await use_case.execute(name=request.name)
+        agent = await use_case.execute(name=request.name, language=request.language)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
     return AgentCreateResponse(
         agent_uuid=agent.agent_uuid,
         name=agent.name,
+        language=agent.language,
         is_active=agent.is_active,
         created_at=agent.created_at,
     )
@@ -92,11 +94,10 @@ async def get_active_agent(
             detail="No active agent found. Please activate an agent from the /agents panel.",
         )
 
-    # active.metadata is always a dict (declared in the domain entity).
-
     return ActiveAgentResponse(
         agent_uuid=active.agent_uuid,
         name=active.name,
+        language=active.language,
         is_active=active.is_active,
         created_at=active.created_at,
         system_prompt=active.system_prompt,
@@ -137,6 +138,7 @@ async def activate_agent(
     return AgentListItem(
         agent_uuid=agent.agent_uuid,
         name=agent.name,
+        language=agent.language,
         is_active=agent.is_active,
         created_at=agent.created_at,
     )
@@ -250,6 +252,7 @@ async def rename_agent(
     return AgentListItem(
         agent_uuid=agent.agent_uuid,
         name=agent.name,
+        language=agent.language,
         is_active=agent.is_active,
         created_at=agent.created_at,
     )

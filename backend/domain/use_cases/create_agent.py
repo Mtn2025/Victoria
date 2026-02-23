@@ -28,12 +28,13 @@ class CreateAgentUseCase:
     def __init__(self, repo: AgentRepository) -> None:
         self._repo = repo
 
-    async def execute(self, name: str) -> Agent:
+    async def execute(self, name: str, language: str = "es-MX") -> Agent:
         """
         Create and persist a new agent.
 
         Args:
             name: Display name for the new agent. Must be non-empty.
+            language: Base language used for the agent.
 
         Returns:
             The persisted Agent with agent_uuid and created_at populated.
@@ -45,6 +46,7 @@ class CreateAgentUseCase:
 
         new_agent = Agent(
             name=name.strip(),
+            language=language.strip(),
             system_prompt=_DEFAULT_SYSTEM_PROMPT,
             voice_config=VoiceConfig(name=_DEFAULT_VOICE_NAME),
             first_message=_DEFAULT_FIRST_MESSAGE,
