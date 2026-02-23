@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { BrowserConfig } from '@/types/config'
 import { Accordion } from '@/components/ui/Accordion'
-import { Play, AlertCircle, Volume2, Sparkles, Settings2 } from 'lucide-react'
+import { Play, AlertCircle, Volume2, Sparkles } from 'lucide-react'
 import { configService } from '@/services/configService'
 
 export const VoiceSettings = () => {
@@ -379,97 +379,6 @@ export const VoiceSettings = () => {
                         </div>
                     </Accordion>
                 )}
-
-                <div className="border-t border-white/5 my-4" />
-
-                {/* HUMANIZATION Accordion */}
-                <Accordion
-                    isOpen={openSection === 'humanization'}
-                    onToggle={() => setOpenSection(openSection === 'humanization' ? null : 'humanization')}
-                    title={
-                        <span className="text-sm font-bold text-pink-400 uppercase tracking-wider flex items-center gap-2">
-                            🗣️ Humanización Activa
-                        </span>
-                    }
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
-                        <label className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-pink-500/50 transition-colors">
-                            <input
-                                type="checkbox"
-                                checked={browser.voiceFillerInjection}
-                                onChange={(e) => update('voiceFillerInjection', e.target.checked)}
-                                className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-pink-500"
-                            />
-                            <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-slate-200">Inyección de "Muletillas"</span>
-                                <span className="text-[10px] text-slate-500">Agrega "eh...", "hmm..." natural</span>
-                            </div>
-                        </label>
-
-                        <label className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-pink-500/50 transition-colors">
-                            <input
-                                type="checkbox"
-                                checked={browser.voiceBackchanneling}
-                                onChange={(e) => update('voiceBackchanneling', e.target.checked)}
-                                className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-pink-500"
-                            />
-                            <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-slate-200">Escucha Activa</span>
-                                <span className="text-[10px] text-slate-500">Dice "ajá", "sí" mientras escuchas</span>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Normalización de Texto</label>
-                        <Select
-                            value={browser.textNormalizationRule}
-                            onChange={(e) => update('textNormalizationRule', e.target.value)}
-                        >
-                            <option value="auto">🤖 Automático (Default)</option>
-                            <option value="verbal">🗣️ Verbalizado ("123" -&gt; "ciento veintitrés")</option>
-                        </Select>
-                    </div>
-                </Accordion>
-
-                {/* TECH SETTINGS Accordion */}
-                <Accordion
-                    isOpen={openSection === 'tech'}
-                    onToggle={() => setOpenSection(openSection === 'tech' ? null : 'tech')}
-                    title={
-                        <span className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            <Settings2 className="w-4 h-4" />
-                            Ajustes Técnicos de Audio
-                        </span>
-                    }
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Latencia / Calidad (Streaming)</label>
-                            <Select
-                                value={browser.ttsLatencyOptimization}
-                                onChange={(e) => update('ttsLatencyOptimization', parseInt(e.target.value))}
-                            >
-                                <option value="0">⭐ Calidad Máxima (Default)</option>
-                                <option value="1">🚀 Latencia Baja (Normal)</option>
-                                <option value="2">⚡ Latencia Ultra Baja</option>
-                                <option value="3">🔥 Modo Turbo (Menor Calidad)</option>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Formato de Salida (Codec)</label>
-                            <Select
-                                value={browser.ttsOutputFormat}
-                                onChange={(e) => update('ttsOutputFormat', e.target.value)}
-                            >
-                                <option value="pcm_16000">PCM 16kHz (Mejor Voz)</option>
-                                <option value="pcm_8000">PCM 8kHz (Telefónico Estándar)</option>
-                                <option value="mp3_44100_128">MP3 44.1kHz 128kbps (Web)</option>
-                                <option value="ulaw_8000">Mu-Law 8kHz (SIP/PBX Antiguo)</option>
-                            </Select>
-                        </div>
-                    </div>
-                </Accordion>
             </div>
         </div>
     )
