@@ -116,8 +116,6 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
     const stopTestFn = useRef<() => void>(() => { });
     stopTestFn.current = () => {
-        console.warn('[DIAG] stopTest() CALLED FROM:', new Error().stack);
-
         // Null out onclose FIRST to prevent re-entrant stopTest call from onclose handler.
         if (ws.current) {
             ws.current.onclose = null;

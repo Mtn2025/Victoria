@@ -18,7 +18,6 @@ import {
     Activity,
     LogOut,
     LucideIcon,
-    Globe,
     Lock,
 } from "lucide-react"
 
@@ -37,7 +36,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     // ── Pages ──────────────────────────────────────────────────────────────
-    { type: 'page', path: '/simulator', label: 'Simulador', icon: Globe },
     { type: 'page', path: '/agents', label: 'Agentes', icon: Bot, featureKey: 'AGENTS_LIST' },
 
     // ── Config Tabs (activar uno por uno por fase) ──────────────────────────
