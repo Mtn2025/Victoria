@@ -39,6 +39,13 @@ export const fetchLLMModels = createAsyncThunk(
     }
 )
 
+export const fetchTTSProviders = createAsyncThunk(
+    'config/fetchTTSProviders',
+    async () => {
+        return await configService.getTTSProviders()
+    }
+)
+
 export const saveBrowserConfig = createAsyncThunk(
     'config/saveBrowserConfig',
     async (config: Partial<BrowserConfig>, { getState, rejectWithValue }) => {
@@ -88,6 +95,7 @@ const initialState: ConfigState = {
         // Voice Defaults
         voiceProvider: 'azure',
         voiceLang: 'es-MX',
+        voiceGender: 'female',
         voiceId: 'es-MX-DaliaNeural',
         voiceStyle: '',
         voiceSpeed: 1.0,
@@ -243,6 +251,7 @@ const initialState: ConfigState = {
     availableStyles: [],
     availableLLMProviders: [],
     availableLLMModels: [],
+    availableTTSProviders: [],
 
     isLoadingOptions: false,
     saveStatus: 'idle',
@@ -326,6 +335,18 @@ export const configSlice = createSlice({
             state.isLoadingOptions = false
         })
 
+        // TTS Providers
+        builder.addCase(fetchTTSProviders.pending, (state) => {
+            state.isLoadingOptions = true
+        })
+        builder.addCase(fetchTTSProviders.fulfilled, (state, action) => {
+            state.availableTTSProviders = action.payload as any
+            state.isLoadingOptions = false
+        })
+        builder.addCase(fetchTTSProviders.rejected, (state) => {
+            state.isLoadingOptions = false
+        })
+
         // Save Browser Config
         builder.addCase(saveBrowserConfig.pending, (state) => {
             state.saveStatus = 'saving'
@@ -353,6 +374,7 @@ export const configSlice = createSlice({
 
             if (data.voice) {
                 if (data.voice.name) state.browser.voiceId = data.voice.name
+                if (data.voice.gender) state.browser.voiceGender = data.voice.gender
                 if (data.voice.style) state.browser.voiceStyle = data.voice.style
                 if (data.voice.speed !== undefined) state.browser.voiceSpeed = data.voice.speed
                 if (data.voice.pitch !== undefined) state.browser.voicePitch = data.voice.pitch

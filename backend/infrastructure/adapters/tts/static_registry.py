@@ -9,8 +9,8 @@ from typing import List, Dict, Type
 from backend.domain.ports.tts_provider_registry import TTSProviderRegistry
 from backend.domain.ports.tts_port import TTSPort
 from backend.infrastructure.adapters.tts.azure_tts_adapter import AzureTTSAdapter
-# Import other adapters when they are functional
-# from backend.infrastructure.adapters.tts.elevenlabs_adapter import ElevenLabsTTSAdapter
+from backend.infrastructure.config.settings import settings
+import os
 
 class StaticTTSRegistryAdapter(TTSProviderRegistry):
     """
@@ -45,3 +45,23 @@ class StaticTTSRegistryAdapter(TTSProviderRegistry):
     def get_supported_providers(self) -> List[str]:
         """Return the list of configured providers."""
         return list(self._provider_map.keys())
+
+    async def get_providers(self) -> List[Dict[str, str]]:
+        providers = []
+        
+        # Azure OpenAI / Speech
+        if settings.AZURE_SPEECH_KEY and settings.AZURE_SPEECH_REGION:
+            providers.append({"id": "azure", "name": "Azure Cognitive Speech"})
+            
+        # ElevenLabs
+        if os.environ.get("ELEVENLABS_API_KEY"):
+            providers.append({"id": "elevenlabs", "name": "ElevenLabs"})
+            
+        # OpenAI
+        if os.environ.get("OPENAI_API_KEY"):
+            providers.append({"id": "openai", "name": "OpenAI TTS"})
+            
+        if not providers:
+            return [{"id": "none", "name": "No API Keys Configured"}]
+            
+        return providers

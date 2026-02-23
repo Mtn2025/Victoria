@@ -54,6 +54,7 @@ export interface BrowserConfig {
     // Voice / TTS
     voiceProvider: string
     voiceLang: string
+    voiceGender: string // Nuevo: Masculino o Femenino
     voiceId: string
     voiceStyle: string
     voiceSpeed: number
@@ -270,6 +271,7 @@ export interface ConfigState {
     availableStyles: VoiceStyle[]
     availableLLMProviders: LLMProvider[]
     availableLLMModels: LLMModel[]
+    availableTTSProviders: { id: string; name: string }[]
 
     // UI State
     isLoadingOptions: boolean

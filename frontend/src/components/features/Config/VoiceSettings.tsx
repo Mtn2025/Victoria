@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
-import { updateBrowserConfig, fetchLanguages, fetchVoices, fetchStyles } from '@/store/slices/configSlice'
+import { updateBrowserConfig, fetchLanguages, fetchVoices, fetchStyles, fetchTTSProviders } from '@/store/slices/configSlice'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -11,9 +11,16 @@ import { configService } from '@/services/configService'
 
 export const VoiceSettings = () => {
     const dispatch = useAppDispatch()
-    const { browser, availableVoices, availableStyles, isLoadingOptions } = useAppSelector(state => state.config)
+    const { browser, availableVoices, availableStyles, availableTTSProviders, isLoadingOptions } = useAppSelector(state => state.config)
     const [previewLoading, setPreviewLoading] = useState(false)
     const [openSection, setOpenSection] = useState<string | null>('core')
+
+    // Initial Load - Fetch TTS Providers
+    useEffect(() => {
+        if (availableTTSProviders.length === 0) {
+            dispatch(fetchTTSProviders())
+        }
+    }, [dispatch, availableTTSProviders.length])
 
     // Initial Load - Fetch Languages for current Provider
     useEffect(() => {
@@ -42,6 +49,8 @@ export const VoiceSettings = () => {
         // Cascade Rules for Voice Configuration
         if (key === 'voiceProvider') {
             dispatch(updateBrowserConfig({ voiceProvider: value, voiceId: '', voiceStyle: '' }))
+        } else if (key === 'voiceGender') {
+            dispatch(updateBrowserConfig({ voiceGender: value, voiceId: '', voiceStyle: '' }))
         } else if (key === 'voiceId') {
             dispatch(updateBrowserConfig({ voiceId: value, voiceStyle: '' }))
         } else {
@@ -52,6 +61,16 @@ export const VoiceSettings = () => {
     // Computed grouping by Gender
     const femaleVoices = availableVoices.filter(v => v.gender === 'female' || v.gender === 'Mujer' || v.gender === 'Female')
     const maleVoices = availableVoices.filter(v => v.gender === 'male' || v.gender === 'Hombre' || v.gender === 'Male')
+    const otherVoices = availableVoices.filter(v => v.gender !== 'female' && v.gender !== 'male' && v.gender !== 'Mujer' && v.gender !== 'Hombre' && v.gender !== 'Female' && v.gender !== 'Male')
+
+    let filteredVoices = availableVoices
+    if (browser.voiceGender === 'female') {
+        filteredVoices = femaleVoices
+    } else if (browser.voiceGender === 'male') {
+        filteredVoices = maleVoices
+    } else if (browser.voiceGender === 'other') {
+        filteredVoices = otherVoices
+    }
 
     const handlePreview = async () => {
         setPreviewLoading(true)
@@ -121,9 +140,10 @@ export const VoiceSettings = () => {
                                 onChange={(e) => update('voiceProvider', e.target.value)}
                                 className="w-full"
                             >
-                                <option value="azure">Azure Open AI / Speech</option>
-                                <option value="elevenlabs" disabled>ElevenLabs (Próximamente)</option>
-                                <option value="openai">OpenAI TTS</option>
+                                {availableTTSProviders.length === 0 && <option value="azure" disabled>Cargando proveedores...</option>}
+                                {availableTTSProviders.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
                             </Select>
 
                             <div>
@@ -139,6 +159,21 @@ export const VoiceSettings = () => {
                                     El Agente dicta el idioma general STT/TTS.
                                 </p>
                             </div>
+
+                            {/* Gender Selection */}
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Género</label>
+                                <Select
+                                    value={browser.voiceGender}
+                                    onChange={(e) => update('voiceGender', e.target.value)}
+                                    disabled={isLoadingOptions || availableVoices.length === 0}
+                                    className="w-full"
+                                >
+                                    <option value="female">Femenino</option>
+                                    <option value="male">Masculino</option>
+                                    {otherVoices.length > 0 && <option value="other">Otros / Sin Categoria</option>}
+                                </Select>
+                            </div>
                         </div>
 
                         {/* Voice Selection */}
@@ -153,24 +188,7 @@ export const VoiceSettings = () => {
                                     <option value="" disabled>Seleccionar Voz...</option>
                                     {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
 
-                                    {femaleVoices.length > 0 && (
-                                        <optgroup label="Femenino">
-                                            {femaleVoices.map(v => (
-                                                <option key={v.id} value={v.id}>{v.name}</option>
-                                            ))}
-                                        </optgroup>
-                                    )}
-
-                                    {maleVoices.length > 0 && (
-                                        <optgroup label="Masculino">
-                                            {maleVoices.map(v => (
-                                                <option key={v.id} value={v.id}>{v.name}</option>
-                                            ))}
-                                        </optgroup>
-                                    )}
-
-                                    {/* Uncategorized (e.g. ElevenLabs fallback) */}
-                                    {availableVoices.filter(v => v.gender !== 'female' && v.gender !== 'male' && v.gender !== 'Mujer' && v.gender !== 'Hombre' && v.gender !== 'Female' && v.gender !== 'Male').map(v => (
+                                    {filteredVoices.map(v => (
                                         <option key={v.id} value={v.id}>{v.name}</option>
                                     ))}
                                 </Select>

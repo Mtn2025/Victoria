@@ -61,10 +61,18 @@ async def get_llm_models(provider: str):
 
 
 # --------------------------------------------------------------------------- #
+# GET /config/options/tts/providers                                            #
 # GET /config/options/tts/voices                                               #
 # GET /config/options/tts/languages                                            #
 # GET /config/options/tts/styles                                               #
 # --------------------------------------------------------------------------- #
+@router.get("/options/tts/providers")
+async def get_tts_providers():
+    """Get available TTS providers dynamically based on .env keys."""
+    registry = StaticTTSRegistryAdapter()
+    providers = await registry.get_providers()
+    return {"providers": providers}
+
 @router.get("/options/tts/voices")
 async def get_tts_voices(provider: str = "azure", language: str | None = None):
     """Get available TTS voices for a specific provider."""

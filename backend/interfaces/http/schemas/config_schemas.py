@@ -34,6 +34,7 @@ class ConfigUpdate(BaseModel):
     
     # Text-to-Speech
     voice_name: Optional[str] = None
+    voice_gender: Optional[str] = None
     voice_style: Optional[str] = None
     voice_speed: Optional[float] = None
     voice_pitch: Optional[float] = None
