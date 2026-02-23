@@ -58,6 +58,8 @@ class ActiveAgentResponse(BaseModel):
     stt_config: Dict[str, Any]
     voice_config_json: Dict[str, Any]
     tools_config: Dict[str, Any]
+    flow_config: Dict[str, Any]
+    analysis_config: Dict[str, Any]
 
 
 class AgentUpdateNameRequest(BaseModel):

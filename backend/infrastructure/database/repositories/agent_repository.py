@@ -28,10 +28,14 @@ def _model_to_agent(agent_model: AgentModel) -> Agent:
     # Build metadata from DB JSON columns into the declared domain field.
     # These are the extended blobs not stored as individual columns.
     metadata: dict = {}
-    if agent_model.voice_config_json:
+    if getattr(agent_model, "voice_config_json", None):
         metadata["voice_config_json"] = agent_model.voice_config_json
-    if agent_model.stt_config:
+    if getattr(agent_model, "stt_config", None):
         metadata["stt_config"] = agent_model.stt_config
+    if getattr(agent_model, "flow_config", None):
+        metadata["flow_config"] = agent_model.flow_config
+    if getattr(agent_model, "analysis_config", None):
+        metadata["analysis_config"] = agent_model.analysis_config
 
     agent = Agent(
         name=agent_model.name,
@@ -118,6 +122,12 @@ class SqlAlchemyAgentRepository(AgentRepository):
             if "stt_config" in agent.metadata:
                 existing_stt = agent_model.stt_config or {}
                 agent_model.stt_config = {**existing_stt, **agent.metadata["stt_config"]}
+            if "flow_config" in agent.metadata:
+                existing_flow = agent_model.flow_config or {}
+                agent_model.flow_config = {**existing_flow, **agent.metadata["flow_config"]}
+            if "analysis_config" in agent.metadata:
+                existing_analysis = agent_model.analysis_config or {}
+                agent_model.analysis_config = {**existing_analysis, **agent.metadata["analysis_config"]}
 
         await self.session.commit()
 

@@ -113,6 +113,8 @@ async def get_active_agent(
         llm_config=active.llm_config or {},
         stt_config=active.metadata.get("stt_config") or {},
         voice_config_json=active.metadata.get("voice_config_json") or {},
+        flow_config=active.metadata.get("flow_config") or {},
+        analysis_config=active.metadata.get("analysis_config") or {},
         # Read real tools_config from domain (never hardcoded)
         tools_config=active.tools[0] if active.tools else {},
     )
@@ -219,6 +221,31 @@ async def update_agent_config(
     if stt_updates:
         existing_stt = agent.metadata.get("stt_config") or {}
         agent.metadata["stt_config"] = {**existing_stt, **stt_updates}
+
+    # Merge Flow Config
+    flow_updates = {}
+    for field in ["barge_in_enabled", "barge_in_sensitivity", "barge_in_phrases",
+                  "amd_enabled", "amd_sensitivity", "amd_action", "amd_message",
+                  "pacing_response_delay_ms", "pacing_wait_for_greeting",
+                  "pacing_hyphenation", "pacing_end_call_phrases"]:
+        val = getattr(update, field, None)
+        if val is not None:
+            flow_updates[field] = val
+    if flow_updates:
+        existing_flow = agent.metadata.get("flow_config") or {}
+        agent.metadata["flow_config"] = {**existing_flow, **flow_updates}
+
+    # Merge Analysis Config
+    analysis_updates = {}
+    for field in ["analysis_prompt", "success_rubric", "extraction_schema",
+                  "sentiment_analysis", "webhook_url", "webhook_secret",
+                  "pii_redaction_enabled", "cost_tracking_enabled", "retention_days"]:
+        val = getattr(update, field, None)
+        if val is not None:
+            analysis_updates[field] = val
+    if analysis_updates:
+        existing_analysis = agent.metadata.get("analysis_config") or {}
+        agent.metadata["analysis_config"] = {**existing_analysis, **analysis_updates}
 
     # Tools
     if update.tools_config is not None:

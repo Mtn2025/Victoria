@@ -71,6 +71,17 @@ class ConfigUpdate(BaseModel):
     # Still accepted if sent by legacy callers.
     agent_id: Optional[str] = None
     
+    # Optional PII & Retentions
+    analysis_prompt: Optional[str] = None
+    success_rubric: Optional[str] = None
+    extraction_schema: Optional[Any] = None
+    sentiment_analysis: Optional[bool] = None
+    webhook_url: Optional[str] = None
+    webhook_secret: Optional[str] = None
+    pii_redaction_enabled: Optional[bool] = None
+    cost_tracking_enabled: Optional[bool] = None
+    retention_days: Optional[int] = None
+    
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
 
