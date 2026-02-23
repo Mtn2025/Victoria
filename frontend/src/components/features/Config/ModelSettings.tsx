@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select"
 import { Textarea } from "@/components/ui/Textarea"
 import { Accordion } from '@/components/ui/Accordion'
 import { AlertTriangle, Brain, MessageSquare, Shield } from "lucide-react"
+import TextareaAutosize from 'react-textarea-autosize'
 
 export const ModelSettings = () => {
     const dispatch = useAppDispatch()
@@ -91,12 +92,13 @@ export const ModelSettings = () => {
                                     <span>System Prompt</span>
                                     <span className="text-xs text-blue-400">Instrucciones Madre</span>
                                 </Label>
-                                <Textarea
+                                <TextareaAutosize
                                     data-testid="input-system-prompt"
                                     value={config.prompt}
                                     onChange={(e) => handleChange('prompt', e.target.value)}
-                                    rows={6}
-                                    className="font-mono text-xs"
+                                    minRows={6}
+                                    maxRows={20}
+                                    className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-xs"
                                     placeholder="Eres un asistente útil..."
                                 />
                             </div>
@@ -307,11 +309,11 @@ export const ModelSettings = () => {
                         </label>
 
                         {config.dynamicVarsEnabled && (
-                            <Textarea
+                            <TextareaAutosize
                                 value={config.dynamicVars}
                                 onChange={(e) => handleChange('dynamicVars', e.target.value)}
-                                rows={2}
-                                className="font-mono text-xs"
+                                minRows={2}
+                                className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono text-xs"
                                 placeholder='{"nombre": "Juan Pérez", "empresa": "Acme Corp"}'
                             />
                         )}
@@ -332,11 +334,11 @@ export const ModelSettings = () => {
                     }
                 >
                     <div className="space-y-3">
-                        <Textarea
+                        <TextareaAutosize
                             value={config.hallucination_blacklist}
                             onChange={(e) => handleChange('hallucination_blacklist', e.target.value)}
-                            rows={2}
-                            className="font-mono text-xs bg-red-950/20 border-red-500/30 placeholder-red-300/20"
+                            minRows={2}
+                            className="flex w-full rounded-lg border border-red-500/30 bg-red-950/20 px-3 py-2 text-sm text-white placeholder:text-red-300/20 focus:outline-none focus:ring-1 focus:ring-red-500 font-mono text-xs"
                             placeholder="Palabras o frases prohibidas separadas por coma..."
                         />
                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
