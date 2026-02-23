@@ -187,9 +187,24 @@ class AzureTTSAdapter(TTSPort):
         parts = voice.name.split("-") if voice.name else []
         lang = f"{parts[0]}-{parts[1]}" if len(parts) >= 2 else "es-MX"
 
+        # Background Audio Tag
+        bg_audio_tag = ""
+        if voice.bg_sound and voice.bg_sound != "none":
+            bg_url = voice.bg_url
+            if voice.bg_sound == "office":
+                bg_url = "https://actions.google.com/sounds/v1/crowds/office_ambience.ogg"
+            elif voice.bg_sound == "cafe":
+                bg_url = "https://actions.google.com/sounds/v1/crowds/restaurant_ambience.ogg"
+            elif voice.bg_sound == "callcenter":
+                bg_url = "https://actions.google.com/sounds/v1/office/typing_on_laptop.ogg"
+            
+            if bg_url:
+                bg_audio_tag = f'<mstts:backgroundaudio src="{bg_url}" volume="0.3" fadein="500" fadeout="500"/>'
+
         ssml = (
             f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" '
             f'xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="{lang}">'
+            f'{bg_audio_tag}'
             f'<voice name="{voice.name}">'
             f'{style_tag}'
             f'<prosody rate="{rate}" pitch="{pitch}" volume="{volume}">'

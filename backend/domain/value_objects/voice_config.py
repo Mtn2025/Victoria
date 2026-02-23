@@ -31,6 +31,8 @@ class VoiceConfig:
     style: VoiceStyle = "default"
     style_degree: float = 1.0  # 0.01-2.0
     provider: str = "azure"
+    bg_sound: str = "none"
+    bg_url: Optional[str] = None
 
     def __post_init__(self) -> None:
         """Validate fields after initialization (Domain Invariant)."""
@@ -71,7 +73,9 @@ class VoiceConfig:
             volume=int(db_config.voice_volume or 100),
             style=db_config.voice_style or "default",
             style_degree=float(db_config.voice_style_degree or 1.0),
-            provider=getattr(db_config, "voice_provider", "azure") or "azure"
+            provider=getattr(db_config, "voice_provider", "azure") or "azure",
+            bg_sound=getattr(db_config, "voiceBgSound", "none") or "none",
+            bg_url=getattr(db_config, "voiceBgUrl", None)
         )
 
     def to_ssml_params(self) -> Dict[str, Any]:

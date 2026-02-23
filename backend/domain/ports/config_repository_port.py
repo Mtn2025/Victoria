@@ -38,6 +38,8 @@ class ConfigDTO:
     voice_pitch: int = 0                # Hz offset (-100 to +100)
     voice_volume: int = 100             # Volume level (0-100)
     voice_language: str = "es-MX"
+    voice_bg_sound: str = "none"        # Background sound type (e.g. office, cafe, custom)
+    voice_bg_url: Optional[str] = None  # URL for custom background sound
 
     # Runtime client type — determines audio format across the pipeline
     # 'browser' = 24 kHz PCM  |  'twilio'/'telnyx' = 8 kHz mulaw

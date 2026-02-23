@@ -73,6 +73,8 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
         voice_pitch         = int(vc.pitch),
         voice_volume        = int(vc.volume),
         voice_language      = getattr(agent, "language", "es-MX") or "es-MX",  # SSoT Root Language
+        voice_bg_sound      = getattr(vc, "bg_sound", "none"),
+        voice_bg_url        = getattr(vc, "bg_url", None),
 
         # --- STT ---
         stt_provider        = meta.get('stt_config', {}).get('sttProvider', 'azure'),  # canonical front key

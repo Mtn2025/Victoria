@@ -140,6 +140,8 @@ class TTSProcessor(FrameProcessor):
             volume       = int(get_cfg('voice_volume',   100)),
             style        = get_cfg('voice_style',        'default'),
             style_degree = float(get_cfg('voice_style_degree', 1.0)),
+            bg_sound     = get_cfg('voice_bg_sound',     'none'),
+            bg_url       = get_cfg('voice_bg_url',       None),
         )
         
         client_type = get_cfg('client_type', 'browser')  # browser=24kHz PCM; twilio=8kHz mulaw
