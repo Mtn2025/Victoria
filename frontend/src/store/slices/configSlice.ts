@@ -418,6 +418,39 @@ export const configSlice = createSlice({
                 if (stt.vadSensitivity !== undefined) state.browser.vad_threshold = stt.vadSensitivity
             }
 
+            if (data.flow_config) {
+                const flow = data.flow_config
+                if (flow.barge_in_enabled !== undefined) state.browser.bargeInEnabled = flow.barge_in_enabled
+                if (flow.barge_in_sensitivity !== undefined) state.browser.interruptionSensitivity = flow.barge_in_sensitivity
+                if (flow.barge_in_phrases !== undefined) state.browser.interruptionPhrases = (flow.barge_in_phrases || []).join(', ')
+                if (flow.amd_enabled !== undefined) state.browser.voicemailDetectionEnabled = flow.amd_enabled
+                if (flow.amd_message !== undefined) state.browser.voicemailMessage = flow.amd_message
+                if (flow.amd_sensitivity !== undefined) state.browser.amdSensitivity = flow.amd_sensitivity
+                if (flow.amd_action !== undefined) state.browser.amdAction = flow.amd_action
+                if (flow.pacing_response_delay_ms !== undefined) state.browser.responseDelaySeconds = flow.pacing_response_delay_ms / 1000
+                if (flow.pacing_hyphenation !== undefined) state.browser.hyphenationEnabled = flow.pacing_hyphenation
+                if (flow.pacing_end_call_phrases !== undefined) state.browser.endCallPhrases = (flow.pacing_end_call_phrases || []).join(', ')
+            }
+
+            if (data.analysis_config) {
+                const analysis = data.analysis_config
+                if (analysis.analysis_prompt !== undefined) state.browser.analysisPrompt = analysis.analysis_prompt
+                if (analysis.success_rubric !== undefined) state.browser.successRubric = analysis.success_rubric
+                if (analysis.sentiment_analysis !== undefined) state.browser.sentimentAnalysis = analysis.sentiment_analysis
+                if (analysis.webhook_url !== undefined) state.browser.webhookUrl = analysis.webhook_url
+                if (analysis.webhook_secret !== undefined) state.browser.webhookSecret = analysis.webhook_secret
+                if (analysis.pii_redaction_enabled !== undefined) state.browser.piiRedactionEnabled = analysis.pii_redaction_enabled
+                if (analysis.cost_tracking_enabled !== undefined) state.browser.costTrackingEnabled = analysis.cost_tracking_enabled
+                if (analysis.retention_days !== undefined) state.browser.retentionDays = analysis.retention_days
+                if (analysis.extraction_schema !== undefined) {
+                    try {
+                        state.browser.extractionSchema = typeof analysis.extraction_schema === 'string' ? analysis.extraction_schema : JSON.stringify(analysis.extraction_schema, null, 2)
+                    } catch (e) {
+                        state.browser.extractionSchema = String(analysis.extraction_schema)
+                    }
+                }
+            }
+
             if (data.tools_config && data.tools_config.length > 0) {
                 const tc = data.tools_config[0]
                 if (tc.tools) state.browser.toolsSchema = JSON.stringify(tc.tools)

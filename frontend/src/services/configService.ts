@@ -151,7 +151,7 @@ export const configService = {
         if (config.voicemailMessage !== undefined) payload.amd_message = config.voicemailMessage
         if (config.amdSensitivity !== undefined) payload.amd_sensitivity = config.amdSensitivity
         if (config.amdAction !== undefined) payload.amd_action = config.amdAction
-        if (config.responseDelaySeconds !== undefined) payload.pacing_response_delay_ms = config.responseDelaySeconds
+        if (config.responseDelaySeconds !== undefined) payload.pacing_response_delay_ms = Math.round(config.responseDelaySeconds * 1000)
         if (config.hyphenationEnabled !== undefined) payload.pacing_hyphenation = config.hyphenationEnabled
 
         // Convert comma-separated string back to array for the API
