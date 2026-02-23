@@ -38,8 +38,9 @@ class PromptBuilder:
             return default
 
         length    = get_cfg_multi('response_length',           'responseLength',          default='short')
-        tone      = get_cfg_multi('conversation_tone',         'conversationTone',        default='warm')
+        tone      = get_cfg_multi('conversation_tone',         'conversationTone',        default='neutral')
         formality = get_cfg_multi('conversation_formality',    'conversationFormality',   default='semi_formal')
+        pacing    = get_cfg_multi('conversation_pacing',       'conversationPacing',      default='moderate')
 
         # 2. Instruction Maps
         length_instructions = {
@@ -67,6 +68,12 @@ class PromptBuilder:
             "very_casual": "Usa jerga coloquial, sé muy informal, como un amigo."
         }
 
+        pacing_instructions = {
+            "fast": "Sé muy directo y rápido para ceder la palabra. No des contexto innecesario. Espera interrupciones constantes.",
+            "moderate": "Mantén un ritmo conversacional normal, permitiendo pausas naturales y elaborando tus puntos sin extenderte.",
+            "relaxed": "Tómate tu tiempo para explicar. Asume que el usuario tiene tiempo de escuchar y aprender de tus respuestas."
+        }
+
         # 3. Construct Overrides
         style_block = []
         if length in length_instructions:
@@ -77,6 +84,9 @@ class PromptBuilder:
         
         if formality in formality_instructions:
             style_block.append(f"- Formalidad: {formality_instructions[formality]}")
+
+        if pacing in pacing_instructions:
+            style_block.append(f"- Velocidad de Interacción (Pacing): {pacing_instructions[pacing]}")
 
         # --- BILINGUAL INTELLIGENCE (ROOT LANGUAGE) ---
         agent_lang = get_cfg('stt_language') or get_cfg('voice_language') or 'es-MX'
