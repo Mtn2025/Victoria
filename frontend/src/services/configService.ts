@@ -54,6 +54,16 @@ interface BackendConfigUpdate {
     pacing_end_call_phrases?: string[]
     // Tools
     tools_config?: Record<string, unknown>
+    // Analysis
+    analysis_prompt?: string
+    success_rubric?: string
+    extraction_schema?: any
+    sentiment_analysis?: boolean
+    webhook_url?: string
+    webhook_secret?: string
+    pii_redaction_enabled?: boolean
+    cost_tracking_enabled?: boolean
+    retention_days?: number
 }
 
 export const configService = {
@@ -154,6 +164,25 @@ export const configService = {
             payload.pacing_end_call_phrases = config.endCallPhrases
                 ? config.endCallPhrases.split(',').map((p: string) => p.trim()).filter(Boolean)
                 : []
+        }
+
+        // --- ANALYSIS & INTEGRATIONS ---
+        if (config.analysisPrompt !== undefined) payload.analysis_prompt = config.analysisPrompt
+        if (config.successRubric !== undefined) payload.success_rubric = config.successRubric
+        if (config.sentimentAnalysis !== undefined) payload.sentiment_analysis = config.sentimentAnalysis
+        if (config.webhookUrl !== undefined) payload.webhook_url = config.webhookUrl
+        if (config.webhookSecret !== undefined) payload.webhook_secret = config.webhookSecret
+        if (config.piiRedactionEnabled !== undefined) payload.pii_redaction_enabled = config.piiRedactionEnabled
+        if (config.costTrackingEnabled !== undefined) payload.cost_tracking_enabled = config.costTrackingEnabled
+        if (config.retentionDays !== undefined) payload.retention_days = config.retentionDays
+
+        if (config.extractionSchema !== undefined) {
+            try {
+                payload.extraction_schema = config.extractionSchema ? JSON.parse(config.extractionSchema) : {}
+            } catch (e) {
+                console.warn('[configService] Failed to parse extractionSchema:', e)
+                payload.extraction_schema = config.extractionSchema
+            }
         }
 
         return api.patch(`/agents/${agentId}`, payload)

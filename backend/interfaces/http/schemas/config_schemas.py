@@ -57,7 +57,7 @@ class ConfigUpdate(BaseModel):
     # Flow Config (Barge-in, AMD, Pacing)
     barge_in_enabled: Optional[bool] = None
     barge_in_sensitivity: Optional[float] = None
-    barge_in_phrases: Optional[str] = None
+    barge_in_phrases: Optional[list[str]] = None
     amd_enabled: Optional[bool] = None
     amd_sensitivity: Optional[float] = None
     amd_action: Optional[str] = None
@@ -65,7 +65,7 @@ class ConfigUpdate(BaseModel):
     pacing_response_delay_ms: Optional[int] = None
     pacing_wait_for_greeting: Optional[bool] = None
     pacing_hyphenation: Optional[bool] = None
-    pacing_end_call_phrases: Optional[str] = None
+    pacing_end_call_phrases: Optional[list[str]] = None
     
     # Agent identity — optional when patching via /agents/{uuid} (UUID is already in the URL).
     # Still accepted if sent by legacy callers.
