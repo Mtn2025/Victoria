@@ -223,7 +223,7 @@ export const AnalysisSettings = () => {
                             aria-label="Data Retention"
                             type="number"
                             value={browser.retentionDays}
-                            onChange={(e) => update('retentionDays', parseInt(e.target.value.toString()))}
+                            onChange={(e) => update('retentionDays', parseInt(e.target.value) || 0)}
                             className="text-left w-full max-w-[120px]"
                             placeholder="30"
                         />
