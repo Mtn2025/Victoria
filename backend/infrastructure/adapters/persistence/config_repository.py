@@ -28,14 +28,14 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
     Note: Requires AgentConfig model from Victoria's database schema.
     """
 
-    def __init__(self, session_factory: Callable[[], AsyncSession]):
+    def __init__(self, session: AsyncSession):
         """
         Initialize config repository.
         
         Args:
-            session_factory: Callable that returns AsyncSession
+            session: AsyncSession object from dependency injection
         """
-        self._session_factory = session_factory
+        self._session = session
 
     async def get_config(self, profile: str = "default") -> ConfigDTO:
         """
@@ -44,20 +44,19 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         Victoria uses AgentModel with simplified config fields.
         Profile maps to agent.name.
         """
-        async with self._session_factory() as session:
-            from sqlalchemy import select
-            from backend.infrastructure.database.models import AgentModel
-            
-            # Query agent by name (profile)
-            result = await session.execute(
-                select(AgentModel).where(AgentModel.name == profile)
-            )
-            agent = result.scalar_one_or_none()
-            
-            if not agent:
-                raise ConfigNotFoundException(f"Profile '{profile}' not found")
-            
-            return self._model_to_dto(agent)
+        from sqlalchemy import select
+        from backend.infrastructure.database.models import AgentModel
+        
+        # Query agent by name (profile)
+        result = await self._session.execute(
+            select(AgentModel).where(AgentModel.name == profile)
+        )
+        agent = result.scalar_one_or_none()
+        
+        if not agent:
+            raise ConfigNotFoundException(f"Profile '{profile}' not found")
+        
+        return self._model_to_dto(agent)
 
     async def update_config(self, profile: str, **updates) -> ConfigDTO:
         """
@@ -65,42 +64,41 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         
         Updates AgentModel fields based on provided kwargs.
         """
-        async with self._session_factory() as session:
-            from sqlalchemy import select
-            from backend.infrastructure.database.models import AgentModel
-            
-            # Fetch agent
-            result = await session.execute(
-                select(AgentModel).where(AgentModel.name == profile)
-            )
-            agent = result.scalar_one_or_none()
-            
-            if not agent:
-                raise ConfigNotFoundException(f"Profile '{profile}' not found")
-            
-            # Apply updates to model fields
-            for key, value in updates.items():
-                if hasattr(agent, key):
-                    setattr(agent, key, value)
-                # Handle nested JSON configs
-                elif key.startswith("llm_") and agent.llm_config is not None:
-                    agent.llm_config[key] = value
-                elif key.startswith("tool_") and agent.tools_config is not None:
-                    agent.tools_config[key] = value
-                elif (key.startswith("barge_") or key.startswith("amd_") or key.startswith("pacing_")) and agent.flow_config is not None:
-                    # SQLAlchemy JSON in-place mutations might need flag_modified or re-assignment
-                    updated_flow = dict(agent.flow_config)
-                    updated_flow[key] = value
-                    agent.flow_config = updated_flow
-                elif key in ["analysis_prompt", "success_rubric", "extraction_schema", "sentiment_analysis", "webhook_url", "webhook_secret", "log_webhook_url", "pii_redaction_enabled", "cost_tracking_enabled", "retention_days"]:
-                    current_analysis = dict(agent.analysis_config) if agent.analysis_config else {}
-                    current_analysis[key] = value
-                    agent.analysis_config = current_analysis
-            
-            await session.commit()
-            await session.refresh(agent)
-            
-            return self._model_to_dto(agent)
+        from sqlalchemy import select
+        from backend.infrastructure.database.models import AgentModel
+        
+        # Fetch agent
+        result = await self._session.execute(
+            select(AgentModel).where(AgentModel.name == profile)
+        )
+        agent = result.scalar_one_or_none()
+        
+        if not agent:
+            raise ConfigNotFoundException(f"Profile '{profile}' not found")
+        
+        # Apply updates to model fields
+        for key, value in updates.items():
+            if hasattr(agent, key):
+                setattr(agent, key, value)
+            # Handle nested JSON configs
+            elif key.startswith("llm_") and agent.llm_config is not None:
+                agent.llm_config[key] = value
+            elif key.startswith("tool_") and agent.tools_config is not None:
+                agent.tools_config[key] = value
+            elif (key.startswith("barge_") or key.startswith("amd_") or key.startswith("pacing_")) and agent.flow_config is not None:
+                # SQLAlchemy JSON in-place mutations might need flag_modified or re-assignment
+                updated_flow = dict(agent.flow_config)
+                updated_flow[key] = value
+                agent.flow_config = updated_flow
+            elif key in ["analysis_prompt", "success_rubric", "extraction_schema", "sentiment_analysis", "webhook_url", "webhook_secret", "log_webhook_url", "pii_redaction_enabled", "cost_tracking_enabled", "retention_days"]:
+                current_analysis = dict(agent.analysis_config) if agent.analysis_config else {}
+                current_analysis[key] = value
+                agent.analysis_config = current_analysis
+        
+        await self._session.commit()
+        await self._session.refresh(agent)
+        
+        return self._model_to_dto(agent)
 
     async def create_config(self, profile: str, config: ConfigDTO) -> ConfigDTO:
         """
@@ -108,61 +106,60 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         
         Creates new AgentModel with provided configuration.
         """
-        async with self._session_factory() as session:
-            from backend.infrastructure.database.models import AgentModel
-            
-            # Create new agent
-            agent = AgentModel(
-                name=profile,
-                system_prompt=config.system_prompt,
-                voice_provider=config.tts_provider,
-                voice_name=config.voice_name,
-                voice_style=config.voice_style,
-                voice_speed=config.voice_speed,
-                first_message=config.first_message,
-                silence_timeout_ms=config.silence_timeout_ms,
-                llm_config={
-                    "provider": config.llm_provider,
-                    "model": config.llm_model,
-                    "temperature": config.temperature,
-                    "max_tokens": config.max_tokens,
-                },
-                tools_config={
-                    "enabled": config.async_tools,
-                    "timeout_ms": config.tool_timeout_ms,
-                },
-                flow_config={
-                    "barge_in_enabled": config.barge_in_enabled,
-                    "barge_in_sensitivity": config.barge_in_sensitivity,
-                    "barge_in_phrases": config.barge_in_phrases,
-                    "amd_enabled": config.amd_enabled,
-                    "amd_sensitivity": config.amd_sensitivity,
-                    "amd_action": config.amd_action,
-                    "amd_message": config.amd_message,
-                    "pacing_response_delay_ms": config.pacing_response_delay_ms,
-                    "pacing_wait_for_greeting": config.pacing_wait_for_greeting,
-                    "pacing_hyphenation": config.pacing_hyphenation,
-                    "pacing_end_call_phrases": config.pacing_end_call_phrases,
-                },
-                analysis_config={
-                    "analysis_prompt": config.analysis_prompt,
-                    "success_rubric": config.success_rubric,
-                    "extraction_schema": config.extraction_schema,
-                    "sentiment_analysis": config.sentiment_analysis,
-                    "webhook_url": config.webhook_url,
-                    "webhook_secret": config.webhook_secret,
-                    "log_webhook_url": config.log_webhook_url,
-                    "pii_redaction_enabled": config.pii_redaction_enabled,
-                    "cost_tracking_enabled": config.cost_tracking_enabled,
-                    "retention_days": config.retention_days,
-                }
-            )
-            
-            session.add(agent)
-            await session.commit()
-            await session.refresh(agent)
-            
-            return self._model_to_dto(agent)
+        from backend.infrastructure.database.models import AgentModel
+        
+        # Create new agent
+        agent = AgentModel(
+            name=profile,
+            system_prompt=config.system_prompt,
+            voice_provider=config.tts_provider,
+            voice_name=config.voice_name,
+            voice_style=config.voice_style,
+            voice_speed=config.voice_speed,
+            first_message=config.first_message,
+            silence_timeout_ms=config.silence_timeout_ms,
+            llm_config={
+                "provider": config.llm_provider,
+                "model": config.llm_model,
+                "temperature": config.temperature,
+                "max_tokens": config.max_tokens,
+            },
+            tools_config={
+                "enabled": config.async_tools,
+                "timeout_ms": config.tool_timeout_ms,
+            },
+            flow_config={
+                "barge_in_enabled": config.barge_in_enabled,
+                "barge_in_sensitivity": config.barge_in_sensitivity,
+                "barge_in_phrases": config.barge_in_phrases,
+                "amd_enabled": config.amd_enabled,
+                "amd_sensitivity": config.amd_sensitivity,
+                "amd_action": config.amd_action,
+                "amd_message": config.amd_message,
+                "pacing_response_delay_ms": config.pacing_response_delay_ms,
+                "pacing_wait_for_greeting": config.pacing_wait_for_greeting,
+                "pacing_hyphenation": config.pacing_hyphenation,
+                "pacing_end_call_phrases": config.pacing_end_call_phrases,
+            },
+            analysis_config={
+                "analysis_prompt": config.analysis_prompt,
+                "success_rubric": config.success_rubric,
+                "extraction_schema": config.extraction_schema,
+                "sentiment_analysis": config.sentiment_analysis,
+                "webhook_url": config.webhook_url,
+                "webhook_secret": config.webhook_secret,
+                "log_webhook_url": config.log_webhook_url,
+                "pii_redaction_enabled": config.pii_redaction_enabled,
+                "cost_tracking_enabled": config.cost_tracking_enabled,
+                "retention_days": config.retention_days,
+            }
+        )
+        
+        self._session.add(agent)
+        await self._session.commit()
+        await self._session.refresh(agent)
+        
+        return self._model_to_dto(agent)
 
     def _model_to_dto(self, agent) -> ConfigDTO:
         """
