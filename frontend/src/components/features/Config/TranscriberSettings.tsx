@@ -4,7 +4,7 @@ import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { Select } from '@/components/ui/Select'
 import { BrowserConfig } from '@/types/config'
 import { Accordion } from '@/components/ui/Accordion'
-import { Ear, Radio, Brain, Settings2 } from 'lucide-react'
+import { Ear, Radio } from 'lucide-react'
 
 export const TranscriberSettings = () => {
     const dispatch = useAppDispatch()
@@ -49,55 +49,12 @@ export const TranscriberSettings = () => {
                                 onChange={(e) => update('sttProvider', e.target.value)}
                             >
                                 <option value="azure">Azure Speech</option>
-                                <option value="deepgram" disabled>Deepgram (Próximamente)</option>
-                                <option value="groq">Groq Whisper</option>
                             </Select>
-                        </div>
-
-                        <div className="space-y-4">
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Modelo</label>
-                            <Select
-                                aria-label="Modelo"
-                                value={browser.sttModel}
-                                onChange={(e) => update('sttModel', e.target.value)}
-                            >
-                                <option value="nova-2">Nova-2 (Fastest)</option>
-                                <option value="enhanced">Enhanced (Azure)</option>
-                                <option value="whisper-large">Whisper Large</option>
-                            </Select>
+                            <p className="text-[10px] text-slate-500 mt-1">El idioma de transcripción (ej. es-MX) se hereda automáticamente de la Configuración Base del Agente.</p>
                         </div>
                     </div>
                 </Accordion>
 
-                {/* Keywords Accordion */}
-                <Accordion
-                    isOpen={openSection === 'keywords'}
-                    onToggle={() => setOpenSection(openSection === 'keywords' ? null : 'keywords')}
-                    title={
-                        <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                            <Settings2 className="w-4 h-4" />
-                            Palabras Clave (Boosting)
-                        </span>
-                    }
-                >
-                    <div className="space-y-4">
-                        <div>
-                            <div className="flex justify-between mb-2">
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Keywords Boosting</label>
-                                <span className="text-[10px] text-slate-500">CSV: "Marca, 2.0", "Producto, 1.5"</span>
-                            </div>
-                            <textarea
-                                value={browser.sttKeywords}
-                                onChange={(e) => update('sttKeywords', e.target.value)}
-                                rows={2}
-                                className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                placeholder='[{"word": "MiMarca", "boost": 2.0}]'
-                            />
-                        </div>
-                    </div>
-                </Accordion>
-
-                {/* VAD & Thresholds Accordion */}
                 <Accordion
                     isOpen={openSection === 'vad'}
                     onToggle={() => setOpenSection(openSection === 'vad' ? null : 'vad')}
@@ -109,67 +66,8 @@ export const TranscriberSettings = () => {
                     }
                 >
                     <div className="space-y-4 pt-2">
-                        {/* Threshold */}
+                        {/* Threshold Local VAD */}
                         <div>
-                            <div className="flex justify-between mb-1">
-                                <span className="text-sm text-slate-300">Umbral de Palabras para Interrupción</span>
-                                <span className="text-emerald-400 font-mono">{browser.interruption_threshold}</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0" max="10" step="1"
-                                value={browser.interruption_threshold}
-                                onChange={(e) => update('interruption_threshold', parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                            />
-                            <p className="text-[10px] text-slate-500 mt-1">Palabras requeridas en el aire para detener al bot.</p>
-                        </div>
-
-                        {/* Blacklist */}
-                        <div className="pt-2 border-t border-white/5">
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Lista Negra (Falsos Positivos)</label>
-                            <textarea
-                                value={browser.hallucination_blacklist}
-                                onChange={(e) => update('hallucination_blacklist', e.target.value)}
-                                rows={1}
-                                className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                placeholder="Pero.,,Y...,Mm.,Oye.,Ah."
-                            />
-                        </div>
-
-                        {/* Silence Timeout */}
-                        <div className="pt-4 border-t border-white/5">
-                            <div className="flex justify-between mb-1">
-                                <span className="text-sm text-slate-300">Endpointing (Silencio Esperado)</span>
-                                <span className="text-emerald-400 font-mono">{browser.sttSilenceTimeout} ms</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="200" max="2000" step="100"
-                                value={browser.sttSilenceTimeout}
-                                onChange={(e) => update('sttSilenceTimeout', parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                            />
-                        </div>
-
-                        <div className="pt-4 border-t border-white/5">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <span className="text-sm font-bold text-emerald-400 block">Detección de Interrupción Inteligente</span>
-                                    <span className="text-[10px] text-slate-500">Usa IA (Deepgram) para evitar cortes cuando el usuario duda.</span>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        aria-label="Interrupción Inteligente"
-                                        checked={browser.sttUtteranceEnd === 'semantic'}
-                                        onChange={(e) => update('sttUtteranceEnd', e.target.checked ? 'semantic' : 'default')}
-                                        className="sr-only peer"
-                                    />
-                                    <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                                </label>
-                            </div>
-
                             <div className="flex justify-between mb-1">
                                 <span className="text-sm text-slate-300">Sensibilidad VAD Local (Silero)</span>
                                 <span className="text-emerald-400 font-mono">{browser.vad_threshold}</span>
@@ -183,58 +81,23 @@ export const TranscriberSettings = () => {
                                 className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                             />
                             <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-                                <span>0.1 (Muy Sensible)</span>
+                                <span>0.1 (Muy Sensible a ruidos)</span>
                                 <span>0.9 (Sordo)</span>
                             </div>
                         </div>
 
-                        {/* Telnyx Specific */}
-                        <div className="pt-4 border-t border-white/5">
-                            <div className="flex justify-between mb-1">
-                                <span className="text-sm text-slate-300">Sensibilidad RMS (Telefonía)</span>
-                                <span className="text-emerald-400 font-mono">{browser.interruptRMS}</span>
-                            </div>
-                            <input
-                                type="range"
-                                aria-label="Sensibilidad RMS"
-                                min="0" max="10000" step="100"
-                                value={browser.interruptRMS}
-                                onChange={(e) => update('interruptRMS', parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                        {/* Blacklist Hallucinations */}
+                        <div className="pt-2 border-t border-white/5">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Lista Negra (Falsos Positivos del VAD)</label>
+                            <textarea
+                                value={browser.hallucination_blacklist}
+                                onChange={(e) => update('hallucination_blacklist', e.target.value)}
+                                rows={1}
+                                className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                placeholder="Pero.,,Y...,Mm.,Oye.,Ah."
                             />
+                            <p className="text-[10px] text-slate-500 mt-1">Fragmentos cortos que el VAD captura por error y no deben enviarse al LLM.</p>
                         </div>
-                    </div>
-                </Accordion>
-
-                {/* Intelligence & Booleans */}
-                <Accordion
-                    isOpen={openSection === 'intelligence'}
-                    onToggle={() => setOpenSection(openSection === 'intelligence' ? null : 'intelligence')}
-                    title={
-                        <span className="text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                            <Brain className="w-4 h-4" />
-                            Capacidades Cognitivas y Formateo
-                        </span>
-                    }
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[
-                            { id: 'sttPunctuation', label: 'Puntuación Auto' },
-                            { id: 'sttSmartFormatting', label: 'Smart Formatting (Deepgram)' },
-                            { id: 'sttProfanityFilter', label: 'Filtro Automático de Groserías' },
-                            { id: 'sttDiarization', label: 'Diarización Distribuida (A/B)' },
-                            { id: 'sttMultilingual', label: 'Comprensión Multi-Lenguaje' }
-                        ].map(item => (
-                            <label key={item.id} className="flex items-center justify-between cursor-pointer p-3 rounded-lg border border-white/5 bg-slate-900/30 hover:bg-slate-900/50 transition-colors">
-                                <span className="text-sm text-slate-300">{item.label}</span>
-                                <input
-                                    type="checkbox"
-                                    checked={!!browser[item.id as keyof BrowserConfig]}
-                                    onChange={(e) => update(item.id as keyof BrowserConfig, e.target.checked)}
-                                    className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900 bg-slate-800"
-                                />
-                            </label>
-                        ))}
                     </div>
                 </Accordion>
             </div>
