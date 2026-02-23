@@ -44,14 +44,14 @@ const SimulatorPage = () => {
     return (
         <div className="p-4 h-[calc(100vh-64px)] flex flex-col space-y-4">
             {/* Header / Controls */}
-            <div className="flex items-center justify-between shrink-0">
-                <div className="flex items-center space-x-3">
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 shrink-0">
+                <div className="flex items-center space-x-3 mb-2 xl:mb-0">
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                         <span>🧪</span> Simulador 2.0
                     </h1>
                 </div>
 
-                <div className="flex items-center space-x-4 bg-slate-900/50 p-2 rounded-lg border border-slate-700">
+                <div className="flex flex-wrap items-center gap-4 bg-slate-900/50 p-2 rounded-lg border border-slate-700 w-full xl:w-auto">
                     <div className="group relative flex items-center">
                         <Button
                             variant="ghost"
@@ -73,7 +73,7 @@ const SimulatorPage = () => {
                             placeholder="Mensaje inicial (Opcional)..."
                             value={config.initialMsg}
                             onChange={(e) => setConfig(prev => ({ ...prev, initialMsg: e.target.value }))}
-                            className="w-64 text-sm"
+                            className="w-full sm:w-64 text-sm"
                         />
                         {/* Helper text invisible by default, visible on hover */}
                         <span className="absolute top-11 left-0 w-max text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 px-2 py-1 rounded border border-slate-700 pointer-events-none z-50 shadow-lg">

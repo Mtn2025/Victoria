@@ -21,7 +21,7 @@ export const FEATURES = {
     SIMULATOR_WEBSOCKET: true,     // Conexión WebSocket real al backend
     SIMULATOR_PANEL: true,         // Panel derecho (SimulatorPage UI)
     SIMULATOR_TRANSCRIPTS: true,   // Transcripciones en tiempo real
-    SIMULATOR_CONFIG: false,       // Panel izquierdo (pestañas Config)
+    SIMULATOR_CONFIG: true,        // Panel izquierdo (pestañas Config)
 
     // ── FASE 7: Agentes — activar después de verificar E2E ─────────────────
     AGENTS_LIST: false,            // Listar agentes desde DB
@@ -30,9 +30,9 @@ export const FEATURES = {
     AGENTS_ACTIVATE: false,        // Activar/desactivar agente
 
     // ── FASE 4-6: Config — activar después de verificar endpoints ──────────
-    CONFIG_MODEL: false,           // ModelSettings (LLM provider/model/temp)
-    CONFIG_VOICE: false,           // VoiceSettings (TTS voice/speed/pitch)
-    CONFIG_TRANSCRIBER: false,     // TranscriberSettings (STT language)
+    CONFIG_MODEL: true,            // ModelSettings (LLM provider/model/temp)
+    CONFIG_VOICE: true,            // VoiceSettings (TTS voice/speed/pitch)
+    CONFIG_TRANSCRIBER: true,      // TranscriberSettings (STT language)
 
     // ── FASE 8: Historial — activar después de verificar E2E ───────────────
     HISTORY_LIST: false,           // Lista de llamadas desde DB
