@@ -416,6 +416,8 @@ export const configSlice = createSlice({
                 if (stt.sttKeywords !== undefined) state.browser.sttKeywords = stt.sttKeywords
                 if (stt.interruption_threshold !== undefined) state.browser.interruption_threshold = stt.interruption_threshold
                 if (stt.vadSensitivity !== undefined) state.browser.vad_threshold = stt.vadSensitivity
+                if (stt.noise_suppression_level !== undefined) state.browser.noiseSuppressionLevel = stt.noise_suppression_level
+                if (stt.audio_codec !== undefined) state.browser.audioCodec = stt.audio_codec
             }
 
             if (data.flow_config) {
@@ -430,6 +432,8 @@ export const configSlice = createSlice({
                 if (flow.pacing_response_delay_ms !== undefined) state.browser.responseDelaySeconds = flow.pacing_response_delay_ms / 1000
                 if (flow.pacing_hyphenation !== undefined) state.browser.hyphenationEnabled = flow.pacing_hyphenation
                 if (flow.pacing_end_call_phrases !== undefined) state.browser.endCallPhrases = (flow.pacing_end_call_phrases || []).join(', ')
+                if (flow.enable_backchannel !== undefined) state.browser.enableBackchannel = flow.enable_backchannel
+                if (flow.idle_message !== undefined) state.browser.idleMessage = flow.idle_message
             }
 
             if (data.analysis_config) {
@@ -458,6 +462,8 @@ export const configSlice = createSlice({
                 if (sys.environment !== undefined) state.browser.environment = sys.environment
                 if (sys.privacy_mode !== undefined) state.browser.privacyMode = sys.privacy_mode
                 if (sys.audit_log_enabled !== undefined) state.browser.auditLogEnabled = sys.audit_log_enabled
+                if (sys.max_duration !== undefined) state.browser.maxDuration = sys.max_duration
+                if (sys.max_retries !== undefined) state.browser.maxRetries = sys.max_retries
             }
 
             if (data.tools_config && data.tools_config.length > 0) {

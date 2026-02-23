@@ -73,8 +73,12 @@ class ConfigDTO:
 
     # Advanced
     enable_denoising: bool = True
+    noise_suppression_level: str = "balanced"
+    audio_codec: str = "PCMU"
     enable_backchannel: bool = False
     max_duration: int = 300
+    max_retries: int = 1
+    idle_message: str = "¿Hola? ¿Sigues ahí?"
 
     # Telephony
     silence_timeout_ms_phone: Optional[int] = None

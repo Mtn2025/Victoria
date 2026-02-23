@@ -213,7 +213,8 @@ async def update_agent_config(
     # Merge STT config into metadata
     stt_updates = {}
     for field in ["sttProvider", "sttModel", "sttLang", "sttKeywords",
-                  "interruption_threshold", "vadSensitivity"]:
+                  "interruption_threshold", "vadSensitivity", 
+                  "noise_suppression_level", "audio_codec"]:
         val = getattr(update, field, None)
         if val is not None:
             stt_updates[field] = val
@@ -228,7 +229,8 @@ async def update_agent_config(
     for field in ["barge_in_enabled", "barge_in_sensitivity", "barge_in_phrases",
                   "amd_enabled", "amd_sensitivity", "amd_action", "amd_message",
                   "pacing_response_delay_ms", "pacing_wait_for_greeting",
-                  "pacing_hyphenation", "pacing_end_call_phrases"]:
+                  "pacing_hyphenation", "pacing_end_call_phrases",
+                  "enable_backchannel", "idle_message"]:
         val = getattr(update, field, None)
         if val is not None:
             flow_updates[field] = val
@@ -247,6 +249,18 @@ async def update_agent_config(
     if analysis_updates:
         existing_analysis = agent.metadata.get("analysis_config") or {}
         agent.metadata["analysis_config"] = {**existing_analysis, **analysis_updates}
+
+    # Merge System Config
+    system_updates = {}
+    for field in ["concurrency_limit", "spend_limit_daily", "environment",
+                  "privacy_mode", "audit_log_enabled",
+                  "max_duration", "max_retries"]:
+        val = getattr(update, field, None)
+        if val is not None:
+            system_updates[field] = val
+    if system_updates:
+        existing_system = agent.metadata.get("system_config") or {}
+        agent.metadata["system_config"] = {**existing_system, **system_updates}
 
     # Tools
     if update.tools_config is not None:

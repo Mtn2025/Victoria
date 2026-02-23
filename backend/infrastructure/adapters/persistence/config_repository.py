@@ -144,6 +144,12 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "pacing_wait_for_greeting": config.pacing_wait_for_greeting,
                 "pacing_hyphenation": config.pacing_hyphenation,
                 "pacing_end_call_phrases": config.pacing_end_call_phrases,
+                "enable_backchannel": config.enable_backchannel,
+                "idle_message": config.idle_message,
+            },
+            stt_config={
+                "noise_suppression_level": config.noise_suppression_level,
+                "audio_codec": config.audio_codec,
             },
             analysis_config={
                 "analysis_prompt": config.analysis_prompt,
@@ -163,6 +169,8 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "environment": config.environment,
                 "privacy_mode": config.privacy_mode,
                 "audit_log_enabled": config.audit_log_enabled,
+                "max_duration": config.max_duration,
+                "max_retries": config.max_retries,
             }
         )
         
@@ -184,6 +192,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         flow_config = agent.flow_config or {}
         analysis_config = agent.analysis_config or {}
         system_config = agent.system_config or {}
+        stt_config = agent.stt_config or {}
         
         return ConfigDTO(
             # LLM Config
@@ -205,9 +214,13 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             stt_language="es-MX",  # Default
             silence_timeout_ms=agent.silence_timeout_ms or 1000,
             # Advanced
-            enable_denoising=True,  # Default
-            enable_backchannel=False,  # Default
-            max_duration=300,  # Default
+            enable_denoising=stt_config.get("noise_suppression_level", "balanced") != "off",
+            noise_suppression_level=stt_config.get("noise_suppression_level", "balanced"),
+            audio_codec=stt_config.get("audio_codec", "PCMU"),
+            enable_backchannel=flow_config.get("enable_backchannel", False),
+            max_duration=system_config.get("max_duration", 300),
+            max_retries=system_config.get("max_retries", 1),
+            idle_message=flow_config.get("idle_message", "¿Hola? ¿Sigues ahí?"),
             # Tools
             async_tools=tools_config.get("enabled", False),
             tool_timeout_ms=tools_config.get("timeout_ms", 5000),

@@ -70,6 +70,13 @@ interface BackendConfigUpdate {
     environment?: string
     privacy_mode?: boolean
     audit_log_enabled?: boolean
+    // Advanced
+    noise_suppression_level?: string
+    audio_codec?: string
+    enable_backchannel?: boolean
+    max_duration?: number
+    max_retries?: number
+    idle_message?: string
 }
 
 export const configService = {
@@ -126,6 +133,8 @@ export const configService = {
         if (config.sttKeywords !== undefined) payload.sttKeywords = config.sttKeywords
         if (config.interruption_threshold !== undefined) payload.interruption_threshold = config.interruption_threshold
         if (config.vad_threshold !== undefined) payload.vadSensitivity = config.vad_threshold
+        if (config.noiseSuppressionLevel !== undefined) payload.noise_suppression_level = config.noiseSuppressionLevel
+        if (config.audioCodec !== undefined) payload.audio_codec = config.audioCodec
 
         // Tools — only sent if any tool field is present
         if (config.toolsSchema !== undefined
@@ -171,6 +180,8 @@ export const configService = {
                 ? config.endCallPhrases.split(',').map((p: string) => p.trim()).filter(Boolean)
                 : []
         }
+        if (config.enableBackchannel !== undefined) payload.enable_backchannel = config.enableBackchannel
+        if (config.idleMessage !== undefined) payload.idle_message = config.idleMessage
 
         // --- ANALYSIS & INTEGRATIONS ---
         if (config.analysisPrompt !== undefined) payload.analysis_prompt = config.analysisPrompt
@@ -188,6 +199,8 @@ export const configService = {
         if (config.environment !== undefined) payload.environment = config.environment
         if (config.privacyMode !== undefined) payload.privacy_mode = config.privacyMode
         if (config.auditLogEnabled !== undefined) payload.audit_log_enabled = config.auditLogEnabled
+        if (config.maxDuration !== undefined) payload.max_duration = config.maxDuration
+        if (config.maxRetries !== undefined) payload.max_retries = config.maxRetries
 
         if (config.extractionSchema !== undefined) {
             try {

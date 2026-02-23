@@ -88,6 +88,13 @@ class ConfigUpdate(BaseModel):
     environment: Optional[str] = None
     privacy_mode: Optional[bool] = None
     audit_log_enabled: Optional[bool] = None
+    # Advanced
+    noise_suppression_level: Optional[str] = None
+    audio_codec: Optional[str] = None
+    enable_backchannel: Optional[bool] = None
+    max_duration: Optional[int] = None
+    max_retries: Optional[int] = None
+    idle_message: Optional[str] = None
 
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
