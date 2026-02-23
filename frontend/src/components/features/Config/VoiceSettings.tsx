@@ -133,18 +133,21 @@ export const VoiceSettings = () => {
                     }
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Provider & Language */}
+                        {/* Setup Options (Left Column) */}
                         <div className="space-y-4">
-                            <Select
-                                value={browser.voiceProvider}
-                                onChange={(e) => update('voiceProvider', e.target.value)}
-                                className="w-full"
-                            >
-                                {availableTTSProviders.length === 0 && <option value="azure" disabled>Cargando proveedores...</option>}
-                                {availableTTSProviders.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </Select>
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Proveedor TTS</label>
+                                <Select
+                                    value={browser.voiceProvider}
+                                    onChange={(e) => update('voiceProvider', e.target.value)}
+                                    className="w-full"
+                                >
+                                    {availableTTSProviders.length === 0 && <option value="azure" disabled>Cargando proveedores...</option>}
+                                    {availableTTSProviders.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
 
                             <div>
                                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
@@ -156,7 +159,7 @@ export const VoiceSettings = () => {
                                 </div>
                                 <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
                                     <AlertCircle size={10} className="text-blue-400" />
-                                    El Agente dicta el idioma general STT/TTS.
+                                    El Agente dicta el idioma general.
                                 </p>
                             </div>
 
@@ -176,7 +179,7 @@ export const VoiceSettings = () => {
                             </div>
                         </div>
 
-                        {/* Voice Selection */}
+                        {/* Voice Definition (Right Column) */}
                         <div className="space-y-4">
                             <div>
                                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
@@ -184,6 +187,7 @@ export const VoiceSettings = () => {
                                     value={browser.voiceId}
                                     onChange={(e) => update('voiceId', e.target.value)}
                                     disabled={isLoadingOptions || availableVoices.length === 0}
+                                    className="w-full"
                                 >
                                     <option value="" disabled>Seleccionar Voz...</option>
                                     {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
@@ -201,6 +205,7 @@ export const VoiceSettings = () => {
                                     <Select
                                         value={browser.voiceStyle}
                                         onChange={(e) => update('voiceStyle', e.target.value)}
+                                        className="w-full"
                                     >
                                         <option value="">(Default)</option>
                                         {availableStyles.map(s => (
