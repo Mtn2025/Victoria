@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAppDispatch, useAppSelector } from "@/hooks/useRedux"
 import { setActiveTab, DashboardTab } from "@/store/slices/uiSlice"
+import { FEATURES } from "@/utils/featureFlags"
 import { cn } from "@/utils/cn"
 import {
     Bot,
@@ -17,7 +18,8 @@ import {
     Activity,
     LogOut,
     LucideIcon,
-    Globe
+    Globe,
+    Lock,
 } from "lucide-react"
 
 // Types of nav items
@@ -29,22 +31,19 @@ interface NavItem {
     icon: LucideIcon
     id?: DashboardTab    // For config items
     path?: string        // For page items
+    // Feature flag key that gates this item. If undefined → always accessible.
+    featureKey?: keyof typeof FEATURES
 }
 
-// Tabs completamente conectados al backend
-const ACTIVE_TABS = new Set(['model', 'voice', 'transcriber'])
-
 const NAV_ITEMS: NavItem[] = [
-    // --- Pages ---
-    { type: 'page', path: '/simulator', label: 'Simulador', icon: Globe }, // Main view
-    { type: 'page', path: '/agents', label: 'Agentes', icon: Bot },
+    // ── Pages ──────────────────────────────────────────────────────────────
+    { type: 'page', path: '/simulator', label: 'Simulador', icon: Globe },
+    { type: 'page', path: '/agents', label: 'Agentes', icon: Bot, featureKey: 'AGENTS_LIST' },
 
-    // --- Config Tabs (solo estos 3 tienen conexión real al backend) ---
-    { type: 'config', id: 'model', label: 'Modelo', icon: Cpu },
-    { type: 'config', id: 'voice', label: 'Voz', icon: Mic },
-    { type: 'config', id: 'transcriber', label: 'Oído', icon: Ear },
-
-    // --- Config Tabs en reconstrucción (stub) ---
+    // ── Config Tabs (activar uno por uno por fase) ──────────────────────────
+    { type: 'config', id: 'model', label: 'Modelo', icon: Cpu, featureKey: 'CONFIG_MODEL' },
+    { type: 'config', id: 'voice', label: 'Voz', icon: Mic, featureKey: 'CONFIG_VOICE' },
+    { type: 'config', id: 'transcriber', label: 'Oído', icon: Ear, featureKey: 'CONFIG_TRANSCRIBER' },
     { type: 'config', id: 'tools', label: 'Herramientas', icon: Briefcase },
     { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone },
     { type: 'config', id: 'flow', label: 'Flujo', icon: GitCompare },
@@ -53,8 +52,8 @@ const NAV_ITEMS: NavItem[] = [
     { type: 'config', id: 'system', label: 'Sistema', icon: Shield },
     { type: 'config', id: 'advanced', label: 'Avanzado', icon: Settings },
 
-    // --- Pages ---
-    { type: 'page', path: '/history', label: 'Historial', icon: History },
+    // ── Pages (continued) ──────────────────────────────────────────────────
+    { type: 'page', path: '/history', label: 'Historial', icon: History, featureKey: 'HISTORY_LIST' },
 ]
 
 export const Sidebar = () => {
@@ -65,12 +64,16 @@ export const Sidebar = () => {
     const activeAgent = useAppSelector((state) => state.agents.activeAgent)
 
     const handleNavigation = (item: NavItem) => {
+        // If gated by a feature flag that is off → do nothing
+        if (item.featureKey && !FEATURES[item.featureKey]) return
+
+        // Config tabs without a featureKey are still stubs (FASE 9) → do nothing
+        if (item.type === 'config' && !item.featureKey) return
+
         if (item.type === 'page' && item.path) {
             navigate(item.path)
         } else if (item.type === 'config' && item.id) {
-            // Update config tab
             dispatch(setActiveTab(item.id))
-            // Ensure we are on the simulator page to see the agent + config
             if (location.pathname !== '/simulator') {
                 navigate('/simulator')
             }
@@ -78,9 +81,9 @@ export const Sidebar = () => {
     }
 
     const handleLogout = () => {
-        localStorage.removeItem('api_key');
-        localStorage.removeItem('apiKey'); // Just in case
-        window.location.href = '/';
+        localStorage.removeItem('api_key')
+        localStorage.removeItem('apiKey')
+        window.location.href = '/'
     }
 
     return (
@@ -95,13 +98,18 @@ export const Sidebar = () => {
                 {NAV_ITEMS.map((item, index) => {
                     const Icon = item.icon
 
+                    // Is this item gated and disabled?
+                    const isDisabled = (item.featureKey && !FEATURES[item.featureKey]) ||
+                        (item.type === 'config' && !item.featureKey)
+
                     // Determine Active State
                     let isActive = false
-                    if (item.type === 'page') {
-                        isActive = location.pathname === item.path
-                    } else if (item.type === 'config') {
-                        // It's active if we are on simulator AND this tab is selected
-                        isActive = location.pathname === '/simulator' && activeTab === item.id
+                    if (!isDisabled) {
+                        if (item.type === 'page') {
+                            isActive = location.pathname === item.path
+                        } else if (item.type === 'config') {
+                            isActive = location.pathname === '/simulator' && activeTab === item.id
+                        }
                     }
 
                     return (
@@ -109,24 +117,28 @@ export const Sidebar = () => {
                             <button
                                 onClick={() => handleNavigation(item)}
                                 title={item.label}
+                                disabled={!!isDisabled}
                                 className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 relative group-hover:scale-105",
-                                    isActive
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                                        : item.type === 'config' && !ACTIVE_TABS.has(item.id!)
-                                            ? "text-slate-600 hover:text-slate-400 hover:bg-slate-800/30"
-                                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 relative",
+                                    isDisabled
+                                        ? "text-slate-800 cursor-not-allowed"
+                                        : isActive
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20 group-hover:scale-105"
+                                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 group-hover:scale-105"
                                 )}
                             >
                                 <Icon size={20} />
-                                {/* Dot indicator for stub tabs */}
-                                {item.type === 'config' && !ACTIVE_TABS.has(item.id!) && (
-                                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500/60" />
+                                {/* Lock icon for disabled items */}
+                                {isDisabled && (
+                                    <Lock
+                                        size={8}
+                                        className="absolute bottom-1.5 right-1.5 text-slate-700"
+                                    />
                                 )}
                             </button>
 
-                            {/* Active agent name shown below Bot icon */}
-                            {item.path === '/agents' && (
+                            {/* Agent name below Bot icon */}
+                            {item.path === '/agents' && !isDisabled && (
                                 <span className={cn(
                                     "text-[9px] leading-tight text-center max-w-[52px] truncate mt-0.5",
                                     activeAgent ? "text-blue-400" : "text-amber-500"
@@ -138,6 +150,7 @@ export const Sidebar = () => {
                             {/* Tooltip */}
                             <div className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-700 font-medium">
                                 {item.label}
+                                {isDisabled && <span className="ml-1 text-slate-500">(próx. fase)</span>}
                             </div>
                         </div>
                     )

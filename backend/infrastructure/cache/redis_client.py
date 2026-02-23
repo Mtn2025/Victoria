@@ -8,6 +8,8 @@ import json
 import logging
 from typing import Any
 
+from backend.infrastructure.config.settings import settings
+
 try:
     import redis.asyncio as redis
     REDIS_AVAILABLE = True
@@ -37,7 +39,7 @@ class RedisClient:
         >>> await client.close()
     """
     
-    def __init__(self, url: str = "redis://localhost:6379/0"):
+    def __init__(self, url: str | None = None):
         """
         Initialize Redis client.
         
@@ -49,7 +51,7 @@ class RedisClient:
                 "⚠️ redis-py not installed. Install with: pip install redis"
             )
         
-        self.url = url
+        self.url = url or settings.REDIS_URL
         self._client: redis.Redis | None = None
         self._connected = False
     
@@ -162,7 +164,7 @@ class RedisClient:
 _redis_client: RedisClient | None = None
 
 
-def get_redis_client(url: str = "redis://localhost:6379/0") -> RedisClient:
+def get_redis_client(url: str | None = None) -> RedisClient:
     """
     Get singleton Redis client instance.
     

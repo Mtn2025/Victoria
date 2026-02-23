@@ -16,9 +16,8 @@ class MockSTTSession(STTSession):
         self.closed = False
 
     async def process_audio(self, audio_chunk: bytes) -> None:
-        # Simulate processing - if "trigger" in bytes, yield text
         if b"trigger" in audio_chunk:
-            await self.queue.put("Hello World")
+            await self.queue.put(("Hello World", True))
 
     async def get_results(self) -> AsyncGenerator[str, None]:
         while not self.closed:

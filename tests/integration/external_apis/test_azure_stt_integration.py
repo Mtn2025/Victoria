@@ -114,9 +114,10 @@ async def test_session_get_results(mock_speech_sdk):
     # The adapter loop has a timeout/wait strategy
     
     gen = session.get_results()
-    text = await anext(gen) # python 3.10+
+    text, is_final = await anext(gen) # python 3.10+
     
     assert text == "Streamed Text"
+    assert is_final is True
     
     await session.close()
 

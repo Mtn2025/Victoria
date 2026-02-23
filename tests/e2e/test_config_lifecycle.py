@@ -34,18 +34,21 @@ class TestConfigEndpointsE2E:
         assert response.json() == {"status": "ok", "service": "victoria-backend"}
 
     async def test_agent_config_lifecycle(self, client, async_db_session):
-        # 1. Seed DB
-        repo = SqlAlchemyAgentRepository(async_db_session)
-        agent = Agent(
-            name="e2e-agent",
-            system_prompt="E2E System Prompt",
-            voice_config=VoiceConfig(name="en-US-JennyNeural"),
-            first_message="E2E Hello"
-        )
-        await repo.update_agent(agent)
+        # 1. Create Agent via API
+        agent_res = client.post("/api/agents", json={"name": "e2e-agent"})
+        assert agent_res.status_code == 201
+        agent_id = agent_res.json()["agent_uuid"]
+        
+        # Initial config via PATCH
+        initial_config = {
+            "system_prompt": "E2E System Prompt",
+            "voice_name": "en-US-JennyNeural"
+        }
+        client.patch(f"/api/agents/{agent_id}", json=initial_config)
+        client.post(f"/api/agents/{agent_id}/activate")
         
         # 2. GET Agent Config
-        response = client.get("/api/config/e2e-agent")
+        response = client.get("/api/agents/active")
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "e2e-agent"
@@ -54,24 +57,23 @@ class TestConfigEndpointsE2E:
 
         # 3. PATCH Agent Config
         update_payload = {
-            "agent_id": "e2e-agent",
             "system_prompt": "Updated E2E Prompt",
             "voice_speed": 1.5
         }
-        response = client.patch("/api/config/", json=update_payload)
+        response = client.patch(f"/api/agents/{agent_id}", json=update_payload)
         assert response.status_code == 200
-        assert response.json()["status"] == "updated"
+        assert response.json()["status"] == "ok"
         
         # 4. Verify Update via GET
-        response = client.get("/api/config/e2e-agent")
+        response = client.get("/api/agents/active")
         data = response.json()
         assert data["system_prompt"] == "Updated E2E Prompt"
         assert data["voice"]["speed"] == 1.5
 
     async def test_tts_options(self, client):
-        # Mock Azure Adapter within the endpoint
-        with patch("backend.interfaces.http.endpoints.config.AzureTTSAdapter") as MockAdapter:
-            mock_instance = MockAdapter.return_value
+        # Mock StaticTTSRegistryAdapter within the endpoint
+        with patch("backend.infrastructure.adapters.tts.static_registry.StaticTTSRegistryAdapter.get_provider_adapter") as MockGetAdapter:
+            mock_instance = MockGetAdapter.return_value
             # Define simple mock return objects
             mock_voice = MagicMock()
             mock_voice.__dict__ = {"name": "TestVoice", "locale": "en-US"}
@@ -86,4 +88,5 @@ class TestConfigEndpointsE2E:
             # Test Languages
             response = client.get("/api/config/options/tts/languages")
             assert response.status_code == 200
-            assert "en-US" in response.json()["languages"]
+            langs = [l["id"] for l in response.json()["languages"]]
+            assert "en-US" in langs

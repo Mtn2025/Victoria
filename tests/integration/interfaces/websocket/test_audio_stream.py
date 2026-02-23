@@ -8,10 +8,12 @@ from backend.application.services.call_orchestrator import CallOrchestrator
 @pytest.fixture
 def mock_orchestrator():
     orchestrator = AsyncMock(spec=CallOrchestrator)
+    orchestrator.pipeline = None
     # Mock async generator for process_audio_input
     async def mock_gen(chunk):
         yield b"response_chunk"
     orchestrator.process_audio_input = MagicMock(side_effect=mock_gen)
+    orchestrator.start_session.return_value = None
     return orchestrator
 
 def test_websocket_connect_disconnect():

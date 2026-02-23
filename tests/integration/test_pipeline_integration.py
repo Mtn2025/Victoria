@@ -31,7 +31,7 @@ def mock_stt_port():
     session = Mock() # MagicMock because start_stream IS awaited and returns this, but get_results is NOT awaited
     
     async def get_results_mock():
-        yield "Hola, quiero información"
+        yield ("Hola, quiero información", True)
         
     # The session.get_results method should return the async generator
     session.get_results.return_value = get_results_mock()

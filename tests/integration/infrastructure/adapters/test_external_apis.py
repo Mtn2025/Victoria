@@ -47,7 +47,7 @@ async def test_groq_adapter_generate_response_success(test_conversation, test_ag
     
     # Verify args
     call_args = adapter.client.chat.completions.create.await_args
-    assert call_args.kwargs["model"] == "llama3-70b-8192" # Default
+    assert call_args.kwargs["model"] == "llama-3.3-70b-versatile" # Default
     assert len(call_args.kwargs["messages"]) == 2 # System + User
 
 @pytest.mark.asyncio

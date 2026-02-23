@@ -33,18 +33,16 @@ def client(async_db_session):
     
     # Create Client
     with TestClient(app) as c:
+        c.headers.update({"X-API-Key": "dev-secret-key"})
         yield c
 
 @pytest.fixture
 def mock_azure_adapter():
     """High Fidelity Mock for AzureTTSAdapter."""
-    with patch("backend.interfaces.http.endpoints.config.AzureTTSAdapter") as MockAdapter:
-        # Instance mock
-        instance = MockAdapter.return_value
+    with patch("backend.infrastructure.adapters.tts.static_registry.StaticTTSRegistryAdapter.get_provider_adapter") as MockGetAdapter:
+        instance = MockGetAdapter.return_value
         
-        # Mock get_available_voices
-        async def mock_voices(lang=None):
-            # Return fake objects with __dict__ as expected by endpoint
+        async def mock_voices(*args, **kwargs):
             v1 = MagicMock()
             v1.__dict__ = {"name": "en-US-JennyNeural", "locale": "en-US"}
             return [v1]
@@ -56,23 +54,27 @@ def mock_azure_adapter():
 
 class TestConfigEndpoints:
     
-    def test_get_agent_config_not_found(self, client):
-        response = client.get("/api/config/NonExistentAgent")
-        assert response.status_code == 404
-        
     def test_update_and_get_agent_config(self, client):
-        # 1. Update (creates if not exists)
+        # 1. Create agent
+        response = client.post("/api/agents", json={"name": "IntegrationTestAgent"})
+        assert response.status_code == 201
+        agent_id = response.json()["agent_uuid"]
+        
+        # 2. Update via PATCH
         payload = {
-            "agent_id": "IntegrationTestAgent",
             "system_prompt": "Updated Prompt",
             "voice_name": "en-US-GuyNeural"
         }
-        response = client.patch("/api/config/", json=payload)
+        response = client.patch(f"/api/agents/{agent_id}", json=payload)
         assert response.status_code == 200
-        assert response.json()["status"] == "updated"
-        
-        # 2. Get
-        response = client.get("/api/config/IntegrationTestAgent")
+        assert response.json()["status"] == "ok"
+
+        # 3. Activate agent
+        response = client.post(f"/api/agents/{agent_id}/activate")
+        assert response.status_code == 200
+
+        # 4. Get active agent
+        response = client.get("/api/agents/active")
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "IntegrationTestAgent"
@@ -89,7 +91,8 @@ class TestConfigEndpoints:
         # Languages
         response = client.get("/api/config/options/tts/languages")
         assert response.status_code == 200
-        assert "en-US" in response.json()["languages"]
+        langs = [l["id"] for l in response.json()["languages"]]
+        assert "en-US" in langs
 
 
 class TestHistoryEndpoints:

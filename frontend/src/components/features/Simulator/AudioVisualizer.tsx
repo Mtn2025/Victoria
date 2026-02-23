@@ -19,12 +19,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ mode, analyser
 
         const draw = () => {
             if (!analyser && !outputAnalyser) {
-                // Idle state
+                // Idle state - Limpiamos el canvas sin pintar nada.
+                // El overlay padre (SimulatorPage) se encargará de mostrar el texto profesional "Listo para conectar".
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#1e293b'; // slate-800
-                ctx.font = '12px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('Waiting for connection...', canvas.width / 2, canvas.height / 2);
                 return;
             }
 

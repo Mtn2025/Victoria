@@ -19,8 +19,8 @@ class TestSTTProcessor:
     def mock_session(self):
         session = AsyncMock(spec=STTSession)
         async def result_gen():
-            yield "Hello"
-            yield "World"
+            yield ("Hello", True)
+            yield ("World", True)
         session.get_results.return_value = result_gen()
         return session
 

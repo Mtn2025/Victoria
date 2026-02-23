@@ -59,9 +59,9 @@ class TestAzureSTTSession:
 
         session._on_recognized(evt)
 
-        # Must have called call_soon_threadsafe with put_nowait and the text
+        # Must have called call_soon_threadsafe with put_nowait and the text tuple
         session._loop.call_soon_threadsafe.assert_called_once_with(
-            session._queue.put_nowait, "Hola mundo"
+            session._queue.put_nowait, ("Hola mundo", True)
         )
 
     @pytest.mark.asyncio
@@ -121,14 +121,14 @@ class TestAzureSTTSession:
 
         async def consumer():
             try:
-                text = await asyncio.wait_for(queue.get(), timeout=1.0)
+                text, is_final = await asyncio.wait_for(queue.get(), timeout=1.0)
                 received.append(text)
             except asyncio.TimeoutError:
                 pass
 
         def fake_azure_callback():
             # Simula _on_recognized desde hilo C++ del SDK
-            loop.call_soon_threadsafe(queue.put_nowait, "transcript_from_thread")
+            loop.call_soon_threadsafe(queue.put_nowait, ("transcript_from_thread", True))
 
         t = threading.Thread(target=fake_azure_callback)
         t.start()

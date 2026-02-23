@@ -70,7 +70,11 @@ async def test_e2e_full_call_flow(async_db_session: AsyncSession, override_get_d
 
         # STT Mock
         mock_stt_instance = MockSTT.return_value
-        mock_stt_instance.transcribe = AsyncMock(return_value="Hello World")
+        
+        async def mock_stt_stream():
+            yield ("Hello World", True)
+            
+        mock_stt_instance.get_results = MagicMock(return_value=mock_stt_stream())
         
         # VAD Mock
         # VADProcessor is instantiated as vad = VADProcessor(...)
@@ -82,8 +86,14 @@ async def test_e2e_full_call_flow(async_db_session: AsyncSession, override_get_d
         
         # --- EXECUTION ---
         
+        # 0. Create and activate Agent
+        agent_res = client.post("/api/agents", json={"name": "e2e-agent"})
+        assert agent_res.status_code == 201
+        agent_id = agent_res.json()["agent_uuid"]
+        client.post(f"/api/agents/{agent_id}/activate")
+        
         # 1. Connect WebSocket
-        with client.websocket_connect("/ws/media-stream?client=browser&agent_id=default") as ws:
+        with client.websocket_connect("/ws/media-stream?client=browser") as ws:
             
             # 2. Start
             ws.send_json({"type": "start", "stream_id": "e2e-stream-1"})

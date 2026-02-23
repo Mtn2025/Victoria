@@ -221,6 +221,11 @@ class LLMProcessor(FrameProcessor):
         # Flush remaining
         if sentence_buffer.strip():
              await self.push_frame(TextFrame(text=sentence_buffer, role="assistant", is_final=True), FrameDirection.DOWNSTREAM)
+             if self.transcript_callback:
+                 try:
+                     await self.transcript_callback("assistant", sentence_buffer)
+                 except Exception:
+                     pass
              
         # Update History
         if full_response_buffer.strip():

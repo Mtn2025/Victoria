@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     """
     GROQ_API_KEY: Optional[str] = None
     ENVIRONMENT: str = "development" # development, staging, production
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "*"
+    REDIS_URL: str = "redis://redis:6379/0" # Default for docker-compose, override via env
     
     AZURE_SPEECH_KEY: Optional[str] = None
     AZURE_SPEECH_REGION: str = "eastus"
@@ -54,19 +55,11 @@ class Settings(BaseSettings):
             
             self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_SERVER}:{port}/{self.POSTGRES_DB}"
         else:
-            if self.ENVIRONMENT == "production":
-                missing_vars = []
-                if not self.POSTGRES_USER: missing_vars.append("POSTGRES_USER")
-                if not self.POSTGRES_SERVER: missing_vars.append("POSTGRES_SERVER")
-                if not self.POSTGRES_DB: missing_vars.append("POSTGRES_DB")
-                
-                raise ValueError(
-                    f"Production environment strictly requires DATABASE_URL or PostgreSQL configuration variables. "
-                    f"Missing: {', '.join(missing_vars)}. "
-                )
-            # Default fallback for local development and tests
-            self.DATABASE_URL = "sqlite+aiosqlite:///./victoria.db"
-            
+            missing_vars = ["POSTGRES_USER", "POSTGRES_SERVER", "POSTGRES_DB"]
+            raise ValueError(
+                f"Missing DATABASE_URL. It must be provided via env. Alternatively, missing: {', '.join(missing_vars)}. "
+            )
+
         return self
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

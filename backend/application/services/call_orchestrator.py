@@ -258,6 +258,13 @@ class CallOrchestrator:
                         trace_id=stream_id
                     )
                     logger.info(f"✅ Greeting synthesized ({len(greeting_audio)} bytes)")
+                    
+                    # Notify Simulator front-end about the greeting transcript
+                    if transcript_callback:
+                        try:
+                            await transcript_callback("assistant", agent.first_message)
+                        except Exception:
+                            pass
                 except Exception as e:
                     logger.warning(f"⚠️ Greeting synthesis failed: {e}")
 
