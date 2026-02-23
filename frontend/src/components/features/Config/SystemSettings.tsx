@@ -1,13 +1,16 @@
+import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
+import { Accordion } from '@/components/ui/Accordion'
 import { BrowserConfig } from '@/types/config'
 import { Shield, Lock, LayoutGrid, Activity } from 'lucide-react'
 
 export const SystemSettings = () => {
     const dispatch = useAppDispatch()
     const { browser } = useAppSelector(state => state.config)
+    const [openSection, setOpenSection] = useState<string | null>('limits')
 
     const update = (key: keyof BrowserConfig, value: any) => {
         dispatch(updateBrowserConfig({ [key]: value }))
@@ -26,16 +29,23 @@ export const SystemSettings = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+            <div className="space-y-4">
                 {/* 1. Governance & Limits */}
-                <div className="glass-panel p-5 rounded-xl border border-white/5 relative bg-slate-900/50">
-                    <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-red-400" />
-                        Límites de Seguridad
-                    </h4>
-
-                    <div className="space-y-6">
+                <Accordion
+                    isOpen={openSection === 'limits'}
+                    onToggle={() => setOpenSection(openSection === 'limits' ? null : 'limits')}
+                    className="border-red-500/30"
+                    headerClassName="hover:bg-red-900/20"
+                    title={
+                        <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-red-400" />
+                            <span className="text-sm font-bold text-red-400 tracking-wider uppercase">
+                                Límites de Seguridad
+                            </span>
+                        </div>
+                    }
+                >
+                    <div className="space-y-6 pt-2">
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <label className="text-[10px] uppercase text-slate-500 font-bold">Concurrency Limit</label>
@@ -62,20 +72,28 @@ export const SystemSettings = () => {
                                 aria-label="Daily Spend Limit"
                                 value={browser.spendLimitDaily}
                                 onChange={(e) => update('spendLimitDaily', parseFloat(e.target.value))}
-                                className="text-center font-mono text-xs"
+                                className="text-center font-mono text-xs max-w-[120px]"
                             />
                         </div>
                     </div>
-                </div>
+                </Accordion>
 
                 {/* 2. Environment & Privacy */}
-                <div className="glass-panel p-5 rounded-xl border border-white/5 relative bg-slate-900/50">
-                    <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-blue-400" />
-                        Entorno & Privacidad
-                    </h4>
-
-                    <div className="space-y-4">
+                <Accordion
+                    isOpen={openSection === 'privacy'}
+                    onToggle={() => setOpenSection(openSection === 'privacy' ? null : 'privacy')}
+                    className="border-blue-500/30"
+                    headerClassName="hover:bg-blue-900/20"
+                    title={
+                        <div className="flex items-center gap-2">
+                            <Lock className="w-4 h-4 text-blue-400" />
+                            <span className="text-sm font-bold text-blue-400 tracking-wider uppercase">
+                                Entorno & Privacidad
+                            </span>
+                        </div>
+                    }
+                >
+                    <div className="space-y-4 pt-2">
                         <div>
                             <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Environment Tag</label>
                             <Select
@@ -117,7 +135,7 @@ export const SystemSettings = () => {
                             />
                         </div>
                     </div>
-                </div>
+                </Accordion>
             </div>
 
             {/* Health Status */}
