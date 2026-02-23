@@ -38,6 +38,15 @@ export const FEATURES = {
     HISTORY_LIST: false,           // Lista de llamadas desde DB
     HISTORY_DETAIL: false,         // Detalle + transcripción completa
     HISTORY_EXTRACTION: false,     // Datos extraídos (intent, summary, entities)
+
+    // ── FASE 9: Restantes (Desbloqueo visual 1x1) ──────────────────────────
+    CONFIG_TOOLS: true,
+    CONFIG_CAMPAIGNS: true,
+    CONFIG_FLOW: true,
+    CONFIG_ANALYSIS: true,
+    CONFIG_CONNECTIVITY: true,
+    CONFIG_SYSTEM: true,
+    CONFIG_ADVANCED: true,
 } as const
 
 export type FeatureKey = keyof typeof FEATURES
