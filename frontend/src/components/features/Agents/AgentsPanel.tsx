@@ -41,11 +41,12 @@ const LANGUAGE_MAP: Record<string, { label: string; flag: string }> = {
 // --------------------------------------------------------------------- //
 interface ManageModalProps {
     agent: Agent
+    allAgents: Agent[]
     onClose: () => void
     onConfigure: (agent: Agent) => void
 }
 
-const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
+const ManageModal = ({ agent, allAgents, onClose, onConfigure }: ManageModalProps) => {
     const dispatch = useAppDispatch()
 
     // Name editing
@@ -59,12 +60,20 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
     const [deleting, setDeleting] = useState(false)
     const [deleteError, setDeleteError] = useState('')
 
+    const isOnlyAgent = allAgents.length <= 1
+
     const handleSaveName = async () => {
-        if (!name.trim()) { setNameError('El nombre no puede estar vacío'); return }
-        if (name.trim() === agent.name) { setEditingName(false); return }
+        const newName = name.trim()
+        if (!newName) { setNameError('El nombre no puede estar vacío'); return }
+        if (newName === agent.name) { setEditingName(false); return }
+
+        // Frontend Duplicate Validation
+        const isDuplicate = allAgents.some(a => a.name.toLowerCase() === newName.toLowerCase() && a.agent_uuid !== agent.agent_uuid)
+        if (isDuplicate) { setNameError('Ya existe un agente con ese nombre'); return }
+
         setSaving(true)
         try {
-            await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: name.trim() })).unwrap()
+            await dispatch(updateAgentName({ agentUuid: agent.agent_uuid, name: newName })).unwrap()
             setEditingName(false)
             setNameError('')
         } catch {
@@ -75,6 +84,8 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
     }
 
     const handleDelete = async () => {
+        if (isOnlyAgent) return // Safety catch
+
         setDeleting(true)
         setDeleteError('')
         try {
@@ -173,17 +184,17 @@ const ManageModal = ({ agent, onClose, onConfigure }: ManageModalProps) => {
                 {!confirmDelete ? (
                     <button
                         onClick={() => setConfirmDelete(true)}
-                        disabled={agent.is_active}
-                        title={agent.is_active ? 'No puedes eliminar el agente activo' : 'Eliminar agente'}
+                        disabled={agent.is_active || isOnlyAgent}
+                        title={agent.is_active ? 'No puedes eliminar el agente activo' : isOnlyAgent ? 'No puedes eliminar el único agente del sistema' : 'Eliminar agente'}
                         className={cn(
                             "w-full flex items-center justify-center gap-2 text-xs py-2 rounded-lg transition-all",
-                            agent.is_active
+                            (agent.is_active || isOnlyAgent)
                                 ? "bg-slate-800/50 text-slate-600 cursor-not-allowed"
                                 : "bg-red-900/20 text-red-400 hover:bg-red-900/40 border border-red-900/30"
                         )}
                     >
                         <Trash2 size={12} />
-                        {agent.is_active ? 'No se puede eliminar el agente activo' : 'Eliminar agente'}
+                        {agent.is_active ? 'No se puede eliminar el activo' : isOnlyAgent ? 'No se puede eliminar el único agente' : 'Eliminar agente'}
                     </button>
                 ) : (
                     <div className="bg-red-900/20 border border-red-900/40 rounded-lg p-3">
@@ -222,15 +233,25 @@ export const AgentsPanel = () => {
 
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [newAgentName, setNewAgentName] = useState('')
+    const [createError, setCreateError] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [creating, setCreating] = useState(false)
     const [newAgentLanguage, setNewAgentLanguage] = useState('es-MX')
     const [managedAgent, setManagedAgent] = useState<Agent | null>(null)
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 7
+
     useEffect(() => {
         dispatch(fetchAgents())
         dispatch(fetchActiveAgent())
     }, [dispatch])
+
+    // Reset pagination on search
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchQuery])
 
     /** Click on the card: activate + go directly to /config */
     const handleCardClick = async (agent: Agent) => {
@@ -258,20 +279,46 @@ export const AgentsPanel = () => {
     }
 
     const handleCreate = async () => {
-        if (!newAgentName.trim()) return
+        const newName = newAgentName.trim()
+        if (!newName) return
+
+        // Frontend Duplicate Validation
+        const isDuplicate = agents.some(a => a.name.toLowerCase() === newName.toLowerCase())
+        if (isDuplicate) {
+            setCreateError('Ya existe un agente con ese nombre')
+            return
+        }
+
         setCreating(true)
-        const agent = await dispatch(createAgent({ name: newAgentName.trim(), language: newAgentLanguage })).unwrap()
+        setCreateError('')
+        try {
+            const agent = await dispatch(createAgent({ name: newName, language: newAgentLanguage })).unwrap()
 
-        // Activate and Navigate
-        await dispatch(activateAgent(agent.agent_uuid))
-        dispatch(fetchActiveAgent())
+            // Activate and Navigate
+            await dispatch(activateAgent(agent.agent_uuid))
+            dispatch(fetchActiveAgent())
 
-        setCreating(false)
-        setNewAgentName('')
-        setNewAgentLanguage('es-MX')
-        setShowCreateModal(false)
-        navigate('/config')
+            setNewAgentName('')
+            setNewAgentLanguage('es-MX')
+            setShowCreateModal(false)
+            navigate('/config')
+        } catch {
+            setCreateError('Error al crear el agente')
+        } finally {
+            setCreating(false)
+        }
     }
+
+    // Filter and Pagination Logic
+    const filteredAgents = [...agents]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .filter(agent => agent.name.toLowerCase().includes(searchQuery.toLowerCase()))
+
+    const totalPages = Math.ceil(filteredAgents.length / ITEMS_PER_PAGE)
+    const paginatedAgents = filteredAgents.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    )
 
     return (
         <div className="flex flex-col h-full w-full">
@@ -348,67 +395,86 @@ export const AgentsPanel = () => {
                     </div>
                 )}
 
-                {[...agents]
-                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    .filter(agent => agent.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((agent) => (
-                        /* CARD — clickeable → activa agente y navega a /config */
-                        <div
-                            key={agent.agent_uuid}
-                            onClick={() => handleCardClick(agent)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={e => e.key === 'Enter' && handleCardClick(agent)}
-                            className={cn(
-                                "flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
-                                agent.is_active
-                                    ? "bg-blue-900/20 border-blue-500/40 ring-1 ring-blue-500/20 hover:ring-blue-500/40"
-                                    : "bg-slate-800/50 border-slate-700/50 hover:border-slate-500 hover:bg-slate-800"
-                            )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center",
-                                    agent.is_active ? "bg-blue-600" : "bg-slate-700"
-                                )}>
-                                    <Bot size={16} className="text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                                        {agent.name}
-                                        {agent.is_active && (
-                                            <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">
-                                                ACTIVO
-                                            </span>
-                                        )}
-                                        <span className="text-[11px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                                            {LANGUAGE_MAP[agent.language]?.flag || '🌍'} {LANGUAGE_MAP[agent.language]?.label || agent.language}
+                {paginatedAgents.map((agent) => (
+                    /* CARD — clickeable → activa agente y navega a /config */
+                    <div
+                        key={agent.agent_uuid}
+                        onClick={() => handleCardClick(agent)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && handleCardClick(agent)}
+                        className={cn(
+                            "flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
+                            agent.is_active
+                                ? "bg-blue-900/20 border-blue-500/40 ring-1 ring-blue-500/20 hover:ring-blue-500/40"
+                                : "bg-slate-800/50 border-slate-700/50 hover:border-slate-500 hover:bg-slate-800"
+                        )}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center",
+                                agent.is_active ? "bg-blue-600" : "bg-slate-700"
+                            )}>
+                                <Bot size={16} className="text-white" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                                    {agent.name}
+                                    {agent.is_active && (
+                                        <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">
+                                            ACTIVO
                                         </span>
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        {new Date(agent.created_at).toLocaleDateString('es-MX')}
-                                    </p>
-                                </div>
+                                    )}
+                                    <span className="text-[11px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                        {LANGUAGE_MAP[agent.language]?.flag || '🌍'} {LANGUAGE_MAP[agent.language]?.label || agent.language}
+                                    </span>
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    {new Date(agent.created_at).toLocaleDateString('es-MX')}
+                                </p>
                             </div>
+                        </div>
 
-                            <div className="flex items-center gap-2">
-                                {/* ⚙️ — open manage modal (stopPropagation: does NOT trigger card click) */}
-                                <button
-                                    onClick={(e) => handleManageClick(e, agent)}
-                                    title="Gestionar agente"
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
-                                >
-                                    <Settings size={14} />
-                                </button>
-                            </div>
+                        <div className="flex items-center gap-2">
+                            {/* ⚙️ — open manage modal (stopPropagation: does NOT trigger card click) */}
+                            <button
+                                onClick={(e) => handleManageClick(e, agent)}
+                                title="Gestionar agente"
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-all"
+                            >
+                                <Settings size={14} />
+                            </button>
                         </div>
-                    ))}
-                {!loading && agents.length > 0 &&
-                    agents.filter(agent => agent.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                        <div className="text-center py-10 text-slate-500 text-sm">
-                            No se encontraron agentes que coincidan con "{searchQuery}".
-                        </div>
-                    )}
+                    </div>
+                ))}
+                {!loading && agents.length > 0 && filteredAgents.length === 0 && (
+                    <div className="text-center py-10 text-slate-500 text-sm">
+                        No se encontraron agentes que coincidan con "{searchQuery}".
+                    </div>
+                )}
+
+                {/* Pagination Controls */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-4 pt-2 pb-4">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="text-xs px-3 py-1.5 rounded bg-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-700 transition"
+                        >
+                            Anterior
+                        </button>
+                        <span className="text-xs text-slate-500">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className="text-xs px-3 py-1.5 rounded bg-slate-800 text-slate-300 disabled:opacity-30 hover:bg-slate-700 transition"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Create Agent Modal */}
@@ -422,12 +488,13 @@ export const AgentsPanel = () => {
                         <input
                             type="text"
                             value={newAgentName}
-                            onChange={e => setNewAgentName(e.target.value)}
+                            onChange={e => { setNewAgentName(e.target.value); setCreateError('') }}
                             onKeyDown={e => e.key === 'Enter' && handleCreate()}
                             placeholder="Nombre del agente..."
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 mb-4"
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 mb-2"
                             autoFocus
                         />
+                        {createError && <p className="text-xs text-red-400 mb-4">{createError}</p>}
 
                         <label className="block text-xs font-semibold text-slate-400 mb-1.5">Idioma Base</label>
                         <select
@@ -444,7 +511,7 @@ export const AgentsPanel = () => {
 
                         <div className="flex gap-2">
                             <button
-                                onClick={() => { setShowCreateModal(false); setNewAgentName('') }}
+                                onClick={() => { setShowCreateModal(false); setNewAgentName(''); setCreateError('') }}
                                 className="flex-1 text-xs py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all"
                             >
                                 Cancelar
@@ -466,6 +533,7 @@ export const AgentsPanel = () => {
             {managedAgent && (
                 <ManageModal
                     agent={managedAgent}
+                    allAgents={agents}
                     onClose={() => setManagedAgent(null)}
                     onConfigure={handleConfigure}
                 />
