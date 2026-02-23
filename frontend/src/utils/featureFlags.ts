@@ -35,7 +35,7 @@ export const FEATURES = {
     CONFIG_TRANSCRIBER: true,      // TranscriberSettings (STT language)
 
     // ── FASE 8: Historial — activar después de verificar E2E ───────────────
-    HISTORY_LIST: false,           // Lista de llamadas desde DB
+    HISTORY_LIST: true,           // Lista de llamadas desde DB
     HISTORY_DETAIL: false,         // Detalle + transcripción completa
     HISTORY_EXTRACTION: false,     // Datos extraídos (intent, summary, entities)
 
