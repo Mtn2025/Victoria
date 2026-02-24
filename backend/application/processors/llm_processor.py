@@ -117,6 +117,13 @@ class LLMProcessor(FrameProcessor):
     async def _generate_llm_response(self, tool_result_message: Optional[Dict[str, Any]] = None):
         """Generate response recursively (handling tools)."""
         
+        # Helper to get config safely
+        def get_cfg(key, default=None):
+            if isinstance(self.config, dict):
+                return self.config.get(key, default)
+            return getattr(self.config, key, default)
+            
+        
         # Apply Context Window (truncate history if needed)
         # Default to 10 if not set as per frontend slider default
         context_window = get_cfg('context_window', get_cfg('contextWindow', 10))
@@ -146,11 +153,7 @@ class LLMProcessor(FrameProcessor):
              # We convert them.
              tools = [t.to_openai_format() for t in self.execute_tool.get_tool_definitions()]
 
-        # Helper to get config safely
-        def get_cfg(key, default=None):
-            if isinstance(self.config, dict):
-                return self.config.get(key, default)
-            return getattr(self.config, key, default)
+        # (Moved get_cfg to the top of the method)
 
         # Parse Stop Sequences (Blacklist)
         stop_sequences = None
