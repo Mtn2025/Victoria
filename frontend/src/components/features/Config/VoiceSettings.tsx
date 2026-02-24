@@ -195,7 +195,7 @@ export const VoiceSettings = () => {
                         </div>
 
                         {/* Fila 3 (Estilo Emocional, condicional a si hay estilos) */}
-                        {availableStyles.filter(s => s && s.id && s.id.trim() !== '').length > 0 && (
+                        {availableStyles.filter(s => s && s.id && s.id.trim() !== '' && s.id !== 'default').length > 0 && (
                             <div className="animate-in fade-in duration-300">
                                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
                                 <Select
@@ -249,7 +249,7 @@ export const VoiceSettings = () => {
                         </div>
 
                         {/* Style Degree */}
-                        {browser.voiceStyle && (
+                        {browser.voiceStyle && browser.voiceStyle !== 'default' && browser.voiceStyle !== '' && (
                             <div>
                                 <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                                     <span>Intensidad Estilo</span>
