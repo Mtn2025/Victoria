@@ -265,6 +265,12 @@ export const configSlice = createSlice({
     reducers: {
         updateBrowserConfig: (state, action: PayloadAction<Partial<BrowserConfig>>) => {
             state.browser = { ...state.browser, ...action.payload }
+            if ('voiceId' in action.payload || 'voiceProvider' in action.payload || 'voiceGender' in action.payload) {
+                // Si se actualizaron campos base en cascada, re-validamos.
+                // Siempre que cambia de voz, limpiamos los estilos actuales
+                // hasta que se hagan fetch de los nuevos.
+                state.availableStyles = []
+            }
         },
         updateTwilioConfigState: (state, action: PayloadAction<Partial<TwilioConfig>>) => {
             state.twilio = { ...state.twilio, ...action.payload }
@@ -308,8 +314,14 @@ export const configSlice = createSlice({
         })
 
         // Styles
+        builder.addCase(fetchStyles.pending, (state) => {
+            state.availableStyles = []
+        })
         builder.addCase(fetchStyles.fulfilled, (state, action) => {
-            state.availableStyles = action.payload
+            state.availableStyles = action.payload || []
+        })
+        builder.addCase(fetchStyles.rejected, (state) => {
+            state.availableStyles = []
         })
 
         // LLM Providers
