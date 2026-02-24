@@ -268,6 +268,7 @@ class CallOrchestrator:
                     control_channel=self.control_channel,
                     fsm=self.fsm,
                     on_interruption_callback=self.handle_interruption,
+                    on_end_call_callback=self.stop,  # FASE 14 Smart Hangup
                     stream_id=stream_id,
                     output_callback=audio_output_callback,       # TTS → WebSocket return path
                     transcript_callback=transcript_callback,     # STT/LLM → simulator panel

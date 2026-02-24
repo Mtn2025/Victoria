@@ -88,6 +88,17 @@ class PromptBuilder:
         if pacing in pacing_instructions:
             style_block.append(f"- Velocidad de Interacción (Pacing): {pacing_instructions[pacing]}")
 
+        # --- SMART HANGUP (AUTONOMOUS END CALL) ---
+        end_call_enabled = get_cfg('end_call_enabled', False)
+        end_call_instructions = get_cfg('end_call_instructions', None)
+        
+        if end_call_enabled:
+            hangup_instruction = "- Finalización de Llamada Autónoma (Agent Hangup): Estás AUTORIZADO a colgar la llamada cuando el flujo concluya con éxito, o INMEDIATAMENTE si el usuario se muestra agresivo, evasivo, o claramente no interesado."
+            if end_call_instructions:
+                hangup_instruction += f" Instrucciones de cierre adicionales: {end_call_instructions}."
+            hangup_instruction += " Para colgar, formula tu mensaje de despedida corto e invoca la herramienta 'end_call' inmediatamente en ese mismo turno."
+            style_block.append(hangup_instruction)
+
         # --- BILINGUAL INTELLIGENCE (ROOT LANGUAGE) ---
         agent_lang = get_cfg('stt_language') or get_cfg('voice_language') or 'es-MX'
         language_instruction = f"- Idioma Obligatorio de Respuesta: Debes responder ESTRICTAMENTE en el idioma correspondiente al código '{agent_lang}'."

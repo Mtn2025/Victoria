@@ -31,6 +31,7 @@ class LLMProcessor(FrameProcessor):
         conversation_history: List[Dict[str, str]], 
         execute_tool_use_case: Optional[ExecuteToolUseCase] = None,
         on_interruption_callback: Optional[Callable] = None,
+        on_end_call_callback: Optional[Callable] = None,
         context: Optional[Dict[str, Any]] = None,
         transcript_callback = None,      # async def cb(role: str, text: str) -> None
     ):
@@ -40,6 +41,7 @@ class LLMProcessor(FrameProcessor):
         self.conversation_history = conversation_history
         self.execute_tool = execute_tool_use_case
         self.on_interruption_callback = on_interruption_callback
+        self.on_end_call_callback = on_end_call_callback
         self.context = context or {}
         # Transcript callback — sends real-time STT/LLM turns to the Simulator panel.
         # async def transcript_callback(role: str, text: str) -> None
@@ -151,12 +153,27 @@ class LLMProcessor(FrameProcessor):
         # Get Tools
         tools = None
         if self.execute_tool:
-             # Convert ToolDefinitions to dicts if needed, depending on LLMPort expectation.
-             # LLMPort `LLMRequest` expects `tools` list.
-             # Legacy `LLMRequest` in `port.py` expects `list[dict]`.
-             # `ExecuteToolUseCase.get_tool_definitions` returns `list[ToolDefinition]`.
-             # We convert them.
              tools = [t.to_openai_format() for t in self.execute_tool.get_tool_definitions()]
+
+        # Inject Autonomous Hangup Tool if enabled
+        end_call_enabled = get_cfg('end_call_enabled', False)
+        if end_call_enabled:
+            if tools is None:
+                tools = []
+            
+            # Format expected by OpenAI / Groq SDKs
+            tools.append({
+                "type": "function",
+                "function": {
+                    "name": "end_call",
+                    "description": "Cuelga y termina la llamada de voz con el usuario de inmediato. Úsalo ÚNICAMENTE cuando la intención y flujo haya terminado con éxito o si identificas un usuario agresivo/poco interesado.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            })
 
         # (Moved get_cfg to the top of the method)
 
@@ -202,7 +219,13 @@ class LLMProcessor(FrameProcessor):
             if chunk.has_function_call:
                 logger.info(f"Function Call: {chunk.function_call.name}")
                 
-                # Execute Tool
+                # Check for autonomous agent hangup
+                if chunk.function_call.name == "end_call":
+                    logger.info("🔌 [Smart Hangup] LLM invoked 'end_call'. Terminating loop.")
+                    should_end_call = True
+                    break # Break stream immediately
+                
+                # Execute Regular Tool
                 if self.execute_tool:
                     tool_response = await self.execute_tool.execute(ToolRequest(
                         tool_name=chunk.function_call.name,
@@ -275,17 +298,20 @@ class LLMProcessor(FrameProcessor):
                 "timestamp": datetime.now(timezone.utc)
             })
             
-            # --- FLOW CONFIG: End-call phrases detection ---
-            end_call_phrases = get_cfg('pacing_end_call_phrases', [])
+            end_call_phrases = get_cfg('end_call_phrases', [])
             if end_call_phrases:
                  norm_response = "".join(c for c in full_response_buffer.lower() if c.isalnum() or c.isspace()).strip()
                  for phrase in end_call_phrases:
                      norm_phrase = "".join(c for c in phrase.lower() if c.isalnum() or c.isspace()).strip()
                      if norm_phrase and (norm_response == norm_phrase or norm_response.endswith(norm_phrase)):
-                         logger.info(f"🛑 [Pacing] End Call Phrase detected: '{phrase}'")
+                         logger.info(f"🛑 [Smart Hangup] End Call Keyword Phrase detected: '{phrase}'")
                          should_end_call = True
                          break
             
         # End Signal
         if should_end_call:
-            await self.push_frame(EndTaskFrame(), FrameDirection.DOWNSTREAM) # Use EndTask or EndFrame? EndTaskFrame used in legacy.
+            logger.info("🛑 [Smart Hangup] LLM decided to end the call (Tool or Phrase).")
+            if self.on_end_call_callback:
+                asyncio.create_task(self.on_end_call_callback())
+            else:
+                 await self.push_frame(EndTaskFrame(), FrameDirection.DOWNSTREAM)

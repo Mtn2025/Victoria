@@ -84,6 +84,9 @@ interface BackendConfigUpdate {
     max_duration?: number
     max_retries?: number
     idle_message?: string | string[]
+    end_call_enabled?: boolean
+    end_call_phrases?: string[]
+    end_call_instructions?: string
 }
 
 export const configService = {
@@ -121,6 +124,16 @@ export const configService = {
         if (config.dynamicVars !== undefined) payload.dynamicVars = config.dynamicVars
         if (config.mode !== undefined) payload.mode = config.mode
         if (config.hallucination_blacklist !== undefined) payload.hallucination_blacklist = config.hallucination_blacklist
+
+        // Smart Hangup
+        if (config.endCallEnabled !== undefined) payload.end_call_enabled = config.endCallEnabled
+        if (config.endCallPhrases !== undefined) {
+            payload.end_call_phrases = config.endCallPhrases
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
+        }
+        if (config.endCallInstructions !== undefined) payload.end_call_instructions = config.endCallInstructions
 
         // Voice
         if (config.voiceProvider !== undefined) payload.voice_provider = config.voiceProvider

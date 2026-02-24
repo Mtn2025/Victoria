@@ -346,6 +346,66 @@ export const ModelSettings = () => {
                         </p>
                     </div>
                 </Accordion>
+
+                {/* Smart Hangup */}
+                <Accordion
+                    isOpen={openSection === 'hangup'}
+                    onToggle={() => setOpenSection(openSection === 'hangup' ? null : 'hangup')}
+                    className="border-emerald-500/30"
+                    headerClassName="hover:bg-emerald-900/20"
+                    title={
+                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                            <Shield className="w-3 h-3" />
+                            Finalización Autónoma (Smart Hangup)
+                        </span>
+                    }
+                >
+                    <div className="space-y-4">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={config.endCallEnabled}
+                                onChange={(e) => handleChange('endCallEnabled', e.target.checked)}
+                                className="w-4 h-4 rounded bg-slate-700 border-slate-600 focus:ring-emerald-500 text-emerald-600"
+                            />
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium text-slate-200">Permitir a la IA colgar la llamada</span>
+                                <span className="text-[10px] text-slate-500">El Agente usará una herramienta (tool) secreta para cortar la llamada al despedirse o de ser necesario.</span>
+                            </div>
+                        </label>
+
+                        {config.endCallEnabled && (
+                            <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in zoom-in duration-300">
+                                <div className="space-y-2">
+                                    <Label>Instrucciones de Despedida Restringida</Label>
+                                    <TextareaAutosize
+                                        value={config.endCallInstructions}
+                                        onChange={(e) => handleChange('endCallInstructions', e.target.value)}
+                                        minRows={2}
+                                        className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-xs"
+                                        placeholder="Ej: Si el cliente dice que no tiene tiempo, dile 'Gracias por tu tiempo, excelente día' y cuelga. Nunca ruegues."
+                                    />
+                                    <p className="text-[10px] text-slate-500">
+                                        Entrena al Agente indicando bajo qué comportamientos o evasivas del lado del cliente tiene rotundo permiso de llamar a la herramienta de colgar.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Keywords Force-Quit (Palabras de Emergencia)</Label>
+                                    <Input
+                                        value={config.endCallPhrases}
+                                        onChange={(e) => handleChange('endCallPhrases', e.target.value)}
+                                        placeholder="adiós, bye, hasta luego, no me interesa"
+                                    />
+                                    <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        (Opcional) Si la IA pronuncia estas frases al final de su turno, el Call Engine cerrará abruptamente la sesión. Sepáralas con comas.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </Accordion>
             </div>
 
         </div>

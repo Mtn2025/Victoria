@@ -83,6 +83,7 @@ class PipelineFactory:
         control_channel: Optional[Any] = None,
         fsm: Optional[ConversationFSM] = None,
         on_interruption_callback: Optional[Callable] = None,
+        on_end_call_callback: Optional[Callable] = None,
         stream_id: Optional[str] = None,
         output_callback = None,          # async def cb(audio_bytes: bytes) -> None
         transcript_callback = None,      # async def cb(role: str, text: str) -> None
@@ -141,6 +142,7 @@ class PipelineFactory:
             conversation_history=conversation_history,
             execute_tool_use_case=execute_tool,
             on_interruption_callback=on_interruption_callback,  # FASE 2.6 integration decoupled
+            on_end_call_callback=on_end_call_callback,
             transcript_callback=transcript_callback, # -> Simulator real-time panel
         )
 
@@ -218,7 +220,8 @@ async def create_standard_pipeline(
     tools: Optional[dict] = None,
     control_channel: Optional[Any] = None,
     fsm: Optional[ConversationFSM] = None,
-    stream_id: Optional[str] = None
+    stream_id: Optional[str] = None,
+    on_end_call_callback: Optional[Callable] = None
 ) -> ProcessorChain:
     """
     Create pipeline with standard configuration.
@@ -255,5 +258,6 @@ async def create_standard_pipeline(
         control_channel=control_channel,
         fsm=fsm,
         handle_barge_in_uc=handle_barge_in,
+        on_end_call_callback=on_end_call_callback,
         stream_id=stream_id
     )

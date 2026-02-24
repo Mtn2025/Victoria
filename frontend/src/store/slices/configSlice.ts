@@ -142,6 +142,9 @@ const initialState: ConfigState = {
         maxRetries: 1,
         useSameInactivityMessage: true,
         idleMessage: '',
+        endCallEnabled: false,
+        endCallPhrases: '',
+        endCallInstructions: '',
 
         // Campaigns / Integrations
         crmEnabled: false,
@@ -176,7 +179,6 @@ const initialState: ConfigState = {
         amdAction: 'hangup',
         responseDelaySeconds: 0.5,
         hyphenationEnabled: false,
-        endCallPhrases: '[]',
 
         // Tools
         toolsSchema: '[]',

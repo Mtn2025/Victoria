@@ -99,6 +99,9 @@ class ConfigDTO:
     max_duration: int = 300
     max_retries: int = 1
     idle_message: Union[str, list[str]] = "¿Hola? ¿Sigues ahí?"
+    end_call_enabled: bool = False
+    end_call_phrases: list[str] = field(default_factory=list)
+    end_call_instructions: Optional[str] = None
 
     # Telephony
     silence_timeout_ms_phone: Optional[int] = None

@@ -143,6 +143,9 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "dynamicVars": config.dynamicVars,
                 "mode": config.mode,
                 "hallucination_blacklist": config.hallucination_blacklist,
+                "end_call_enabled": config.end_call_enabled,
+                "end_call_phrases": config.end_call_phrases,
+                "end_call_instructions": config.end_call_instructions,
             },
             tools_config={
                 "enabled": config.async_tools,
@@ -235,6 +238,9 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             dynamicVarsEnabled=llm_config.get("dynamicVarsEnabled", False),
             dynamicVars=llm_config.get("dynamicVars"),
             hallucination_blacklist=llm_config.get("hallucination_blacklist"),
+            end_call_enabled=llm_config.get("end_call_enabled", False),
+            end_call_phrases=llm_config.get("end_call_phrases", []),
+            end_call_instructions=llm_config.get("end_call_instructions"),
             # TTS Config  
             tts_provider=agent.voice_provider or "azure",
             voice_name=agent.voice_name or "es-MX-DaliaNeural",

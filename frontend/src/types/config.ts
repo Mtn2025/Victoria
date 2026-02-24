@@ -103,6 +103,9 @@ export interface BrowserConfig {
     maxRetries: number
     useSameInactivityMessage: boolean
     idleMessage: string | string[]
+    endCallEnabled: boolean
+    endCallPhrases: string
+    endCallInstructions: string
 
     // Campaigns / Integrations
     crmEnabled: boolean
@@ -137,7 +140,6 @@ export interface BrowserConfig {
     amdAction: string
     responseDelaySeconds: number
     hyphenationEnabled: boolean
-    endCallPhrases: string
 
     // Tools
     toolsSchema: string

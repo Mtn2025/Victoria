@@ -103,6 +103,9 @@ class ConfigUpdate(BaseModel):
     max_duration: Optional[int] = None
     max_retries: Optional[int] = None
     idle_message: Optional[Union[str, List[str]]] = None
+    end_call_enabled: Optional[bool] = None
+    end_call_phrases: Optional[List[str]] = None
+    end_call_instructions: Optional[str] = None
 
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
