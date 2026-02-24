@@ -414,6 +414,10 @@ export const configSlice = createSlice({
                         (state.browser as any)[field] = data.llm_config[field]
                     }
                 })
+
+                if (data.llm_config.end_call_enabled !== undefined) state.browser.endCallEnabled = data.llm_config.end_call_enabled
+                if (data.llm_config.end_call_phrases !== undefined) state.browser.endCallPhrases = (data.llm_config.end_call_phrases || []).join(', ')
+                if (data.llm_config.end_call_instructions !== undefined) state.browser.endCallInstructions = data.llm_config.end_call_instructions
             }
 
             if (data.voice_config_json) {
