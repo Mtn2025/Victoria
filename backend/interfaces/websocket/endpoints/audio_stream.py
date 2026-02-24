@@ -190,12 +190,22 @@ async def audio_stream(
                         except Exception as e:
                             logger.warning(f"[TRANSCRIPT→WS] Failed to send: {e}")
 
+                    async def disconnect_call() -> None:
+                        logger.info(f"[WS-CLOSE] Explicit hangup requested for stream {stream_id}")
+                        try:
+                            # For Telnyx/Twilio, closing the WS terminates the Media Stream.
+                            # Since no further TwiML/Call Control instructions exist, the call drops.
+                            await websocket.close()
+                        except Exception as e:
+                            logger.error(f"Error closing websocket on disconnect_call: {e}")
+
                     # Start session — passes callbacks so TTS audio and transcripts reach client
                     greeting_audio = await orchestrator.start_session(
                         agent_id=agent_id,
                         stream_id=stream_id,
                         audio_output_callback=send_tts_audio,       # TTS → WS return path
                         transcript_callback=send_transcript_event,  # STT/LLM → simulator panel
+                        disconnect_callback=disconnect_call,        # For forceful Idle Hangup
                         client_type=client,
                     )
                     logger.info(f"Session started: {stream_id}")

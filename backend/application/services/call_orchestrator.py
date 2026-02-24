@@ -176,6 +176,7 @@ class CallOrchestrator:
         # Transcript and Audio Callbacks
         self._transcript_callback = None
         self._audio_output_callback = None
+        self._disconnect_callback = None
         
         # Idle Settings
         self.idle_messages = []
@@ -200,6 +201,7 @@ class CallOrchestrator:
         to_number: Optional[str] = None,
         audio_output_callback = None,    # async def cb(audio_bytes: bytes) -> None
         transcript_callback = None,      # async def cb(role: str, text: str) -> None
+        disconnect_callback = None,      # async def cb() -> None
         client_type: str = "unknown"
     ) -> Optional[bytes]:
         """
@@ -219,6 +221,7 @@ class CallOrchestrator:
         self.last_interaction_time = time.time()
         self._audio_output_callback = audio_output_callback
         self._transcript_callback = transcript_callback
+        self._disconnect_callback = disconnect_callback
         
         try:
             # STEP 1: Start call via use case
@@ -490,6 +493,13 @@ class CallOrchestrator:
         """
         logger.info("Stopping orchestrator...")
         self.active = False
+        
+        # Dispatch WS disconnect callback first natively
+        if hasattr(self, "_disconnect_callback") and self._disconnect_callback:
+            try:
+                await self._disconnect_callback()
+            except Exception as e:
+                logger.error(f"Error in disconnect callback: {e}")
         
         # Stop pipeline processors (FASE 3B)
         if self.pipeline:
