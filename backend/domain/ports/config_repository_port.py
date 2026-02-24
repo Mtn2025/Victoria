@@ -53,6 +53,13 @@ class ConfigDTO:
     voice_language: str = "es-MX"
     voice_bg_sound: str = "none"        # Background sound type (e.g. office, cafe, custom)
     voice_bg_url: Optional[str] = None  # URL for custom background sound
+    
+    # ElevenLabs Advanced Config
+    voiceStability: Optional[float] = None
+    voiceSimilarityBoost: Optional[float] = None
+    voiceStyleExaggeration: Optional[float] = None
+    voiceSpeakerBoost: Optional[bool] = None
+    voiceMultilingual: Optional[bool] = None
 
     # Runtime client type — determines audio format across the pipeline
     # 'browser' = 24 kHz PCM  |  'twilio'/'telnyx' = 8 kHz mulaw

@@ -25,6 +25,7 @@ interface BackendConfigUpdate {
     mode?: string
     hallucination_blacklist?: string
     // Voice
+    voice_provider?: string
     voice_name?: string
     voice_style?: string
     voice_speed?: number
@@ -33,6 +34,12 @@ interface BackendConfigUpdate {
     voiceStyleDegree?: number
     voiceBgSound?: string
     voiceBgUrl?: string
+    // ElevenLabs
+    voiceStability?: number
+    voiceSimilarityBoost?: number
+    voiceStyleExaggeration?: number
+    voiceSpeakerBoost?: boolean
+    voiceMultilingual?: boolean
     // STT
     sttProvider?: string
     sttModel?: string
@@ -116,6 +123,7 @@ export const configService = {
         if (config.hallucination_blacklist !== undefined) payload.hallucination_blacklist = config.hallucination_blacklist
 
         // Voice
+        if (config.voiceProvider !== undefined) payload.voice_provider = config.voiceProvider
         if (config.voiceId !== undefined) payload.voice_name = config.voiceId
         if (config.voiceStyle !== undefined) payload.voice_style = config.voiceStyle
         if (config.voiceSpeed !== undefined) payload.voice_speed = config.voiceSpeed
@@ -124,6 +132,13 @@ export const configService = {
         if (config.voiceStyleDegree !== undefined) payload.voiceStyleDegree = config.voiceStyleDegree
         if (config.voiceBgSound !== undefined) payload.voiceBgSound = config.voiceBgSound
         if (config.voiceBgUrl !== undefined) payload.voiceBgUrl = config.voiceBgUrl
+
+        // ElevenLabs specifics
+        if (config.voiceStability !== undefined) payload.voiceStability = config.voiceStability
+        if (config.voiceSimilarityBoost !== undefined) payload.voiceSimilarityBoost = config.voiceSimilarityBoost
+        if (config.voiceStyleExaggeration !== undefined) payload.voiceStyleExaggeration = config.voiceStyleExaggeration
+        if (config.voiceSpeakerBoost !== undefined) payload.voiceSpeakerBoost = config.voiceSpeakerBoost
+        if (config.voiceMultilingual !== undefined) payload.voiceMultilingual = config.voiceMultilingual
 
         // STT
         if (config.sttSilenceTimeout !== undefined) payload.silence_timeout_ms = config.sttSilenceTimeout

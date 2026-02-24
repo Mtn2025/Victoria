@@ -33,6 +33,13 @@ class VoiceConfig:
     provider: str = "azure"
     bg_sound: str = "none"
     bg_url: Optional[str] = None
+    
+    # ElevenLabs specifics
+    stability: Optional[float] = None
+    similarity_boost: Optional[float] = None
+    style_exaggeration: Optional[float] = None
+    speaker_boost: Optional[bool] = None
+    multilingual: Optional[bool] = None
 
     def __post_init__(self) -> None:
         """Validate fields after initialization (Domain Invariant)."""
@@ -59,23 +66,23 @@ class VoiceConfig:
     def from_db_config(cls, db_config: Any) -> 'VoiceConfig':
         """
         Factory method to create VoiceConfig from database AgentConfig model.
-        
-        Args:
-            db_config: Database model with voice configuration fields
-            
-        Returns:
-            VoiceConfig: Immutable value object
         """
+        voice_json = getattr(db_config, "voice_config_json", {}) or {}
         return cls(
             name=db_config.voice_name or "es-MX-DaliaNeural",
             speed=float(db_config.voice_speed or 1.0),
             pitch=int(db_config.voice_pitch or 0),
             volume=int(db_config.voice_volume or 100),
             style=db_config.voice_style or "default",
-            style_degree=float(db_config.voice_style_degree or 1.0),
+            style_degree=float(voice_json.get("voiceStyleDegree", db_config.voice_style_degree) if voice_json.get("voiceStyleDegree") is not None else (db_config.voice_style_degree or 1.0)),
             provider=getattr(db_config, "voice_provider", "azure") or "azure",
-            bg_sound=getattr(db_config, "voiceBgSound", "none") or "none",
-            bg_url=getattr(db_config, "voiceBgUrl", None)
+            bg_sound=voice_json.get("voiceBgSound", "none"),
+            bg_url=voice_json.get("voiceBgUrl", None),
+            stability=voice_json.get("voiceStability", None),
+            similarity_boost=voice_json.get("voiceSimilarityBoost", None),
+            style_exaggeration=voice_json.get("voiceStyleExaggeration", None),
+            speaker_boost=voice_json.get("voiceSpeakerBoost", None),
+            multilingual=voice_json.get("voiceMultilingual", None)
         )
 
     def to_ssml_params(self) -> Dict[str, Any]:

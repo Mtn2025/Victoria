@@ -78,13 +78,17 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         
         # Apply updates to model fields
         for key, value in updates.items():
-            if hasattr(agent, key):
+            if hasattr(agent, key) and key not in ["voice_config_json"]:
                 setattr(agent, key, value)
             # Handle nested JSON configs
             elif key.startswith("llm_") and agent.llm_config is not None:
                 agent.llm_config[key] = value
             elif key.startswith("tool_") and agent.tools_config is not None:
                 agent.tools_config[key] = value
+            elif key in ["voiceStyleDegree", "voiceBgSound", "voiceBgUrl", "voiceStability", "voiceSimilarityBoost", "voiceStyleExaggeration", "voiceSpeakerBoost", "voiceMultilingual"]:
+                current_voice = dict(agent.voice_config_json) if agent.voice_config_json else {}
+                current_voice[key] = value
+                agent.voice_config_json = current_voice
             elif (key.startswith("barge_") or key.startswith("amd_") or key.startswith("pacing_")) and agent.flow_config is not None:
                 # SQLAlchemy JSON in-place mutations might need flag_modified or re-assignment
                 updated_flow = dict(agent.flow_config)
@@ -236,7 +240,17 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             voice_name=agent.voice_name or "es-MX-DaliaNeural",
             voice_style=agent.voice_style or "default",
             voice_speed=agent.voice_speed or 1.0,
-            voice_language="es-MX",  # Default
+            voice_pitch=agent.voice_pitch or 0.0,
+            voice_volume=agent.voice_volume or 100.0,
+            voice_language=getattr(agent, "language", "es-MX") or "es-MX",  # Default Root
+            voiceStyleDegree=float(voice_config_json.get("voiceStyleDegree", 1.0) if voice_config_json.get("voiceStyleDegree") is not None else 1.0),
+            voiceBgSound=voice_config_json.get("voiceBgSound", "none"),
+            voiceBgUrl=voice_config_json.get("voiceBgUrl", None),
+            voiceStability=voice_config_json.get("voiceStability", None),
+            voiceSimilarityBoost=voice_config_json.get("voiceSimilarityBoost", None),
+            voiceStyleExaggeration=voice_config_json.get("voiceStyleExaggeration", None),
+            voiceSpeakerBoost=voice_config_json.get("voiceSpeakerBoost", None),
+            voiceMultilingual=voice_config_json.get("voiceMultilingual", None),
             # STT Config
             stt_provider="azure",  # Default
             stt_language="es-MX",  # Default

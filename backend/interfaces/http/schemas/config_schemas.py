@@ -33,6 +33,7 @@ class ConfigUpdate(BaseModel):
     hallucination_blacklist: Optional[str] = None
     
     # Text-to-Speech
+    voice_provider: Optional[str] = None
     voice_name: Optional[str] = None
     voice_gender: Optional[str] = None
     voice_style: Optional[str] = None
@@ -42,6 +43,13 @@ class ConfigUpdate(BaseModel):
     voiceStyleDegree: Optional[float] = None
     voiceBgSound: Optional[str] = None
     voiceBgUrl: Optional[str] = None
+    
+    # ElevenLabs Specifics
+    voiceStability: Optional[float] = None
+    voiceSimilarityBoost: Optional[float] = None
+    voiceStyleExaggeration: Optional[float] = None
+    voiceSpeakerBoost: Optional[bool] = None
+    voiceMultilingual: Optional[bool] = None
     
     # STT Settings
     sttProvider: Optional[str] = None
