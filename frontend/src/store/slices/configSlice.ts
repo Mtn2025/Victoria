@@ -140,6 +140,7 @@ const initialState: ConfigState = {
         enableBackchannel: false,
         maxDuration: 600,
         maxRetries: 1,
+        useSameInactivityMessage: true,
         idleMessage: '',
 
         // Campaigns / Integrations
@@ -445,7 +446,10 @@ export const configSlice = createSlice({
                 if (flow.pacing_hyphenation !== undefined) state.browser.hyphenationEnabled = flow.pacing_hyphenation
                 if (flow.pacing_end_call_phrases !== undefined) state.browser.endCallPhrases = (flow.pacing_end_call_phrases || []).join(', ')
                 if (flow.enable_backchannel !== undefined) state.browser.enableBackchannel = flow.enable_backchannel
-                if (flow.idle_message !== undefined) state.browser.idleMessage = flow.idle_message
+                if (flow.idle_message !== undefined) {
+                    state.browser.idleMessage = flow.idle_message
+                    state.browser.useSameInactivityMessage = !Array.isArray(flow.idle_message)
+                }
             }
 
             if (data.analysis_config) {

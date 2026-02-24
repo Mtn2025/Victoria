@@ -3,7 +3,7 @@ Configuration Schemas.
 Part of the Interfaces Layer.
 """
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, List
 
 class ConfigUpdate(BaseModel):
     """
@@ -102,7 +102,7 @@ class ConfigUpdate(BaseModel):
     enable_backchannel: Optional[bool] = None
     max_duration: Optional[int] = None
     max_retries: Optional[int] = None
-    idle_message: Optional[str] = None
+    idle_message: Optional[Union[str, List[str]]] = None
 
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None

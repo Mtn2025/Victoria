@@ -101,7 +101,8 @@ export interface BrowserConfig {
     enableBackchannel: boolean
     maxDuration: number
     maxRetries: number
-    idleMessage: string
+    useSameInactivityMessage: boolean
+    idleMessage: string | string[]
 
     // Campaigns / Integrations
     crmEnabled: boolean

@@ -5,7 +5,7 @@ import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { Accordion } from '@/components/ui/Accordion'
 import { BrowserConfig } from '@/types/config'
-import { Sliders, Zap, MessageSquare, Activity, Shield } from 'lucide-react'
+import { Sliders, Zap, MessageSquare, Activity, Shield, Info } from 'lucide-react'
 
 export const AdvancedSettings = () => {
     const dispatch = useAppDispatch()
@@ -209,13 +209,74 @@ export const AdvancedSettings = () => {
                             />
                         </div>
                         <div className="col-span-2">
-                            <label className="text-xs uppercase text-slate-500 block mb-1">Mensaje Inactividad</label>
-                            <Input
-                                aria-label="Idle Message"
-                                value={browser.idleMessage}
-                                onChange={(e) => update('idleMessage', e.target.value)}
-                                placeholder="¿Hola? ¿Sigues ahí?"
-                            />
+                            <label className="text-xs font-semibold uppercase text-slate-500 flex justify-between items-center mb-1">
+                                <span>Mensaje Inactividad</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-500">¿Usar mismo mensaje?</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={browser.useSameInactivityMessage}
+                                        onChange={(e) => update('useSameInactivityMessage', e.target.checked)}
+                                        className="toggle-checkbox w-3.5 h-3.5"
+                                    />
+                                </div>
+                            </label>
+
+                            {browser.useSameInactivityMessage ? (
+                                <div className="relative group">
+                                    <Input
+                                        aria-label="Idle Message"
+                                        value={Array.isArray(browser.idleMessage) ? (browser.idleMessage[0] || '') : (browser.idleMessage || '')}
+                                        onChange={(e) => update('idleMessage', e.target.value)}
+                                        placeholder="¿Hola? ¿Sigues ahí?"
+                                        className="pr-8"
+                                    />
+                                    <div className="absolute top-1/2 right-2 -translate-y-1/2 cursor-help">
+                                        <Info className="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                                        <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded shadow-lg border border-slate-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                            Se usará exactamente este mismo mensaje como advertencia de inactividad para cada uno de los {browser.maxRetries} reintentos máximos limitados.
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3 mt-2">
+                                    {Array.from({ length: browser.maxRetries || 1 }).map((_, index) => {
+                                        const currentMsg = Array.isArray(browser.idleMessage)
+                                            ? (browser.idleMessage[index] || '')
+                                            : (index === 0 ? browser.idleMessage : '');
+
+                                        return (
+                                            <div key={index} className="relative group flex items-center">
+                                                <div className="flex-none w-16 text-[10px] font-medium text-slate-500 text-right pr-2">
+                                                    Intento {index + 1}
+                                                </div>
+                                                <div className="relative flex-1">
+                                                    <Input
+                                                        value={currentMsg}
+                                                        onChange={(e) => {
+                                                            const newVal = e.target.value;
+                                                            const currentArr = Array.isArray(browser.idleMessage) ? [...browser.idleMessage] : [browser.idleMessage as string];
+                                                            while (currentArr.length < (browser.maxRetries || 1)) {
+                                                                currentArr.push("");
+                                                            }
+                                                            currentArr[index] = newVal;
+                                                            update('idleMessage', currentArr);
+                                                        }}
+                                                        placeholder={`Escribe el mensaje inactivo #${index + 1}`}
+                                                        className="pr-8"
+                                                    />
+                                                    <div className="absolute top-1/2 right-2 -translate-y-1/2 cursor-help">
+                                                        <Info className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
+                                                        <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded shadow-lg border border-slate-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                                            Este mensaje será dictado por el agente después de agotar el tiempo máximo en el reintento de inactividad actual.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </Accordion>

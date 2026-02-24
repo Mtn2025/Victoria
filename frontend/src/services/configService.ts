@@ -83,7 +83,7 @@ interface BackendConfigUpdate {
     enable_backchannel?: boolean
     max_duration?: number
     max_retries?: number
-    idle_message?: string
+    idle_message?: string | string[]
 }
 
 export const configService = {
@@ -204,8 +204,11 @@ export const configService = {
                 : []
         }
         if (config.enableBackchannel !== undefined) payload.enable_backchannel = config.enableBackchannel
-        if (config.idleMessage !== undefined) payload.idle_message = config.idleMessage
-
+        if (config.idleMessage !== undefined) {
+            payload.idle_message = config.useSameInactivityMessage
+                ? (Array.isArray(config.idleMessage) ? config.idleMessage[0] : config.idleMessage)
+                : config.idleMessage
+        }
         // --- ANALYSIS & INTEGRATIONS ---
         if (config.analysisPrompt !== undefined) payload.analysis_prompt = config.analysisPrompt
         if (config.successRubric !== undefined) payload.success_rubric = config.successRubric

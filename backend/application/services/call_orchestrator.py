@@ -173,10 +173,14 @@ class CallOrchestrator:
         # FASE 3B: Pipeline
         self.pipeline: Optional[ProcessorChain] = None
 
-        # Transcript callback — async def cb(role: str, text: str) -> None
-        # Set by audio_stream.py to send real-time transcripts to the WebSocket.
-        # Used by LLMProcessor (assistant turns) and STTProcessor (user turns).
+        # Transcript and Audio Callbacks
         self._transcript_callback = None
+        self._audio_output_callback = None
+        
+        # Idle Settings
+        self.idle_messages = []
+        self.max_retries = 1
+        self.current_idle_retry = 0
         
         # FASE 3A: Lifecycle management
         self.start_time = time.time()
@@ -213,6 +217,8 @@ class CallOrchestrator:
         self.active = True
         self.start_time = time.time()
         self.last_interaction_time = time.time()
+        self._audio_output_callback = audio_output_callback
+        self._transcript_callback = transcript_callback
         
         try:
             # STEP 1: Start call via use case
@@ -227,6 +233,11 @@ class CallOrchestrator:
             
             # Capture agent reference immediately for Pipeline and Greeting
             agent = self.current_call.agent
+            config = _agent_to_config_dto(agent)
+            
+            self.max_retries = config.max_retries
+            self.idle_messages = config.idle_message
+            self.current_idle_retry = 0
             
             # STEP 2: FSM transition to LISTENING
             await self.fsm.transition(ConversationState.LISTENING, "session_started")
@@ -633,12 +644,48 @@ class CallOrchestrator:
                 
                 # Idle timeout check
                 if now - self.last_interaction_time > self.idle_timeout:
-                    logger.info(f"😴 Idle timeout reached ({self.idle_timeout}s)")
-                    await send_emergency_stop(
-                        self.control_channel,
-                        reason="idle_timeout"
-                    )
-                    break
+                    if self.current_idle_retry < self.max_retries:
+                        msg = ""
+                        if isinstance(self.idle_messages, list):
+                            idx = min(self.current_idle_retry, len(self.idle_messages) - 1)
+                            msg = self.idle_messages[idx]
+                        elif self.idle_messages:
+                            msg = str(self.idle_messages)
+                            
+                        logger.info(f"😴 Idle timeout reached ({self.idle_timeout}s). Retry {self.current_idle_retry + 1}/{self.max_retries}. Dictating: {msg}")
+                        
+                        from datetime import datetime, timezone
+                        if msg and getattr(self, "synthesize_text_uc", None) and self.tts_port and self.current_call and self._audio_output_callback:
+                            try:
+                                voice_config = self.current_call.agent.voice_config
+                                audio_bytes = await self.synthesize_text_uc.execute(
+                                    text=msg,
+                                    voice_config=voice_config,
+                                    trace_id=getattr(self, "session_id", "idle-msg")
+                                )
+                                # Inyectar audio al transport y texto al UI History
+                                await self._audio_output_callback(audio_bytes)
+                                if getattr(self, "_transcript_callback", None):
+                                    await self._transcript_callback("assistant", msg)
+                                
+                                # Anexa al history textualmente
+                                self.conversation_history.append({
+                                    "role": "assistant", 
+                                    "content": msg,
+                                    "timestamp": datetime.now(timezone.utc)
+                                })
+                            except Exception as e:
+                                logger.error(f"Error dictating idle message: {e}")
+                        
+                        self.current_idle_retry += 1
+                        self.last_interaction_time = time.time() # reset timer
+                    else:
+                        logger.info(f"😴 Idle timeout reached ({self.idle_timeout}s), and max retries ({self.max_retries}) exhausted. Hanging up.")
+                        await send_emergency_stop(
+                            self.control_channel,
+                            reason="idle_timeout"
+                        )
+                        break
             
             except asyncio.CancelledError:
                 break

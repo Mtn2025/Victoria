@@ -5,7 +5,7 @@ Hexagonal Architecture: Domain defines contract for config CRUD operations.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 
 @dataclass
@@ -98,7 +98,7 @@ class ConfigDTO:
     enable_backchannel: bool = False
     max_duration: int = 300
     max_retries: int = 1
-    idle_message: str = "¿Hola? ¿Sigues ahí?"
+    idle_message: Union[str, list[str]] = "¿Hola? ¿Sigues ahí?"
 
     # Telephony
     silence_timeout_ms_phone: Optional[int] = None
