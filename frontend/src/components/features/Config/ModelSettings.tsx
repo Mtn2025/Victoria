@@ -97,7 +97,7 @@ export const ModelSettings = () => {
                                     onChange={(e) => handleChange('prompt', e.target.value)}
                                     minRows={6}
                                     maxRows={20}
-                                    className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-xs"
+                                    className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                     placeholder="Eres un asistente útil..."
                                 />
                             </div>
@@ -312,7 +312,7 @@ export const ModelSettings = () => {
                                 value={config.dynamicVars}
                                 onChange={(e) => handleChange('dynamicVars', e.target.value)}
                                 minRows={2}
-                                className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono text-xs"
+                                className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                                 placeholder='{"nombre": "Juan Pérez", "empresa": "Acme Corp"}'
                             />
                         )}
@@ -337,7 +337,7 @@ export const ModelSettings = () => {
                             value={config.hallucination_blacklist}
                             onChange={(e) => handleChange('hallucination_blacklist', e.target.value)}
                             minRows={2}
-                            className="flex w-full rounded-lg border border-red-500/30 bg-red-950/20 px-3 py-2 text-sm text-white placeholder:text-red-300/20 focus:outline-none focus:ring-1 focus:ring-red-500 font-mono text-xs"
+                            className="flex w-full rounded-lg border border-red-500/30 bg-red-950/20 px-3 py-2 text-sm text-white placeholder:text-red-300/20 focus:outline-none focus:ring-1 focus:ring-red-500"
                             placeholder="Palabras o frases prohibidas separadas por coma..."
                         />
                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
@@ -382,7 +382,7 @@ export const ModelSettings = () => {
                                         value={config.endCallInstructions}
                                         onChange={(e) => handleChange('endCallInstructions', e.target.value)}
                                         minRows={2}
-                                        className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-xs"
+                                        className="flex w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                         placeholder="Ej: Si el cliente dice que no tiene tiempo, dile 'Gracias por tu tiempo, excelente día' y cuelga. Nunca ruegues."
                                     />
                                     <p className="text-[10px] text-slate-500">
