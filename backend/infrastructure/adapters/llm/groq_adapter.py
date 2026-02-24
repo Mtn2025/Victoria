@@ -45,9 +45,10 @@ class GroqLLMAdapter(LLMPort):
                 messages=messages,
                 temperature=llm_cfg.get('temperature', 0.5),
                 max_tokens=llm_cfg.get('max_tokens', 1024),
-                frequency_penalty=llm_cfg.get('frequency_penalty', 0.0),
-                presence_penalty=llm_cfg.get('presence_penalty', 0.0),
-                stop=llm_cfg.get('stop_sequences', None),
+                # Check camelCase from React first, fallback to snake_case
+                frequency_penalty=float(llm_cfg.get('frequencyPenalty', llm_cfg.get('frequency_penalty', 0.0))),
+                presence_penalty=float(llm_cfg.get('presencePenalty', llm_cfg.get('presence_penalty', 0.0))),
+                stop=[s.strip() for s in llm_cfg.get('hallucination_blacklist', '').split(',') if s.strip()] if llm_cfg.get('hallucination_blacklist') else None,
                 stream=False
             )
 
@@ -93,7 +94,8 @@ class GroqLLMAdapter(LLMPort):
             }
             
             if request.stop_sequences:
-                api_kwargs["stop"] = request.stop_sequences
+                # Assuming stop_sequences is a raw string from hallucination_blacklist separated by commas
+                api_kwargs["stop"] = [s.strip() for s in request.stop_sequences.split(',')] if isinstance(request.stop_sequences, str) else request.stop_sequences
             
             if request.tools:
                 api_kwargs["tools"] = request.tools

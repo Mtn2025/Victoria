@@ -28,6 +28,19 @@ class ConfigDTO:
     system_prompt: str = ""
     first_message: str = ""
     first_message_mode: str = "text"
+    
+    # Extended LLM Settings
+    responseLength: Optional[str] = None
+    conversationTone: Optional[str] = None
+    conversationFormality: Optional[str] = None
+    conversationPacing: Optional[str] = None
+    contextWindow: int = 10
+    frequencyPenalty: float = 0.0
+    presencePenalty: float = 0.0
+    toolChoice: str = "auto"
+    dynamicVarsEnabled: bool = False
+    dynamicVars: Optional[str] = None
+    hallucination_blacklist: Optional[str] = None
 
     # TTS Config
     tts_provider: str = "azure"

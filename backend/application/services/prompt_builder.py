@@ -115,9 +115,9 @@ class PromptBuilder:
                 logger.warning(f"Error injecting context: {e}")
 
         # 5. Inject Dynamic Variables ({placeholder})
-        dynamic_vars_enabled = get_cfg('dynamic_vars_enabled', False)
+        dynamic_vars_enabled = get_cfg_multi('dynamic_vars_enabled', 'dynamicVarsEnabled', default=False)
         if dynamic_vars_enabled:
-            dynamic_vars = get_cfg('dynamic_vars', None)
+            dynamic_vars = get_cfg_multi('dynamic_vars', 'dynamicVars', default=None)
             if dynamic_vars:
                 try:
                     if isinstance(dynamic_vars, str):
