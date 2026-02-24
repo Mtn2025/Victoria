@@ -106,12 +106,15 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                                 {call.client_type === 'twilio' && (
                                     <span className="px-2 py-0.5 rounded bg-red-900/40 text-red-400 border border-red-700/50">Twilio</span>
                                 )}
-                                {(!call.client_type || call.client_type === 'browser') && (
+                                {call.client_type === 'browser' && (
                                     <span className="px-2 py-0.5 rounded bg-blue-900/40 text-blue-400 border border-blue-700/50">Simulador</span>
+                                )}
+                                {(!call.client_type || call.client_type === 'unknown') && (
+                                    <span className="px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/50">Desconocido</span>
                                 )}
                             </td>
                             <td className="px-4 py-2 font-mono">
-                                {call.duration_seconds ? `${call.duration_seconds}s` : <span className="text-yellow-500 animate-pulse">En curso</span>}
+                                {call.duration_seconds !== null && call.duration_seconds !== undefined ? `${parseFloat(call.duration_seconds.toString()).toFixed(2)}s` : <span className="text-yellow-500 animate-pulse">En curso</span>}
                             </td>
                             <td className="px-4 py-2">
                                 <span className={`uppercase text-[10px] font-bold px-2 py-0.5 rounded ${getStatusStyle(call.status)}`}>

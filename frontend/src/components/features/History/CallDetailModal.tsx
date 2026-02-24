@@ -62,7 +62,7 @@ export const CallDetailModal: React.FC<CallDetailModalProps> = ({ call, isOpen, 
                         </div>
                         <div className="flex items-center gap-2 text-2xl font-mono text-white">
                             <Clock size={20} className="text-blue-400" />
-                            {call.duration_seconds ? `${call.duration_seconds}s` : '--'}
+                            {call.duration_seconds !== null && call.duration_seconds !== undefined ? `${parseFloat(call.duration_seconds.toString()).toFixed(2)}s` : '--'}
                         </div>
                     </div>
 
@@ -146,13 +146,6 @@ export const CallDetailModal: React.FC<CallDetailModalProps> = ({ call, isOpen, 
                                 <p>No hay transcripción disponible</p>
                             </div>
                         )}
-                        <div className="text-right font-mono text-white">
-                            {new Date(call.start_time).toLocaleString()}
-                        </div>
-                        <div className="text-slate-400">Duración</div>
-                        <div className="text-right font-mono text-white">
-                            {call.duration_seconds || 0}s
-                        </div>
                         {/* Cost - Not in type yet
                         <div className="text-slate-400">Costo</div>
                         <div className="text-right font-mono text-white">

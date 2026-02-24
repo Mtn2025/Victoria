@@ -76,8 +76,8 @@ export const HistoryPage = () => {
             ...calls.map(c => [
                 c.id,
                 new Date(c.start_time).toISOString(),
-                c.client_type,
-                c.duration_seconds || 0,
+                c.client_type || 'unknown',
+                c.duration_seconds !== null && c.duration_seconds !== undefined ? parseFloat(c.duration_seconds.toString()).toFixed(2) : 0,
                 c.status || 'unknown'
             ].join(','))
         ].join('\n')
