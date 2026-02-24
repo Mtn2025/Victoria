@@ -31,9 +31,8 @@ import { Agent } from '@/types/config'
 
 const LANGUAGE_MAP: Record<string, { label: string; flag: string }> = {
     'es-MX': { label: 'Español (México)', flag: '🇲🇽' },
-    'en-US': { label: 'English (US)', flag: '🇺🇸' },
-    'es-ES': { label: 'Español (España)', flag: '🇪🇸' },
-    'pt-BR': { label: 'Português (Brasil)', flag: '🇧🇷' }
+    'es-US': { label: 'Español (Estados Unidos)', flag: '🇺🇸' },
+    'en-US': { label: 'English (US)', flag: '🇺🇸' }
 }
 
 // --------------------------------------------------------------------- //

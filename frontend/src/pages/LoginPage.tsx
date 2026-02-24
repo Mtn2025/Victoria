@@ -5,7 +5,9 @@ export const LoginPage = () => {
     const [apiKey, setApiKey] = useState('');
     const [error, setError] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!apiKey.trim()) {
@@ -13,11 +15,29 @@ export const LoginPage = () => {
             return;
         }
 
-        // Save to localStorage
-        localStorage.setItem('api_key', apiKey.trim());
+        setIsLoading(true);
+        setError('');
 
-        // Hard reload to re-evaluate the App routing and clear any old state
-        window.location.href = '/simulator';
+        try {
+            const response = await fetch('/api/health/protected', {
+                headers: {
+                    'X-API-Key': apiKey.trim()
+                }
+            });
+
+            if (!response.ok) {
+                setError('Clave de acceso incorrecta.');
+                setIsLoading(false);
+                return;
+            }
+
+            // Save to localStorage and redirect
+            localStorage.setItem('api_key', apiKey.trim());
+            window.location.href = '/simulator';
+        } catch (err) {
+            setError('Error de comunicación con el servidor.');
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -57,9 +77,11 @@ export const LoginPage = () => {
 
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200"
+                        disabled={isLoading}
+                        className={`w-full text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 ${isLoading ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'
+                            }`}
                     >
-                        Ingresar
+                        {isLoading ? 'Verificando...' : 'Ingresar'}
                     </button>
                 </form>
             </div>

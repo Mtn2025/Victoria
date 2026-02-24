@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.infrastructure.database.session import get_db_session
+from backend.infrastructure.security.core import get_api_key
 import logging
 
 router = APIRouter(prefix="/health", tags=["monitoring"])
@@ -28,3 +29,10 @@ async def readiness_probe(db: AsyncSession = Depends(get_db_session)):
     except Exception as e:
         logger.error(f"Readiness probe failed: {e}")
         return {"status": "not_ready", "database": "disconnected", "error": str(e)}
+
+@router.get("/protected")
+async def protected_probe(api_key: str = Depends(get_api_key)):
+    """
+    Checks if the provided API Key is valid.
+    """
+    return {"status": "ok", "message": "Authenticated"}

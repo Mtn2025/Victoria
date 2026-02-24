@@ -161,6 +161,17 @@ async def update_agent_config(
     Update configuration for a specific agent identified by UUID.
     Delegates to the same ConfigUpdate schema used by /config/ for consistency.
     """
+    from backend.domain.use_cases.update_agent_config import UpdateAgentConfigUseCase
+    from backend.domain.ports.persistence_port import AgentNotFoundError
+
+    use_case = UpdateAgentConfigUseCase(repo)
+    try:
+        await use_case.execute(agent_uuid, update)
+    except AgentNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Agent {agent_uuid} not found")
+
+    """
+    # [LEGACY CODE COMMENTED FOR SAFETY REVIEW]
     agent = await repo.get_agent_by_uuid(agent_uuid)
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent {agent_uuid} not found")
@@ -193,7 +204,8 @@ async def update_agent_config(
     for field in ["max_tokens", "temperature", "responseLength", "conversationTone",
                   "conversationFormality", "conversationPacing", "contextWindow",
                   "frequencyPenalty", "presencePenalty", "toolChoice", "dynamicVarsEnabled",
-                  "dynamicVars", "mode", "hallucination_blacklist"]:
+                  "dynamicVars", "mode", "hallucination_blacklist",
+                  "end_call_enabled", "end_call_phrases", "end_call_instructions"]:
         val = getattr(update, field, None)
         if val is not None:
             llm_updates[field] = val
@@ -267,6 +279,8 @@ async def update_agent_config(
         agent.tools = [update.tools_config]
 
     await repo.update_agent(agent)
+    """
+
     return {"status": "ok", "agent_uuid": agent_uuid}
 
 
