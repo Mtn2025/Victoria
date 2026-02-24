@@ -178,7 +178,7 @@ class AzureTTSAdapter(TTSPort):
 
         # Params
         rate = f"{voice.speed}"
-        pitch = f"{voice.pitch:+.0f}Hz"
+        pitch = f"{voice.pitch:+.0f}st"
         # Azure supports absolute volume 0-100 (e.g. volume="75")
         volume = f"{voice.volume}"
 

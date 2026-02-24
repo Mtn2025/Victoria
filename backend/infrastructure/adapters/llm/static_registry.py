@@ -24,10 +24,6 @@ class StaticLLMRegistryAdapter(LLMProviderRegistry):
         if os.environ.get("AZURE_OPENAI_API_KEY") and os.environ.get("AZURE_OPENAI_ENDPOINT"):
             providers.append({"id": "azure", "name": "Azure OpenAI"})
             
-        # OpenAI
-        if os.environ.get("OPENAI_API_KEY"):
-            providers.append({"id": "openai", "name": "OpenAI"})
-            
         # Si no hay ninguno configurado, devolver al menos un indicador o la lista vacía
         if not providers:
             # Fallback for debugging, but typically should be empty if strictly enforcing keys

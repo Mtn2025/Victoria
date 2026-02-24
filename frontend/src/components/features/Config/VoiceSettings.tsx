@@ -297,7 +297,7 @@ export const VoiceSettings = () => {
                 </Accordion>
 
                 {/* ELEVENLABS ADVANCED */}
-                {browser.voiceProvider === 'elevenlabs' && (
+                {browser.voiceProvider === 'elevenlabs' && availableTTSProviders.some(p => p.id === 'elevenlabs') && (
                     <Accordion
                         isOpen={openSection === 'elevenlabs'}
                         onToggle={() => setOpenSection(openSection === 'elevenlabs' ? null : 'elevenlabs')}
