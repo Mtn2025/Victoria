@@ -16,13 +16,11 @@ class StaticLLMRegistryAdapter(LLMProviderRegistry):
     async def get_providers(self) -> List[Dict[str, str]]:
         providers = []
         
-        # Groq
-        if os.environ.get("GROQ_API_KEY"):
-            providers.append({"id": "groq", "name": "Groq"})
+        # Groq (Core Provider)
+        providers.append({"id": "groq", "name": "Groq"})
             
-        # Azure OpenAI
-        if os.environ.get("AZURE_OPENAI_API_KEY") and os.environ.get("AZURE_OPENAI_ENDPOINT"):
-            providers.append({"id": "azure", "name": "Azure OpenAI"})
+        # Azure OpenAI (Core Provider)
+        providers.append({"id": "azure", "name": "Azure OpenAI"})
             
         # Si no hay ninguno configurado, devolver al menos un indicador o la lista vacía
         if not providers:
