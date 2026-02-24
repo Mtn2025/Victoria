@@ -474,6 +474,10 @@ export const configSlice = createSlice({
                 if (tc.async_execution !== undefined) state.browser.asyncTools = tc.async_execution
                 if (tc.tool_timeout_ms !== undefined) state.browser.toolTimeoutMs = tc.tool_timeout_ms
                 if (tc.error_message !== undefined) state.browser.toolErrorMsg = tc.error_message
+                if (tc.retry_count !== undefined) state.browser.toolRetryCount = tc.retry_count
+                if (tc.redact_params !== undefined) state.browser.redactParams = tc.redact_params
+                if (tc.transfer_whitelist !== undefined) state.browser.transferWhitelist = tc.transfer_whitelist
+                if (tc.state_injection_enabled !== undefined) state.browser.stateInjectionEnabled = tc.state_injection_enabled
             }
         })
         builder.addCase(fetchAgentConfig.rejected, (state) => {

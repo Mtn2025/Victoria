@@ -140,7 +140,11 @@ export const configService = {
         if (config.toolsSchema !== undefined
             || config.toolServerUrl !== undefined
             || config.clientToolsEnabled !== undefined
-            || config.asyncTools !== undefined) {
+            || config.asyncTools !== undefined
+            || config.toolRetryCount !== undefined
+            || config.redactParams !== undefined
+            || config.transferWhitelist !== undefined
+            || config.stateInjectionEnabled !== undefined) {
 
             let parsedTools: unknown[] = []
             try {
@@ -156,6 +160,10 @@ export const configService = {
                 async_execution: config.asyncTools,
                 tool_timeout_ms: config.toolTimeoutMs,
                 error_message: config.toolErrorMsg,
+                retry_count: config.toolRetryCount,
+                redact_params: config.redactParams,
+                transfer_whitelist: config.transferWhitelist,
+                state_injection_enabled: config.stateInjectionEnabled,
             }
         }
 

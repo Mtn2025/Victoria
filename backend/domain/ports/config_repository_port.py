@@ -90,6 +90,11 @@ class ConfigDTO:
     tools_schema: Optional[Any] = None
     async_tools: bool = False
     tool_timeout_ms: int = 5000
+    tool_retry_count: int = 0
+    tool_error_msg: str = "Lo siento, hubo un error con la herramienta."
+    redact_params: Optional[str] = None
+    transfer_whitelist: Optional[str] = None
+    state_injection_enabled: bool = False
 
     # Analysis
     analysis_prompt: Optional[str] = None

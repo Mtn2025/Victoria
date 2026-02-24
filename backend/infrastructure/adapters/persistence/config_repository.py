@@ -131,6 +131,11 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             tools_config={
                 "enabled": config.async_tools,
                 "timeout_ms": config.tool_timeout_ms,
+                "retry_count": config.tool_retry_count,
+                "error_message": config.tool_error_msg,
+                "redact_params": config.redact_params,
+                "transfer_whitelist": config.transfer_whitelist,
+                "state_injection_enabled": config.state_injection_enabled,
             },
             flow_config={
                 "barge_in_enabled": config.barge_in_enabled,
@@ -224,6 +229,11 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             # Tools
             async_tools=tools_config.get("enabled", False),
             tool_timeout_ms=tools_config.get("timeout_ms", 5000),
+            tool_retry_count=tools_config.get("retry_count", 0),
+            tool_error_msg=tools_config.get("error_message", "Lo siento, hubo un error con la herramienta."),
+            redact_params=tools_config.get("redact_params", None),
+            transfer_whitelist=tools_config.get("transfer_whitelist", None),
+            state_injection_enabled=tools_config.get("state_injection_enabled", False),
             # Flow Config
             barge_in_enabled=flow_config.get("barge_in_enabled", True),
             barge_in_sensitivity=flow_config.get("barge_in_sensitivity", 0.5),
