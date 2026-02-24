@@ -29,7 +29,7 @@ class MockAsyncClient:
 
 async def test_outbound_dialer():
     repo = MockConfigRepo()
-    dialer = OutboundDialerService(repo)
+    dialer = OutboundDialerService(repo, agent_repo=repo, call_repo=repo)
     
     with patch("backend.application.services.outbound_service.settings") as mock_settings:
         mock_settings.TWILIO_ACCOUNT_SID = "AC123"
