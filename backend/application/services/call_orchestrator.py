@@ -642,6 +642,11 @@ class CallOrchestrator:
                     )
                     break
                 
+                # Dynamic Idleness Pause: only count idle time if orchestrator is strictly LISTENING
+                if self.fsm.state != ConversationState.LISTENING:
+                    self.last_interaction_time = now
+                    continue
+                
                 # Idle timeout check
                 if now - self.last_interaction_time > self.idle_timeout:
                     if self.current_idle_retry < self.max_retries:
