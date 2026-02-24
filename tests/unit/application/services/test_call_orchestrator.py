@@ -51,7 +51,8 @@ async def test_start_session(mock_use_cases):
         agent_id="agent-1",
         call_id_value="test-stream",
         from_number=None,
-        to_number=None
+        to_number=None,
+        client_type="unknown"
     )
     assert orch.current_call == mock_call
 

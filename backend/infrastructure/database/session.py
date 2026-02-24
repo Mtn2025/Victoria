@@ -8,16 +8,19 @@ from typing import AsyncIterator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from backend.infrastructure.config.settings import settings
 
-# Create Async Engine
-# echo=False in production, can be set to True for debugging
-engine = create_async_engine(
-    settings.DATABASE_URL, 
-    echo=False,
-    future=True,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True
-)
+# Determine engine arguments
+engine_kwargs = {
+    "echo": False,
+    "future": True,
+}
+
+# Only PostgreSQL supports pool_size and max_overflow in AsyncEngine default pools
+if settings.DATABASE_URL and settings.DATABASE_URL.startswith("postgresql"):
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+    engine_kwargs["pool_pre_ping"] = True
+
+engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
 import os
 print(f"DEBUG: Session Engine initialized with URL: {settings.DATABASE_URL}, CWD: {os.getcwd()}")
 

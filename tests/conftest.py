@@ -6,6 +6,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from typing import AsyncGenerator
 
+# Mock DB requirements for tests to pass application boot
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["ENVIRONMENT"] = "testing"
+
 # Add backend to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 

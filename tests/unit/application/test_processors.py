@@ -86,6 +86,7 @@ class TestVADProcessor:
         config.vad_enable_confirmation = True
         config.client_type = 'browser'
         config.silence_timeout_ms = 1000
+        config.barge_in_sensitivity = 0.5
 
         proc = VADProcessor(config, mock_detect_use_case, vad_adapter=mock_vad_adapter)
         proc.push_frame = AsyncMock()
@@ -100,6 +101,10 @@ class TestVADProcessor:
         
         await processor.process_frame(frame, FrameDirection.DOWNSTREAM)
         await processor.process_frame(frame, FrameDirection.DOWNSTREAM)
+        await processor.process_frame(frame, FrameDirection.DOWNSTREAM)
+        
+        # Add latency to satisfy the dynamic confirmation window
+        await asyncio.sleep(0.3)
         await processor.process_frame(frame, FrameDirection.DOWNSTREAM)
         
         calls = processor.push_frame.call_args_list
@@ -125,6 +130,14 @@ class TestLLMProcessor:
         # Mock attributes accessed by get_cfg helper
         config.llm_model = "test-model"
         config.dynamic_vars_enabled = False # Prevent iteration error in PromptBuilder
+        config.context_window = 10
+        config.hallucination_blacklist = ""
+        config.temperature = 0.5
+        config.max_tokens = 1024
+        config.tokens = 1024
+        config.pacing_response_delay_ms = 0
+        config.response_delay_ms = 0
+        config.filler_audio_enabled = False
         
         # Or if config is accessed as dict
         # Config can be anything. Using MagicMock that responds to getattr.
