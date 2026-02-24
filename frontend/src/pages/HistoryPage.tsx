@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
+
 import { HistoryFilters } from '@/components/features/History/HistoryFilters'
 import { HistoryTable } from '@/components/features/History/HistoryTable'
 import { CallDetailModal } from '@/components/features/History/CallDetailModal'
@@ -108,7 +108,7 @@ export const HistoryPage = () => {
     // Let's pass the 'call' object for list props, and fetch full detail inside.
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-4 animate-fade-in-up p-6 h-full flex flex-col">
                 {/* Header Info */}
                 <div className="flex items-center space-x-2 mb-4 shrink-0">
@@ -192,14 +192,16 @@ export const HistoryPage = () => {
             </div>
 
             {/* Note: We might need to update CallDetailModal types if strict */}
-            {selectedCall && (
-                <CallDetailModal
-                    call={selectedCall.call}
-                    isOpen={isDetailOpen}
-                    onClose={() => setIsDetailOpen(false)}
-                    transcript={selectedCall.transcripts}
-                />
-            )}
-        </DashboardLayout>
+            {
+                selectedCall && (
+                    <CallDetailModal
+                        call={selectedCall.call}
+                        isOpen={isDetailOpen}
+                        onClose={() => setIsDetailOpen(false)}
+                        transcript={selectedCall.transcripts}
+                    />
+                )
+            }
+        </>
     )
 }

@@ -196,6 +196,7 @@ class CallOrchestrator:
         to_number: Optional[str] = None,
         audio_output_callback = None,    # async def cb(audio_bytes: bytes) -> None
         transcript_callback = None,      # async def cb(role: str, text: str) -> None
+        client_type: str = "unknown"
     ) -> Optional[bytes]:
         """
         Start the call session with enhanced lifecycle management.
@@ -219,7 +220,8 @@ class CallOrchestrator:
                 agent_id=agent_id,
                 call_id_value=stream_id,
                 from_number=from_number,
-                to_number=to_number
+                to_number=to_number,
+                client_type=client_type
             )
             logger.info("✅ Call initialized")
             

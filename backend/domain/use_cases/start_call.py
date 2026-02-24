@@ -29,7 +29,8 @@ class StartCallUseCase:
         agent_id: str,
         call_id_value: str,
         from_number: Optional[str] = None,
-        to_number: Optional[str] = None
+        to_number: Optional[str] = None,
+        client_type: str = "unknown"
     ) -> Call:
         """
         Initialize a new call session.
@@ -86,6 +87,7 @@ class StartCallUseCase:
             phone_number=phone
         )
         call.update_metadata("to_number", to_number)
+        call.update_metadata("client_type", client_type)
 
         # 4. Change State
         call.start()

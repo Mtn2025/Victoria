@@ -196,6 +196,7 @@ async def audio_stream(
                         stream_id=stream_id,
                         audio_output_callback=send_tts_audio,       # TTS → WS return path
                         transcript_callback=send_transcript_event,  # STT/LLM → simulator panel
+                        client_type=client,
                     )
                     logger.info(f"Session started: {stream_id}")
 
