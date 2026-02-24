@@ -195,8 +195,8 @@ export const VoiceSettings = () => {
                         </div>
 
                         {/* Fila 3 (Estilo Emocional, condicional a si hay estilos) */}
-                        {availableStyles.length > 0 && (
-                            <div>
+                        {availableStyles.filter(s => s && s.id && s.id.trim() !== '').length > 0 && (
+                            <div className="animate-in fade-in duration-300">
                                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
                                 <Select
                                     value={browser.voiceStyle}
@@ -204,7 +204,7 @@ export const VoiceSettings = () => {
                                     className="w-full"
                                 >
                                     <option value="">(Default)</option>
-                                    {availableStyles.map(s => (
+                                    {availableStyles.filter(s => s && s.id && s.id.trim() !== '').map(s => (
                                         <option key={s.id} value={s.id}>{s.label}</option>
                                     ))}
                                 </Select>
