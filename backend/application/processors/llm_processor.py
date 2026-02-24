@@ -6,6 +6,7 @@ import asyncio
 import logging
 import re
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from backend.application.processors.frames import Frame, TextFrame, CancelFrame, EndTaskFrame, UserStartedSpeakingFrame
@@ -105,7 +106,11 @@ class LLMProcessor(FrameProcessor):
 
         # Update History
         if not self.conversation_history or self.conversation_history[-1].get("content") != text:
-            self.conversation_history.append({"role": "user", "content": text})
+            self.conversation_history.append({
+                "role": "user", 
+                "content": text,
+                "timestamp": datetime.now(timezone.utc)
+            })
             
         try:
             await self._generate_llm_response()
@@ -216,7 +221,8 @@ class LLMProcessor(FrameProcessor):
                     # We simulate that the assistant output was the function call.
                     self.conversation_history.append({
                         "role": "assistant",
-                        "content": f"[TOOL_CALL: {chunk.function_call.name}]" 
+                        "content": f"[TOOL_CALL: {chunk.function_call.name}]",
+                        "timestamp": datetime.now(timezone.utc)
                     })
                     
                     result_content = str(tool_response.result) if tool_response.success else tool_response.error_message
@@ -263,7 +269,11 @@ class LLMProcessor(FrameProcessor):
              
         # Update History
         if full_response_buffer.strip():
-            self.conversation_history.append({"role": "assistant", "content": full_response_buffer})
+            self.conversation_history.append({
+                "role": "assistant", 
+                "content": full_response_buffer,
+                "timestamp": datetime.now(timezone.utc)
+            })
             
             # --- FLOW CONFIG: End-call phrases detection ---
             end_call_phrases = get_cfg('pacing_end_call_phrases', [])

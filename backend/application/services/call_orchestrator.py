@@ -427,6 +427,19 @@ class CallOrchestrator:
         await self.stop()
         
         if self.current_call:
+            # --- Sync internal memory dict to Domain Entity ---
+            from backend.domain.value_objects.conversation_turn import ConversationTurn
+            from datetime import datetime, timezone
+            
+            # In Phase 3, pipeline populates orchestrator's conversation_history dict list.
+            # We map this to the formal Domain entity so call_repository can save it properly.
+            for item in self.conversation_history:
+                self.current_call.conversation.add_turn(ConversationTurn(
+                    role=item.get("role", "unknown"),
+                    content=item.get("content", ""),
+                    timestamp=item.get("timestamp", datetime.now(timezone.utc))
+                ))
+
             # --- Post-call extraction ---
             # Run only if the conversation has actual turns (user/assistant exchanges)
             if self.current_call.conversation.turns and self.llm_port:
