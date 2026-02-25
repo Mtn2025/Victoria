@@ -101,6 +101,7 @@ class SqlAlchemyAgentRepository(AgentRepository):
         agent_model.silence_timeout_ms = agent.silence_timeout_ms
 
         if agent.voice_config:
+            agent_model.voice_provider = agent.voice_config.provider
             agent_model.voice_name = agent.voice_config.name
             agent_model.voice_style = agent.voice_config.style
             agent_model.voice_speed = agent.voice_config.speed

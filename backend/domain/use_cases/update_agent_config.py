@@ -39,6 +39,7 @@ class UpdateAgentConfigUseCase:
         ]):
             agent.voice_config = VoiceConfig(
                 name=update.voice_name or agent.voice_config.name,
+                provider=update.voice_provider or agent.voice_config.provider,
                 style=update.voice_style if update.voice_style is not None else agent.voice_config.style,
                 speed=update.voice_speed or agent.voice_config.speed,
                 pitch=update.voice_pitch if update.voice_pitch is not None else agent.voice_config.pitch,
@@ -68,9 +69,13 @@ class UpdateAgentConfigUseCase:
         if llm_updates:
             agent.llm_config = {**(agent.llm_config or {}), **llm_updates}
 
-        # Merge extended Voice config into metadata
+        # Merge extended Voice config into metadata (incl ElevenLabs)
         voice_ext_updates: Dict[str, Any] = {}
-        voice_fields = ["voiceStyleDegree", "voiceBgSound", "voiceBgUrl"]
+        voice_fields = [
+            "voiceStyleDegree", "voiceBgSound", "voiceBgUrl",
+            "voiceStability", "voiceSimilarityBoost", "voiceStyleExaggeration",
+            "voiceSpeakerBoost", "voiceMultilingual"
+        ]
         for field in voice_fields:
             val = getattr(update, field, None)
             if val is not None:
