@@ -43,6 +43,11 @@ class ConfigUpdate(BaseModel):
     voiceStyleDegree: Optional[float] = None
     voiceBgSound: Optional[str] = None
     voiceBgUrl: Optional[str] = None
+    voiceFillerInjection: Optional[bool] = None
+    voiceBackchanneling: Optional[bool] = None
+    textNormalizationRule: Optional[str] = None
+    ttsLatencyOptimization: Optional[int] = None
+    ttsOutputFormat: Optional[str] = None
     
     # ElevenLabs Specifics
     voiceStability: Optional[float] = None

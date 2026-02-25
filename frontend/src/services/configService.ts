@@ -34,12 +34,17 @@ interface BackendConfigUpdate {
     voiceStyleDegree?: number
     voiceBgSound?: string
     voiceBgUrl?: string
-    // ElevenLabs
+    // ElevenLabs y Advanced TTS
     voiceStability?: number
     voiceSimilarityBoost?: number
     voiceStyleExaggeration?: number
     voiceSpeakerBoost?: boolean
     voiceMultilingual?: boolean
+    voiceFillerInjection?: boolean
+    voiceBackchanneling?: boolean
+    textNormalizationRule?: string
+    ttsLatencyOptimization?: number
+    ttsOutputFormat?: string
     // STT
     sttProvider?: string
     sttModel?: string
@@ -145,6 +150,13 @@ export const configService = {
         if (config.voiceStyleDegree !== undefined) payload.voiceStyleDegree = config.voiceStyleDegree
         if (config.voiceBgSound !== undefined) payload.voiceBgSound = config.voiceBgSound
         if (config.voiceBgUrl !== undefined) payload.voiceBgUrl = config.voiceBgUrl
+
+        // Advanced TTS & Humanization
+        if (config.voiceFillerInjection !== undefined) payload.voiceFillerInjection = config.voiceFillerInjection
+        if (config.voiceBackchanneling !== undefined) payload.voiceBackchanneling = config.voiceBackchanneling
+        if (config.textNormalizationRule !== undefined) payload.textNormalizationRule = config.textNormalizationRule
+        if (config.ttsLatencyOptimization !== undefined) payload.ttsLatencyOptimization = config.ttsLatencyOptimization
+        if (config.ttsOutputFormat !== undefined) payload.ttsOutputFormat = config.ttsOutputFormat
 
         // ElevenLabs specifics
         if (config.voiceStability !== undefined) payload.voiceStability = config.voiceStability

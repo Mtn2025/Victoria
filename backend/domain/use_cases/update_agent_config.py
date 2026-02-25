@@ -69,12 +69,14 @@ class UpdateAgentConfigUseCase:
         if llm_updates:
             agent.llm_config = {**(agent.llm_config or {}), **llm_updates}
 
-        # Merge extended Voice config into metadata (incl ElevenLabs)
+        # Merge extended Voice config into metadata (incl ElevenLabs and Advanced Settings)
         voice_ext_updates: Dict[str, Any] = {}
         voice_fields = [
             "voiceStyleDegree", "voiceBgSound", "voiceBgUrl",
             "voiceStability", "voiceSimilarityBoost", "voiceStyleExaggeration",
-            "voiceSpeakerBoost", "voiceMultilingual"
+            "voiceSpeakerBoost", "voiceMultilingual",
+            "voiceFillerInjection", "voiceBackchanneling", "textNormalizationRule",
+            "ttsLatencyOptimization", "ttsOutputFormat"
         ]
         for field in voice_fields:
             val = getattr(update, field, None)
