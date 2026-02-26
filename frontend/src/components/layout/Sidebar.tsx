@@ -172,6 +172,20 @@ export const Sidebar = () => {
 
             {/* Bottom Actions */}
             <div className="mt-auto px-2 space-y-2 pt-4">
+                {/* Font Size Switcher */}
+                <button
+                    onClick={() => {
+                        const current = localStorage.getItem('fontScale') || 'sm';
+                        const next = current === 'sm' ? 'md' : current === 'md' ? 'lg' : 'sm';
+                        localStorage.setItem('fontScale', next);
+                        document.body.setAttribute('data-font-scale', next);
+                    }}
+                    title="Tamaño de Fuente / Font Size"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all tracking-tighter"
+                >
+                    <span className="text-[10px] font-bold">A</span>
+                    <span className="text-sm font-bold">A</span>
+                </button>
                 {/* Language Switcher */}
                 <button
                     onClick={() => {

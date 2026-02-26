@@ -26,3 +26,55 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
+
+/* -------------------------------------------------------------------------- */
+/* GLOBAL FONT SCALING (AA Feature)                                           */
+/* -------------------------------------------------------------------------- */
+/* Normal (sm) is default Tailwind.                                           */
+/* Medium (md) bumps every size up by 1 step.                                 */
+/* Large (lg) bumps every size up by 2 steps.                                 */
+/* -------------------------------------------------------------------------- */
+
+@layer utilities {
+  body[data-font-scale="md"] .text-\[10px\] {
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+  }
+
+  body[data-font-scale="md"] .text-\[11px\],
+  body[data-font-scale="md"] .text-xs {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  body[data-font-scale="md"] .text-sm {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  body[data-font-scale="md"] .text-base {
+    font-size: 1.125rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  body[data-font-scale="lg"] .text-\[10px\] {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  body[data-font-scale="lg"] .text-\[11px\],
+  body[data-font-scale="lg"] .text-xs {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  body[data-font-scale="lg"] .text-sm {
+    font-size: 1.125rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  body[data-font-scale="lg"] .text-base {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+}
