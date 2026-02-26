@@ -4,14 +4,13 @@ import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { Input } from '@/components/ui/Input'
 import { BrowserConfig } from '@/types/config'
 import { Accordion } from '@/components/ui/Accordion'
-import { Megaphone, Link, Database, Upload, FileText, Loader2, Info, AlertCircle } from 'lucide-react'
+import { Megaphone, Link, Database, Upload, FileText, Loader2, Info } from 'lucide-react'
 import { useTranslation } from '@/i18n/I18nContext'
 
 export const CampaignSettings = () => {
     const dispatch = useAppDispatch()
     const { t } = useTranslation()
     const { browser } = useAppSelector(state => state.config)
-    const { activeProfile } = useAppSelector(state => state.ui)
 
     const [openSection, setOpenSection] = useState<string | null>('launcher')
 
@@ -43,27 +42,7 @@ export const CampaignSettings = () => {
         }, 1500)
     }
 
-    // Simulator Warning Check
-    if (activeProfile === 'browser') {
-        return (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center relative">
-                    <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                        <Megaphone className="w-5 h-5 text-blue-400" />
-                        {t('campaigns.title')}
-                    </h3>
-                </div>
-
-                <div className="p-8 text-center border border-slate-700/50 rounded-xl bg-slate-800/20 backdrop-blur-sm animate-in fade-in mt-10">
-                    <div className="mx-auto bg-red-500/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                        <AlertCircle className="w-6 h-6 text-red-400" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-300">{t('campaigns.blocked_msg')}</p>
-                    <p className="text-xs text-slate-500 mt-2">{t('campaigns.blocked_sub')}</p>
-                </div>
-            </div>
-        )
-    }
+    // La UI ya bloquea este tab en el Sidebar gracias a `isTelephonyOnly = true`.
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
