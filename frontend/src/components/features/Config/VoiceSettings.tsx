@@ -359,19 +359,31 @@ export const VoiceSettings = () => {
                 </Accordion>
 
                 {/* NORMALIZACIÓN DE TEXTO */}
-                <div className="pt-4">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Normalización de Texto</label>
-                    <Select
-                        value={browser.textNormalizationRule}
-                        onChange={(e) => update('textNormalizationRule', e.target.value)}
-                        className="w-full"
-                    >
-                        <option value="default">🤖 Automático (Default)</option>
-                        <option value="numbers_to_words">🔢 Convertir Números a Palabras</option>
-                        <option value="remove_emojis">🚫 Ignorar Emojis</option>
-                        <option value="spell_out">🔤 Deletrear Acrónimos</option>
-                    </Select>
-                </div>
+                <Accordion
+                    isOpen={openSection === 'normalization'}
+                    onToggle={() => setOpenSection(openSection === 'normalization' ? null : 'normalization')}
+                    className="border-indigo-500/30 mt-4"
+                    headerClassName="hover:bg-indigo-900/20"
+                    title={
+                        <span className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                            <span className="text-lg">🔤</span> Normalización de Texto
+                        </span>
+                    }
+                >
+                    <div className="pt-2">
+                        <Select
+                            value={browser.textNormalizationRule || 'default'}
+                            onChange={(e) => update('textNormalizationRule', e.target.value)}
+                            className="w-full"
+                        >
+                            <option value="default">🤖 Automático (Default)</option>
+                            <option value="numbers_to_words">🔢 Convertir Números a Palabras</option>
+                            <option value="remove_emojis">🚫 Ignorar Emojis</option>
+                            <option value="spell_out">🔤 Deletrear Acrónimos</option>
+                        </Select>
+                        <p className="text-[10px] text-slate-500 mt-2">Instruye al motor de voz sobre cómo procesar texto o símbolos antes de decirlos.</p>
+                    </div>
+                </Accordion>
 
                 {/* AJUSTES TÉCNICOS */}
                 <Accordion
