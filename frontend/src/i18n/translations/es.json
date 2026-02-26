@@ -243,5 +243,24 @@
         "amd_detect": "Detect Only",
         "amd_detect_hangup": "Detect & Hangup",
         "amd_detect_message": "Detect Message End"
+    },
+    "system": {
+        "title": "Sistema & Gobierno",
+        "subtitle": "Infraestructura segura (Safe Mode).",
+        "accordion_limits": "Límites de Seguridad (Safety)",
+        "accordion_env": "Entorno & Privacidad",
+        "concurrency_label": "Concurrency Limit",
+        "concurrency_desc": "Máximo de llamadas simultáneas activas.",
+        "concurrency_val": "{{count}} calls",
+        "spend_label": "Daily Spend Limit ($)",
+        "env_tag_label": "Environment Tag",
+        "env_dev": "Development (Sandbox)",
+        "env_staging": "Staging (Pre-Prod)",
+        "env_prod": "Production (Live)",
+        "privacy_title": "Privacy Mode",
+        "privacy_desc": "No usar data para entrenamiento.",
+        "audit_title": "Audit Logs",
+        "audit_desc": "Registrar cambios de configuración.",
+        "healthy_status": "System Healthy"
     }
 }
