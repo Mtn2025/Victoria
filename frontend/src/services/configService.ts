@@ -283,6 +283,11 @@ export const configService = {
         return response.providers || []
     },
 
+    getSTTProviders: async (): Promise<{ id: string, name: string }[]> => {
+        const response = await api.get<{ providers: { id: string, name: string }[] }>('/config/options/stt/providers')
+        return response.providers || []
+    },
+
     getLanguages: async (provider: string = 'azure'): Promise<Language[]> => {
         const response = await api.get<{ languages: Language[] }>('/config/options/tts/languages', { params: { provider } })
         return response.languages || []

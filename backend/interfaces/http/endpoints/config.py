@@ -23,6 +23,7 @@ from backend.domain.use_cases.get_llm_options import GetLLMOptionsUseCase
 from backend.domain.use_cases.get_tts_options import GetTTSOptionsUseCase
 from backend.infrastructure.adapters.llm.static_registry import StaticLLMRegistryAdapter
 from backend.infrastructure.adapters.tts.static_registry import StaticTTSRegistryAdapter
+from backend.infrastructure.adapters.stt.static_registry import StaticSTTRegistryAdapter
 from backend.infrastructure.config.features import features
 
 router = APIRouter(prefix="/config", tags=["config"])
@@ -107,6 +108,17 @@ async def get_tts_styles(voice_id: str, provider: str = "azure"):
         return {"styles": styles}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# --------------------------------------------------------------------------- #
+# GET /config/options/stt/providers                                            #
+# --------------------------------------------------------------------------- #
+@router.get("/options/stt/providers")
+async def get_stt_providers():
+    """Get available STT providers dynamically based on .env keys."""
+    registry = StaticSTTRegistryAdapter()
+    providers = await registry.get_providers()
+    return {"providers": providers}
 
 
 # --------------------------------------------------------------------------- #
