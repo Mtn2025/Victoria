@@ -137,5 +137,21 @@
         "exaggeration_label": "Exageración Estilo",
         "speaker_boost_label": "Boost Speaker (Mejor Calidad)",
         "multilingual_label": "Modo Multilingüe (v2)"
+    },
+    "transcriber": {
+        "title": "Configuración de Transcripción (STT)",
+        "core_title": "Configuración Base (Motor STT)",
+        "provider_label": "Proveedor STT",
+        "provider_placeholder": "Seleccionar Proveedor",
+        "provider_desc": "El idioma de transcripción y el modelo usado se autodescubre para el idioma general de este Agente.",
+        "vad_title": "🔊 Orquestación y Sensibilidad (VAD)",
+        "endpointing_label": "Endpointing (Silencio Esperado)",
+        "endpointing_desc": "Tiempo de silencio que el bot debe esperar antes de interrumpir para contestar.",
+        "endpointing_fast": "300 ms (Rápido)",
+        "endpointing_normal": "1000 ms (Normal)",
+        "endpointing_slow": "2000 ms (Pausado)",
+        "blacklist_label": "Lista Negra (Falsos Positivos)",
+        "blacklist_desc": "Evita que el bot se calle si el usuario solo hace un sonido de \"escucha activa\" temporal.",
+        "blacklist_placeholder": "Ej: Mm..., Ah, Oye..."
     }
 }

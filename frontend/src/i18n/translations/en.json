@@ -137,5 +137,21 @@
         "exaggeration_label": "Style Exaggeration",
         "speaker_boost_label": "Speaker Boost (Best Quality)",
         "multilingual_label": "Multilingual Mode (v2)"
+    },
+    "transcriber": {
+        "title": "Transcription Configuration (STT)",
+        "core_title": "Base Config (STT Engine)",
+        "provider_label": "STT Provider",
+        "provider_placeholder": "Select Provider",
+        "provider_desc": "The transcription language and model used is auto-discovered for the general language of this Agent.",
+        "vad_title": "🔊 Orchestration and Sensitivity (VAD)",
+        "endpointing_label": "Endpointing (Expected Silence)",
+        "endpointing_desc": "Amount of silence time the bot should wait before interrupting to reply.",
+        "endpointing_fast": "300 ms (Fast)",
+        "endpointing_normal": "1000 ms (Normal)",
+        "endpointing_slow": "2000 ms (Paused)",
+        "blacklist_label": "Blacklist (False Positives)",
+        "blacklist_desc": "Prevents the bot from cutting off if the user only makes a temporary \"active listening\" sound.",
+        "blacklist_placeholder": "Ex: Mm..., Ah, Hey..."
     }
 }
