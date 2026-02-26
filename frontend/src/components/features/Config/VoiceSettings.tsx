@@ -8,9 +8,11 @@ import { BrowserConfig } from '@/types/config'
 import { Accordion } from '@/components/ui/Accordion'
 import { Play, AlertCircle, Volume2, Sparkles } from 'lucide-react'
 import { configService } from '@/services/configService'
+import { useTranslation } from '@/i18n/I18nContext'
 
 export const VoiceSettings = () => {
     const dispatch = useAppDispatch()
+    const { t } = useTranslation()
     const { browser, availableVoices, availableStyles, availableTTSProviders, isLoadingOptions } = useAppSelector(state => state.config)
     const [previewLoading, setPreviewLoading] = useState(false)
     const [openSection, setOpenSection] = useState<string | null>('core')
@@ -97,12 +99,12 @@ export const VoiceSettings = () => {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in-up">
+        <div className="space-y-6 animate-fade-in-up pb-10">
             {/* Header / Intro */}
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-white flex items-center gap-2">
                     <Volume2 className="w-5 h-5 text-blue-400" />
-                    Configuración de Voz (TTS)
+                    {t('voice.title')}
                 </h3>
                 <Button
                     size="sm"
@@ -113,7 +115,7 @@ export const VoiceSettings = () => {
                     className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
                 >
                     <Play className="w-4 h-4 mr-2" />
-                    Probar Voz
+                    {previewLoading ? t('voice.previewing') : t('voice.test_voice')}
                 </Button>
             </div>
 
@@ -128,65 +130,65 @@ export const VoiceSettings = () => {
                     title={
                         <span className="text-sm font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
                             <Volume2 className="w-4 h-4" />
-                            Configuración Base (Voz & Tono)
+                            {t('voice.core_title')}
                         </span>
                     }
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
                         {/* Fila 1 */}
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Proveedor TTS</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.provider_label')}</label>
                             <Select
                                 value={browser.voiceProvider}
                                 onChange={(e) => update('voiceProvider', e.target.value)}
                                 className="w-full"
                             >
-                                {availableTTSProviders.length === 0 && <option value="azure" disabled>Cargando proveedores...</option>}
+                                {availableTTSProviders.length === 0 && <option value="azure" disabled>{t('voice.provider_loading')}</option>}
                                 {availableTTSProviders.map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
                             </Select>
                         </div>
 
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Idioma Heredado</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.language_label')}</label>
                             <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed flex items-center gap-2">
                                 <span className="text-[12px] bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 border border-slate-600 font-mono flex items-baseline">
                                     {activeAgent?.language || 'es-MX'}
                                 </span>
-                                Automático
+                                {t('voice.language_auto')}
                             </div>
-                            <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
+                            <p className="text-[10px] text-slate-500 flex items-center gap-1">
                                 <AlertCircle size={10} className="text-blue-400" />
-                                El Agente dicta el idioma general.
+                                {t('voice.language_desc')}
                             </p>
                         </div>
 
                         {/* Fila 2 */}
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Género</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.gender_label')}</label>
                             <Select
                                 value={browser.voiceGender}
                                 onChange={(e) => update('voiceGender', e.target.value)}
                                 disabled={isLoadingOptions || availableVoices.length === 0}
                                 className="w-full"
                             >
-                                <option value="female">Femenino</option>
-                                <option value="male">Masculino</option>
-                                {otherVoices.length > 0 && <option value="other">Otros / Sin Categoria</option>}
+                                <option value="female">{t('voice.gender_female')}</option>
+                                <option value="male">{t('voice.gender_male')}</option>
+                                {otherVoices.length > 0 && <option value="other">{t('voice.gender_other')}</option>}
                             </Select>
                         </div>
 
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Voz</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.voice_label')}</label>
                             <Select
                                 value={browser.voiceId}
                                 onChange={(e) => update('voiceId', e.target.value)}
                                 disabled={isLoadingOptions || availableVoices.length === 0}
                                 className="w-full"
                             >
-                                <option value="" disabled>Seleccionar Voz...</option>
-                                {availableVoices.length === 0 && <option disabled>Cargando voces...</option>}
+                                <option value="" disabled>{t('voice.voice_placeholder')}</option>
+                                {availableVoices.length === 0 && <option disabled>{t('voice.voice_loading')}</option>}
 
                                 {filteredVoices.map(v => (
                                     <option key={v.id} value={v.id}>{v.name}</option>
@@ -194,16 +196,16 @@ export const VoiceSettings = () => {
                             </Select>
                         </div>
 
-                        {/* Fila 3 (Estilo Emocional, condicional a si hay estilos) */}
+                        {/* Fila 3 (Estilo Emocional) */}
                         {availableStyles.filter(s => s && s.id && s.id.trim() !== '' && s.id !== 'default').length > 0 && (
-                            <div className="animate-in fade-in duration-300">
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Estilo Emocional</label>
+                            <div className="space-y-2 animate-in fade-in duration-300">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.style_label')}</label>
                                 <Select
                                     value={browser.voiceStyle}
                                     onChange={(e) => update('voiceStyle', e.target.value)}
                                     className="w-full"
                                 >
-                                    <option value="">(Default)</option>
+                                    <option value="">{t('voice.style_default')}</option>
                                     {availableStyles.filter(s => s && s.id && s.id.trim() !== '').map(s => (
                                         <option key={s.id} value={s.id}>{s.label}</option>
                                     ))}
@@ -212,101 +214,112 @@ export const VoiceSettings = () => {
                         )}
                     </div>
 
-                    {/* Sliders Section (Velocidad, Pitch, Volumen) */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+                    {/* Sliders Area */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-white/5 pb-2">
                         {/* Speed */}
-                        <div>
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                                <span>Velocidad</span>
-                                <span className="text-blue-400">{browser.voiceSpeed}x</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0.5"
-                                max="2.0"
-                                step="0.1"
-                                value={browser.voiceSpeed}
-                                onChange={(e) => update('voiceSpeed', parseFloat(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                            />
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.speed_label')}</label>
+                                <span className="text-sm font-bold text-blue-400">{browser.voiceSpeed}x</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-500 font-mono">0.5</span>
+                                <input
+                                    type="range"
+                                    min="0.5" max="2.0" step="0.1"
+                                    value={browser.voiceSpeed}
+                                    onChange={(e) => update('voiceSpeed', parseFloat(e.target.value))}
+                                    className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <span className="text-xs text-slate-500 font-mono">2.0</span>
+                            </div>
+                            <p className="text-[10px] text-slate-500">{t('voice.speed_desc')}</p>
                         </div>
 
                         {/* Pitch */}
-                        <div>
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                                <span>Tono (Pitch)</span>
-                                <span className="text-purple-400">{browser.voicePitch}st</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="-12"
-                                max="12"
-                                step="1"
-                                value={browser.voicePitch}
-                                onChange={(e) => update('voicePitch', parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                            />
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.pitch_label')}</label>
+                                <span className="text-sm font-bold text-purple-400">{browser.voicePitch}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-500 font-mono">-12</span>
+                                <input
+                                    type="range"
+                                    min="-12" max="12" step="1"
+                                    value={browser.voicePitch}
+                                    onChange={(e) => update('voicePitch', parseInt(e.target.value))}
+                                    className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                />
+                                <span className="text-xs text-slate-500 font-mono">+12</span>
+                            </div>
+                            <p className="text-[10px] text-slate-500">{t('voice.pitch_desc')}</p>
                         </div>
 
                         {/* Volume */}
-                        <div>
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                                <span>Volumen</span>
-                                <span className="text-emerald-400">{browser.voiceVolume}</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="1"
-                                value={browser.voiceVolume}
-                                onChange={(e) => update('voiceVolume', parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                            />
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.volume_label')}</label>
+                                <span className="text-sm font-bold text-emerald-400">{browser.voiceVolume}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-500 font-mono">0</span>
+                                <input
+                                    type="range"
+                                    min="0" max="100" step="1"
+                                    value={browser.voiceVolume}
+                                    onChange={(e) => update('voiceVolume', parseInt(e.target.value))}
+                                    className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                />
+                                <span className="text-xs text-slate-500 font-mono">100</span>
+                            </div>
+                            <p className="text-[10px] text-slate-500">{t('voice.volume_desc')}</p>
                         </div>
                     </div>
 
-                    {/* Style Degree (Conditionally rendered in full width if styles apply) */}
+                    {/* Style Degree (Conditionally rendered) */}
                     {browser.voiceStyle && browser.voiceStyle !== 'default' && browser.voiceStyle !== '' && (
-                        <div className="pt-4 border-t border-white/5">
-                            <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                                <span>Intensidad Estilo</span>
-                                <span className="text-pink-400">{browser.voiceStyleDegree}</span>
-                            </label>
-                            <input
-                                type="range"
-                                min="0.1"
-                                max="2.0"
-                                step="0.1"
-                                value={browser.voiceStyleDegree}
-                                onChange={(e) => update('voiceStyleDegree', parseFloat(e.target.value))}
-                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
-                            />
+                        <div className="pt-4 border-t border-white/5 space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.style_intensity_label')}</label>
+                                <span className="text-sm font-bold text-pink-400">{browser.voiceStyleDegree}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-500 font-mono">0.1</span>
+                                <input
+                                    type="range"
+                                    min="0.1" max="2.0" step="0.1"
+                                    value={browser.voiceStyleDegree}
+                                    onChange={(e) => update('voiceStyleDegree', parseFloat(e.target.value))}
+                                    className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                />
+                                <span className="text-xs text-slate-500 font-mono">2.0</span>
+                            </div>
                         </div>
                     )}
 
                     {/* Background Sound */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Sonido de Fondo</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.bg_sound_label')}</label>
                             <Select
                                 value={browser.voiceBgSound}
                                 onChange={(e) => update('voiceBgSound', e.target.value)}
                             >
-                                <option value="none">🔇 Silencio</option>
-                                <option value="office">🏢 Oficina</option>
-                                <option value="cafe">☕ Cafetería</option>
-                                <option value="callcenter">📞 Call Center</option>
-                                <option value="custom">🔗 URL Personalizada</option>
+                                <option value="none">{t('voice.bg_none')}</option>
+                                <option value="office">{t('voice.bg_office')}</option>
+                                <option value="cafe">{t('voice.bg_cafe')}</option>
+                                <option value="callcenter">{t('voice.bg_callcenter')}</option>
+                                <option value="custom">{t('voice.bg_custom')}</option>
                             </Select>
                         </div>
                         {browser.voiceBgSound === 'custom' && (
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">URL Audio</label>
+                            <div className="space-y-2">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.bg_url_label')}</label>
                                 <Input
                                     value={browser.voiceBgUrl}
                                     onChange={(e) => update('voiceBgUrl', e.target.value)}
-                                    placeholder="https://example.com/audio.mp3"
+                                    placeholder={t('voice.bg_url_placeholder')}
                                 />
                             </div>
                         )}
@@ -321,7 +334,7 @@ export const VoiceSettings = () => {
                     headerClassName="hover:bg-pink-900/20"
                     title={
                         <span className="text-sm font-bold text-pink-400 uppercase tracking-wider flex items-center gap-2">
-                            <span className="text-lg">🗣️</span> Humanización
+                            {t('voice.humanization_title')}
                         </span>
                     }
                 >
@@ -336,8 +349,8 @@ export const VoiceSettings = () => {
                                 />
                             </div>
                             <div className="ml-3 flex flex-col">
-                                <span className="text-sm font-medium text-white">Inyección de "Muletillas"</span>
-                                <span className="text-xs text-slate-400">Agrega "eh...", "hmm..." de forma natural</span>
+                                <span className="text-sm font-medium text-white">{t('voice.filler_label')}</span>
+                                <span className="text-[10px] text-slate-400 mt-1">{t('voice.filler_desc')}</span>
                             </div>
                         </label>
 
@@ -351,8 +364,8 @@ export const VoiceSettings = () => {
                                 />
                             </div>
                             <div className="ml-3 flex flex-col">
-                                <span className="text-sm font-medium text-white">Escucha Activa</span>
-                                <span className="text-xs text-slate-400">Dice "ajá", "sí" mientras escuchas</span>
+                                <span className="text-sm font-medium text-white">{t('voice.active_listen_label')}</span>
+                                <span className="text-[10px] text-slate-400 mt-1">{t('voice.active_listen_desc')}</span>
                             </div>
                         </label>
                     </div>
@@ -366,7 +379,7 @@ export const VoiceSettings = () => {
                     headerClassName="hover:bg-indigo-900/20"
                     title={
                         <span className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
-                            <span className="text-lg">🔤</span> Normalización de Texto
+                            {t('voice.normalization_title')}
                         </span>
                     }
                 >
@@ -376,12 +389,12 @@ export const VoiceSettings = () => {
                             onChange={(e) => update('textNormalizationRule', e.target.value)}
                             className="w-full"
                         >
-                            <option value="default">🤖 Automático (Default)</option>
-                            <option value="numbers_to_words">🔢 Convertir Números a Palabras</option>
-                            <option value="remove_emojis">🚫 Ignorar Emojis</option>
-                            <option value="spell_out">🔤 Deletrear Acrónimos</option>
+                            <option value="default">{t('voice.norm_default')}</option>
+                            <option value="numbers_to_words">{t('voice.norm_numbers')}</option>
+                            <option value="remove_emojis">{t('voice.norm_emojis')}</option>
+                            <option value="spell_out">{t('voice.norm_spell')}</option>
                         </Select>
-                        <p className="text-[10px] text-slate-500 mt-2">Instruye al motor de voz sobre cómo procesar texto o símbolos antes de decirlos.</p>
+                        <p className="text-[10px] text-slate-500 mt-2">{t('voice.norm_desc')}</p>
                     </div>
                 </Accordion>
 
@@ -393,27 +406,27 @@ export const VoiceSettings = () => {
                     headerClassName="hover:bg-slate-800/50"
                     title={
                         <span className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            <span>⚙️</span> Ajustes Técnicos
+                            {t('voice.tech_title')}
                         </span>
                     }
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Latencia / Calidad</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.latency_label')}</label>
                             <Select
                                 value={browser.ttsLatencyOptimization || '0'}
                                 onChange={(e) => update('ttsLatencyOptimization', parseInt(e.target.value))}
                                 className="w-full"
                             >
-                                <option value="0">⭐ Calidad Máxima (Default)</option>
-                                <option value="1">⚡ Optimizado para Latencia Mínima</option>
-                                <option value="2">⚡ Ultra Rápido (Menos Expresividad)</option>
+                                <option value="0">{t('voice.latency_0')}</option>
+                                <option value="1">{t('voice.latency_1')}</option>
+                                <option value="2">{t('voice.latency_2')}</option>
                             </Select>
-                            <p className="text-[10px] text-slate-500 mt-1">Afecta calidad de audio vs velocidad de respuesta.</p>
+                            <p className="text-[10px] text-slate-500">{t('voice.latency_desc')}</p>
                         </div>
 
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Formato de Salida</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.format_label')}</label>
                             <Select
                                 value={browser.ttsOutputFormat || 'pcm_16khz'}
                                 onChange={(e) => update('ttsOutputFormat', e.target.value)}
@@ -438,54 +451,65 @@ export const VoiceSettings = () => {
                         title={
                             <span className="text-sm font-bold text-green-400 uppercase tracking-wider flex items-center gap-2">
                                 <Sparkles className="w-4 h-4" />
-                                Ajustes Precisos (ElevenLabs)
+                                {t('voice.adv_title')}
                             </span>
                         }
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
                             <div className="space-y-2">
-                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    <span>Estabilidad</span>
-                                    <span className="text-green-400">{browser.voiceStability}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    aria-label="Estabilidad"
-                                    min="0" max="1" step="0.05"
-                                    value={browser.voiceStability}
-                                    onChange={(e) => update('voiceStability', parseFloat(e.target.value))}
-                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-                                />
-                                <p className="text-[10px] text-slate-500">Más bajo = Más emotivo/varía.</p>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.stability_label')}</label>
+                                    <span className="text-sm font-bold text-green-400">{browser.voiceStability}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-slate-500 font-mono">0.0</span>
+                                    <input
+                                        type="range"
+                                        min="0" max="1" step="0.05"
+                                        value={browser.voiceStability}
+                                        onChange={(e) => update('voiceStability', parseFloat(e.target.value))}
+                                        className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                    />
+                                    <span className="text-xs text-slate-500 font-mono">1.0</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500">{t('voice.stability_desc')}</p>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    <span>Similitud / Claridad</span>
-                                    <span className="text-green-400">{browser.voiceSimilarityBoost}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0" max="1" step="0.05"
-                                    value={browser.voiceSimilarityBoost}
-                                    onChange={(e) => update('voiceSimilarityBoost', parseFloat(e.target.value))}
-                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-                                />
-                                <p className="text-[10px] text-slate-500">Más alto = Más fiel a la voz original.</p>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.similarity_label')}</label>
+                                    <span className="text-sm font-bold text-green-400">{browser.voiceSimilarityBoost}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-slate-500 font-mono">0.0</span>
+                                    <input
+                                        type="range"
+                                        min="0" max="1" step="0.05"
+                                        value={browser.voiceSimilarityBoost}
+                                        onChange={(e) => update('voiceSimilarityBoost', parseFloat(e.target.value))}
+                                        className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                    />
+                                    <span className="text-xs text-slate-500 font-mono">1.0</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500">{t('voice.similarity_desc')}</p>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="flex justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    <span>Exageración Estilo</span>
-                                    <span className="text-green-400">{browser.voiceStyleExaggeration}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0" max="1" step="0.05"
-                                    value={browser.voiceStyleExaggeration}
-                                    onChange={(e) => update('voiceStyleExaggeration', parseFloat(e.target.value))}
-                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-                                />
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('voice.exaggeration_label')}</label>
+                                    <span className="text-sm font-bold text-green-400">{browser.voiceStyleExaggeration}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-slate-500 font-mono">0.0</span>
+                                    <input
+                                        type="range"
+                                        min="0" max="1" step="0.05"
+                                        value={browser.voiceStyleExaggeration}
+                                        onChange={(e) => update('voiceStyleExaggeration', parseFloat(e.target.value))}
+                                        className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                    />
+                                    <span className="text-xs text-slate-500 font-mono">1.0</span>
+                                </div>
                             </div>
 
                             <div className="space-y-2 flex flex-col justify-center">
@@ -496,7 +520,7 @@ export const VoiceSettings = () => {
                                         onChange={(e) => update('voiceSpeakerBoost', e.target.checked)}
                                         className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
                                     />
-                                    <span className="text-xs text-slate-300">Boost Speaker (Mejor Calidad)</span>
+                                    <span className="text-sm font-medium text-slate-300">{t('voice.speaker_boost_label')}</span>
                                 </label>
                                 <label className="flex items-center space-x-2 cursor-pointer mt-2">
                                     <input
@@ -505,7 +529,7 @@ export const VoiceSettings = () => {
                                         onChange={(e) => update('voiceMultilingual', e.target.checked)}
                                         className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
                                     />
-                                    <span className="text-xs text-slate-300">Modo Multilingüe (v2)</span>
+                                    <span className="text-sm font-medium text-slate-300">{t('voice.multilingual_label')}</span>
                                 </label>
                             </div>
                         </div>
