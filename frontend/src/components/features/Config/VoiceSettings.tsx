@@ -215,7 +215,7 @@ export const VoiceSettings = () => {
                     </div>
 
                     {/* Sliders Area */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-white/5 pb-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5 pb-2">
                         {/* Speed */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center mb-1">
