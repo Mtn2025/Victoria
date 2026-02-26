@@ -59,9 +59,10 @@ export const MainLayout = () => {
         }
     }, [resize, stopResizing])
 
-    // Dispatch fetchActiveAgent only when the agents feature is live.
+    // El sistema necesita saber con qué agente estamos trabajando
+    // para las acciones transversales (ej. Guardado automático),
+    // aun cuando el panel de "Lista de Agentes" (FEATURES.AGENTS_LIST) esté inhabilitado.
     useEffect(() => {
-        if (!FEATURES.AGENTS_LIST) return
         import('@/store/slices/agentsSlice').then(({ fetchActiveAgent }) => {
             dispatch(fetchActiveAgent() as unknown as Parameters<typeof dispatch>[0])
         })

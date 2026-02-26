@@ -172,6 +172,19 @@ export const Sidebar = () => {
 
             {/* Bottom Actions */}
             <div className="mt-auto px-2 space-y-2 pt-4">
+                {/* Language Switcher */}
+                <button
+                    onClick={() => {
+                        const newLang = localStorage.getItem('appLanguage') === 'en' ? 'es' : 'en';
+                        localStorage.setItem('appLanguage', newLang);
+                        window.location.reload();
+                    }}
+                    title="Cambiar Idioma / Change Language"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all font-bold text-xs"
+                >
+                    {localStorage.getItem('appLanguage') === 'en' ? 'EN' : 'ES'}
+                </button>
+
                 <button
                     onClick={handleLogout}
                     title="Cerrar Sesión"
