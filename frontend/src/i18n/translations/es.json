@@ -183,5 +183,30 @@
         "transfer_whitelist_desc": "Allowed transfer numbers (comma separated)",
         "state_injection": "State Injection",
         "state_injection_desc": "Permite a las herramientas modificar el contexto global."
+    },
+    "campaigns": {
+        "title": "Gestor de Campañas",
+        "subtitle": "Outbound calling y automatización masiva.",
+        "blocked_msg": "🚫 Las campañas Outbound no están disponibles en modo Simulador.",
+        "blocked_sub": "Por favor, conecta Twilio o Telnyx para usar esta función.",
+        "accordion_launcher": "Gestor de Campañas (Outbound)",
+        "warning_note": "Nota: Las campañas outbound solo están disponibles para proveedores Twilio y Telnyx.",
+        "name_label": "Nombre de la Campaña",
+        "name_placeholder": "Ej: Cobranza Enero 2025",
+        "csv_label": "Archivo de Contactos (CSV)",
+        "csv_drop": "Arrastra un archivo CSV aquí",
+        "csv_cols": "Columnas requeridas: phone, name",
+        "start_btn": "Iniciar Campaña",
+        "processing": "Procesando...",
+        "success_toast": "Campaña iniciada (Simulación)",
+        "accordion_integrations": "Integraciones",
+        "crm_label": "Habilitar Integración CRM (Baserow)",
+        "crm_desc": "Sincronizar contactos automáticamente.",
+        "webhook_title": "Webhook Integration (n8n/make)",
+        "webhook_url_label": "Webhook URL (End-of-Call)",
+        "webhook_url_placeholder": "https://webhook.site/...",
+        "webhook_desc": "Se enviará un reporte JSON al finalizar cada llamada.",
+        "webhook_secret_label": "Webhook Secret (Opcional)",
+        "webhook_secret_placeholder": "Secret Key..."
     }
 }
