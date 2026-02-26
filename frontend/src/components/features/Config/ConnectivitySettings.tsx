@@ -6,11 +6,16 @@ import { Input } from '@/components/ui/Input'
 import { TwilioConfig, TelnyxConfig } from '@/types/config'
 import { Network, Server, Phone, Shield } from 'lucide-react'
 import { api } from '@/services/api'
+import { Accordion } from '@/components/ui/Accordion'
+import { useTranslation } from '@/i18n/I18nContext'
 
 export const ConnectivitySettings = () => {
     const dispatch = useAppDispatch()
+    const { t } = useTranslation()
     const { twilio, telnyx } = useAppSelector(state => state.config)
-    const [subTab, setSubTab] = useState<'keys' | 'sip' | 'features'>('keys')
+
+    // Control de Acordeones
+    const [openSection, setOpenSection] = useState<string | null>('keys')
 
     // Test Call State
     const [testTarget, setTestTarget] = useState('')
@@ -40,40 +45,27 @@ export const ConnectivitySettings = () => {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in-up">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
             {/* Header */}
-            <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-500/10 rounded-lg">
+            <div className="flex justify-between items-center relative mb-4">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
                     <Network className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold text-white">Conectividad & Hardware</h3>
-                    <p className="text-xs text-slate-400">BYOC, SIP Trunking, Grabación y Compliance.</p>
-                </div>
+                    {t('connectivity.title')}
+                </h3>
             </div>
 
-            {/* Sub-Tabs */}
-            <div className="bg-slate-900/50 border border-white/5 rounded-xl p-1 flex space-x-1">
-                {[
-                    { id: 'keys', label: '🔑 Credenciales', icon: null },
-                    { id: 'sip', label: '📡 SIP & Trunking', icon: null },
-                    { id: 'features', label: '⚙️ Opciones Llamada', icon: null }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setSubTab(tab.id as 'keys' | 'sip' | 'features')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${subTab === tab.id
-                            ? 'bg-slate-700 text-white shadow'
-                            : 'text-slate-500 hover:text-slate-300'
-                            }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Content: Keys */}
-            {subTab === 'keys' && (
+            {/* 1. Content: Keys / Credentials */}
+            <Accordion
+                isOpen={openSection === 'keys'}
+                onToggle={() => setOpenSection(openSection === 'keys' ? null : 'keys')}
+                className="border-amber-500/30"
+                headerClassName="hover:bg-amber-900/20"
+                title={
+                    <span className="text-sm font-bold text-amber-400 uppercase tracking-wider">
+                        🔑 {t('connectivity.accordion_keys')}
+                    </span>
+                }
+            >
                 <div className="space-y-4">
                     {/* Twilio */}
                     <div className="p-4 rounded-xl border border-red-500/20 bg-slate-900/50 relative overflow-hidden">
@@ -83,21 +75,21 @@ export const ConnectivitySettings = () => {
                         <h4 className="text-sm font-bold text-red-400 mb-4 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-red-500"></span> Twilio (Phone)
                         </h4>
-                        <div className="space-y-4">
+                        <div className="space-y-4 relative z-10">
                             <div>
                                 <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Credentials</label>
-                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 rounded border border-white/5">
-                                    <span className="text-xs text-red-400 font-mono">🔒 Configured via Environment</span>
+                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 rounded border border-white/5">
+                                    <span className="text-xs text-red-400 font-mono">🔒 {t('connectivity.env_configured')}</span>
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">From Number</label>
                                 <Input
                                     aria-label="Twilio From Number"
+                                    label={t('connectivity.from_number')}
                                     value={twilio.twilioFromNumber}
                                     onChange={(e) => updateTwilio('twilioFromNumber', e.target.value)}
                                     placeholder="+1234567890"
-                                    className="font-mono text-xs"
+                                    className="font-mono text-xs border-l-4 border-l-red-500"
                                 />
                             </div>
                         </div>
@@ -111,17 +103,17 @@ export const ConnectivitySettings = () => {
                         <h4 className="text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Telnyx
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                             <div className="md:col-span-2">
                                 <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Credentials</label>
-                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 rounded border border-white/5">
-                                    <span className="text-xs text-emerald-400 font-mono">🔒 API Key via Environment</span>
+                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 rounded border border-white/5">
+                                    <span className="text-xs text-emerald-400 font-mono">🔒 API Key {t('connectivity.env_configured').replace('Configured ', '')}</span>
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">SIP Connection ID</label>
                                 <Input
                                     aria-label="SIP Connection ID"
+                                    label={t('connectivity.sip_conn_id')}
                                     value={telnyx.telnyxConnectionId}
                                     onChange={(e) => updateTelnyx('telnyxConnectionId', e.target.value)}
                                     placeholder="Uuid"
@@ -129,9 +121,9 @@ export const ConnectivitySettings = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Caller ID (Override)</label>
                                 <Input
                                     aria-label="Caller ID Override"
+                                    label={t('connectivity.caller_id_override')}
                                     value={telnyx.callerIdTelnyx}
                                     onChange={(e) => updateTelnyx('callerIdTelnyx', e.target.value)}
                                     placeholder="+1..."
@@ -140,66 +132,76 @@ export const ConnectivitySettings = () => {
                             </div>
 
                             {/* Test Driver Widget */}
-                            <div className="md:col-span-2 mt-2 pt-2 border-t border-emerald-500/20">
-                                <label className="text-[10px] uppercase text-emerald-500 font-bold block mb-1">🚑 Test Driver (Real Call)</label>
+                            <div className="md:col-span-2 mt-2 pt-3 border-t border-emerald-500/20">
+                                <label className="text-[10px] uppercase text-emerald-500 font-bold block mb-2">🚑 {t('connectivity.test_driver')}</label>
                                 <div className="flex gap-2">
                                     <Input
                                         aria-label="Test Call Target"
                                         value={testTarget}
                                         onChange={(e) => setTestTarget(e.target.value)}
-                                        placeholder="To: +1..."
+                                        placeholder={t('connectivity.test_target_placeholder')}
                                         className="font-mono text-xs bg-black/40"
                                     />
                                     <button
                                         onClick={handleTestCall}
                                         disabled={!testTarget}
-                                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded shadow-lg transition-all flex items-center gap-1 disabled:opacity-50"
+                                        className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 disabled:opacity-50"
                                     >
-                                        <span>📞</span> Call
+                                        <span>📞</span> {t('connectivity.call_btn')}
                                     </button>
                                 </div>
-                                {callStatus && <span className="text-[10px] text-slate-400 mt-1 block">{callStatus}</span>}
+                                {callStatus && <span className="text-[10px] text-slate-400 mt-2 block">{callStatus}</span>}
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
+            </Accordion>
 
-            {/* Content: SIP */}
-            {subTab === 'sip' && (
+            {/* 2. Content: SIP & Trunking */}
+            <Accordion
+                isOpen={openSection === 'sip'}
+                onToggle={() => setOpenSection(openSection === 'sip' ? null : 'sip')}
+                className="border-indigo-500/30"
+                headerClassName="hover:bg-indigo-900/20"
+                title={
+                    <span className="text-sm font-bold text-indigo-400 uppercase tracking-wider">
+                        📡 {t('connectivity.accordion_sip')}
+                    </span>
+                }
+            >
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Twilio SIP */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                            <h5 className="text-xs font-bold text-slate-300 mb-3">Twilio SIP Trunking</h5>
+                            <h5 className="text-xs font-bold text-slate-300 mb-3 block">Twilio SIP Trunking</h5>
                             <div className="space-y-3">
                                 <Input
                                     aria-label="Twilio SIP Trunk URI"
-                                    label="SIP Trunk URI"
+                                    label={t('connectivity.sip_trunk_uri')}
                                     value={twilio.sipTrunkUriPhone}
                                     onChange={(e) => updateTwilio('sipTrunkUriPhone', e.target.value)}
                                     placeholder="sip:..."
-                                    className="text-xs"
+                                    className="text-xs font-mono"
                                 />
                                 <div className="grid grid-cols-2 gap-2">
                                     <Input
                                         aria-label="Twilio SIP User"
-                                        placeholder="User"
+                                        placeholder={t('connectivity.user_label')}
                                         value={twilio.sipAuthUserPhone}
                                         onChange={(e) => updateTwilio('sipAuthUserPhone', e.target.value)}
-                                        className="text-xs"
+                                        className="text-xs font-mono"
                                     />
                                     <Input
                                         aria-label="Twilio SIP Pass"
                                         type="password"
-                                        placeholder="Pass"
+                                        placeholder={t('connectivity.pass_label')}
                                         value={twilio.sipAuthPassPhone}
                                         onChange={(e) => updateTwilio('sipAuthPassPhone', e.target.value)}
-                                        className="text-xs"
+                                        className="text-xs font-mono"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-slate-500 block mb-1">Geo-Region</label>
+                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">{t('connectivity.geo_region')}</label>
                                     <Select
                                         aria-label="Twilio Geo Region"
                                         value={twilio.geoRegionPhone}
@@ -216,35 +218,35 @@ export const ConnectivitySettings = () => {
 
                         {/* Telnyx SIP */}
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                            <h5 className="text-xs font-bold text-slate-300 mb-3">Telnyx SIP Trunking</h5>
+                            <h5 className="text-xs font-bold text-slate-300 mb-3 block">Telnyx SIP Trunking</h5>
                             <div className="space-y-3">
                                 <Input
                                     aria-label="Telnyx SIP Trunk URI"
-                                    label="SIP Trunk URI"
+                                    label={t('connectivity.sip_trunk_uri')}
                                     value={telnyx.sipTrunkUriTelnyx}
                                     onChange={(e) => updateTelnyx('sipTrunkUriTelnyx', e.target.value)}
                                     placeholder="sip:..."
-                                    className="text-xs"
+                                    className="text-xs font-mono"
                                 />
                                 <div className="grid grid-cols-2 gap-2">
                                     <Input
                                         aria-label="Telnyx SIP User"
-                                        placeholder="User"
+                                        placeholder={t('connectivity.user_label')}
                                         value={telnyx.sipAuthUserTelnyx}
                                         onChange={(e) => updateTelnyx('sipAuthUserTelnyx', e.target.value)}
-                                        className="text-xs"
+                                        className="text-xs font-mono"
                                     />
                                     <Input
                                         aria-label="Telnyx SIP Pass"
                                         type="password"
-                                        placeholder="Pass"
+                                        placeholder={t('connectivity.pass_label')}
                                         value={telnyx.sipAuthPassTelnyx}
                                         onChange={(e) => updateTelnyx('sipAuthPassTelnyx', e.target.value)}
-                                        className="text-xs"
+                                        className="text-xs font-mono"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-slate-500 block mb-1">Geo-Region</label>
+                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">{t('connectivity.geo_region')}</label>
                                     <Select
                                         aria-label="Telnyx Geo Region"
                                         value={telnyx.geoRegionTelnyx}
@@ -261,41 +263,51 @@ export const ConnectivitySettings = () => {
                     </div>
 
                     {/* Fallback Number */}
-                    <div className="bg-indigo-900/20 p-3 rounded border border-indigo-500/20">
-                        <label className="text-xs font-bold text-indigo-300 block mb-1">Fallback Number (Desvío de Emergencia)</label>
-                        <div className="flex gap-2">
+                    <div className="bg-indigo-900/20 p-4 rounded-xl border border-indigo-500/20">
+                        <label className="text-xs font-bold text-indigo-300 block mb-3">{t('connectivity.fallback_title')}</label>
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
                             <Input
                                 aria-label="Fallback Number"
                                 value={twilio.fallbackNumberPhone}
                                 onChange={(e) => updateTwilio('fallbackNumberPhone', e.target.value)}
                                 placeholder="+1..."
-                                className="flex-1 text-xs"
+                                className="w-full text-xs font-mono"
                             />
-                            <span className="text-[10px] text-slate-500 self-center">Si falla el bot, desviar aquí.</span>
+                            <span className="text-[10px] text-slate-400 w-full sm:w-auto shrink-0">{t('connectivity.fallback_desc')}</span>
                         </div>
                     </div>
                 </div>
-            )}
+            </Accordion>
 
-            {/* Content: Features */}
-            {subTab === 'features' && (
+            {/* 3. Content: Features & Call Options */}
+            <Accordion
+                isOpen={openSection === 'features'}
+                onToggle={() => setOpenSection(openSection === 'features' ? null : 'features')}
+                className="border-pink-500/30"
+                headerClassName="hover:bg-pink-900/20"
+                title={
+                    <span className="text-sm font-bold text-pink-400 uppercase tracking-wider">
+                        ⚙️ {t('connectivity.accordion_features')}
+                    </span>
+                }
+            >
                 <div className="space-y-4">
                     {/* Recording */}
-                    <div className="p-4 rounded-lg border border-white/5 bg-slate-900/40">
-                        <h5 className="text-xs font-bold text-white mb-3">Grabación de Llamadas</h5>
+                    <div className="p-4 rounded-xl border border-white/5 bg-slate-900/40">
+                        <h5 className="text-xs font-bold text-white mb-4 block">{t('connectivity.recording_title')}</h5>
 
                         {/* Twilio */}
-                        <div className="flex justify-between items-center py-2 border-b border-white/5">
-                            <div className="flex items-center gap-4">
-                                <span className="text-xs text-slate-300 w-24">Twilio</span>
+                        <div className="flex justify-between items-center py-3 border-b border-white/5">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                <span className="text-xs font-bold text-slate-300 w-24">Twilio</span>
                                 <Select
                                     aria-label="Twilio Recording Channels"
                                     value={twilio.recordingChannelsPhone}
                                     onChange={(e) => updateTwilio('recordingChannelsPhone', e.target.value as 'mono' | 'dual')}
-                                    className="h-8 text-[10px] w-32"
+                                    className="h-8 text-[11px] w-40 bg-slate-800"
                                 >
-                                    <option value="mono">Mono</option>
-                                    <option value="dual">Dual</option>
+                                    <option value="mono">{t('connectivity.recording_mono')}</option>
+                                    <option value="dual">{t('connectivity.recording_dual')}</option>
                                 </Select>
                             </div>
                             <input
@@ -308,17 +320,17 @@ export const ConnectivitySettings = () => {
                         </div>
 
                         {/* Telnyx */}
-                        <div className="flex justify-between items-center py-2">
-                            <div className="flex items-center gap-4">
-                                <span className="text-xs text-slate-300 w-24">Telnyx</span>
+                        <div className="flex justify-between items-center py-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                <span className="text-xs font-bold text-slate-300 w-24">Telnyx</span>
                                 <Select
                                     aria-label="Telnyx Recording Channels"
                                     value={telnyx.recordingChannelsTelnyx}
                                     onChange={(e) => updateTelnyx('recordingChannelsTelnyx', e.target.value as 'mono' | 'dual')}
-                                    className="h-8 text-[10px] w-32"
+                                    className="h-8 text-[11px] w-40 bg-slate-800"
                                 >
-                                    <option value="mono">Mono</option>
-                                    <option value="dual">Dual</option>
+                                    <option value="mono">{t('connectivity.recording_mono')}</option>
+                                    <option value="dual">{t('connectivity.recording_dual')}</option>
                                 </Select>
                             </div>
                             <input
@@ -333,53 +345,54 @@ export const ConnectivitySettings = () => {
 
                     {/* Compliance */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-                            <h5 className="text-xs font-bold text-slate-300 mb-3 flex items-center gap-2">
+                        <div className="bg-slate-800/50 p-5 rounded-xl border border-slate-700">
+                            <h5 className="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
                                 <Shield className="w-4 h-4 text-blue-400" />
-                                Compliance & HIPAA
+                                {t('connectivity.compliance_title')}
                             </h5>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-slate-400">HIPAA (Twilio)</span>
-                                    <input type="checkbox" aria-label="Enable Twilio HIPAA" checked={twilio.hipaaEnabledPhone} onChange={(e) => updateTwilio('hipaaEnabledPhone', e.target.checked)} />
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-slate-900/50 px-3 py-2 rounded-lg border border-white/5">
+                                    <span className="text-xs font-medium text-slate-300">{t('connectivity.hipaa_twilio')}</span>
+                                    <input type="checkbox" aria-label="Enable Twilio HIPAA" checked={twilio.hipaaEnabledPhone} onChange={(e) => updateTwilio('hipaaEnabledPhone', e.target.checked)} className="toggle-checkbox" />
                                 </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                                    <span className="text-xs text-slate-400">HIPAA (Telnyx)</span>
-                                    <input type="checkbox" aria-label="Enable Telnyx HIPAA" checked={telnyx.hipaaEnabledTelnyx} onChange={(e) => updateTelnyx('hipaaEnabledTelnyx', e.target.checked)} />
+                                <div className="flex justify-between items-center bg-slate-900/50 px-3 py-2 rounded-lg border border-white/5">
+                                    <span className="text-xs font-medium text-slate-300">{t('connectivity.hipaa_telnyx')}</span>
+                                    <input type="checkbox" aria-label="Enable Telnyx HIPAA" checked={telnyx.hipaaEnabledTelnyx} onChange={(e) => updateTelnyx('hipaaEnabledTelnyx', e.target.checked)} className="toggle-checkbox" />
                                 </div>
+                                <p className="text-[10px] text-slate-500 text-center">{t('connectivity.hipaa_desc')}</p>
                             </div>
                         </div>
 
-                        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-                            <h5 className="text-xs font-bold text-slate-300 mb-3">Advanced Features</h5>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-slate-400">DTMF (Twilio)</span>
-                                    <input type="checkbox" aria-label="Enable Twilio DTMF" checked={twilio.dtmfListeningEnabledPhone} onChange={(e) => updateTwilio('dtmfListeningEnabledPhone', e.target.checked)} />
+                        <div className="bg-slate-800/50 p-5 rounded-xl border border-slate-700">
+                            <h5 className="text-sm font-bold text-slate-200 mb-4 block">{t('connectivity.advanced_title')}</h5>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-slate-900/50 px-3 py-2 rounded-lg border border-white/5">
+                                    <span className="text-xs font-medium text-slate-300">{t('connectivity.dtmf_twilio')}</span>
+                                    <input type="checkbox" aria-label="Enable Twilio DTMF" checked={twilio.dtmfListeningEnabledPhone} onChange={(e) => updateTwilio('dtmfListeningEnabledPhone', e.target.checked)} className="toggle-checkbox" />
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-slate-400">DTMF (Telnyx)</span>
-                                    <input type="checkbox" aria-label="Enable Telnyx DTMF" checked={telnyx.dtmfListeningEnabledTelnyx} onChange={(e) => updateTelnyx('dtmfListeningEnabledTelnyx', e.target.checked)} />
+                                <div className="flex justify-between items-center bg-slate-900/50 px-3 py-2 rounded-lg border border-white/5">
+                                    <span className="text-xs font-medium text-slate-300">{t('connectivity.dtmf_telnyx')}</span>
+                                    <input type="checkbox" aria-label="Enable Telnyx DTMF" checked={telnyx.dtmfListeningEnabledTelnyx} onChange={(e) => updateTelnyx('dtmfListeningEnabledTelnyx', e.target.checked)} className="toggle-checkbox" />
                                 </div>
-                                <div className="pt-2 border-t border-white/5">
-                                    <span className="text-xs text-slate-400 block mb-1">AMD (Telnyx)</span>
+                                <div className="pt-2">
+                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">{t('connectivity.amd_telnyx')}</label>
                                     <Select
                                         aria-label="Telnyx AMD Config"
                                         value={telnyx.amdConfig}
                                         onChange={(e) => updateTelnyx('amdConfig', e.target.value as 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end')}
-                                        className="h-8 text-[10px]"
+                                        className="h-9 text-xs bg-slate-900 border-white/5"
                                     >
-                                        <option value="disabled">Disabled</option>
-                                        <option value="detect">Detect Only</option>
-                                        <option value="detect_hangup">Detect & Hangup</option>
-                                        <option value="detect_message_end">Detect Message End</option>
+                                        <option value="disabled">{t('connectivity.amd_disabled')}</option>
+                                        <option value="detect">{t('connectivity.amd_detect')}</option>
+                                        <option value="detect_hangup">{t('connectivity.amd_detect_hangup')}</option>
+                                        <option value="detect_message_end">{t('connectivity.amd_detect_message')}</option>
                                     </Select>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
+            </Accordion>
         </div>
     )
 }
