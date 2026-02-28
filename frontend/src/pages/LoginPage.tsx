@@ -20,7 +20,7 @@ export const LoginPage = () => {
 
         try {
             // El backend tiene montado el router de config en /api/config/ protegido por API Key
-            const response = await fetch('/api/config/', {
+            const response = await fetch('/api/config/features', {
                 headers: {
                     'X-API-Key': apiKey.trim()
                 }
