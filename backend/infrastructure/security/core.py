@@ -14,6 +14,10 @@ limiter = Limiter(key_func=get_remote_address)
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def get_api_key(
     api_key_header: str = Security(api_key_header),
 ):
@@ -26,13 +30,19 @@ async def get_api_key(
     if not expected_key:
         expected_key = "dev-secret-key"
         
-    # Strip spaces to ensure exact match even if headers have extra padding
+    # Strip spaces and QUOTES to ensure exact match even if Docker/Coolify injects literal quotes
     api_key_header = api_key_header.strip() if api_key_header else ""
-    expected_key = expected_key.strip()
+    expected_key = expected_key.strip().strip("'").strip('"')
     
     # Check if the header matches
     if api_key_header == expected_key:
         return api_key_header
+
+    # Log the mismatch securely (masking part of the received key)
+    masked_received = api_key_header[:3] + "***" if len(api_key_header) > 3 else "***"
+    logger.warning(
+        f"Auth Failed: Header X-API-Key '{masked_received}' did not match environment expected_key."
+    )
 
     raise HTTPException(
         status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
