@@ -40,8 +40,10 @@ async def get_api_key(
 
     # Log the mismatch securely (masking part of the received key)
     masked_received = api_key_header[:3] + "***" if len(api_key_header) > 3 else "***"
+    masked_expected = expected_key[:3] + "***" if len(expected_key) > 3 else "***"
     logger.warning(
-        f"Auth Failed: Header X-API-Key '{masked_received}' did not match environment expected_key."
+        f"Auth Failed: Header X-API-Key '{masked_received}' (len {len(api_key_header)}) "
+        f"did not match expected_key '{masked_expected}' (len {len(expected_key)})."
     )
 
     raise HTTPException(
