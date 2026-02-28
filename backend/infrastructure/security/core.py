@@ -21,8 +21,16 @@ async def get_api_key(
     Validate API Key from X-API-Key header.
     Used as a FastAPI dependency in all protected routes.
     """
-    expected_key = getattr(settings, "VICTORIA_API_KEY", "dev-secret-key")
-
+    # Fix getattr replacing the default with None when the variable is explicitly None
+    expected_key = getattr(settings, "VICTORIA_API_KEY", None)
+    if not expected_key:
+        expected_key = "dev-secret-key"
+        
+    # Strip spaces to ensure exact match even if headers have extra padding
+    api_key_header = api_key_header.strip() if api_key_header else ""
+    expected_key = expected_key.strip()
+    
+    # Check if the header matches
     if api_key_header == expected_key:
         return api_key_header
 
