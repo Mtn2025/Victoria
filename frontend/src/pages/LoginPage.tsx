@@ -19,7 +19,8 @@ export const LoginPage = () => {
         setError('');
 
         try {
-            const response = await fetch('/api/health/protected', {
+            // El backend tiene montado el router de config en /api/config/ protegido por API Key
+            const response = await fetch('/api/config/', {
                 headers: {
                     'X-API-Key': apiKey.trim()
                 }
