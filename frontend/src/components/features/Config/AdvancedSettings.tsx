@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/Input'
 import { Accordion } from '@/components/ui/Accordion'
 import { BrowserConfig } from '@/types/config'
 import { Sliders, Zap, MessageSquare, Activity, Shield, Info } from 'lucide-react'
+import { useTranslation } from '@/i18n/I18nContext'
 
 export const AdvancedSettings = () => {
     const dispatch = useAppDispatch()
+    const { t } = useTranslation()
     const { browser } = useAppSelector(state => state.config)
     const [openSection, setOpenSection] = useState<string | null>('quality')
 
@@ -30,23 +32,21 @@ export const AdvancedSettings = () => {
     }
 
     const getPatienceLabel = (val: number) => {
-        if (val < 0.5) return 'Rápido (Interuptivo)'
-        if (val > 1.5) return 'Muy Paciente'
-        return 'Balanceado'
+        if (val < 0.5) return t('advanced.patience_fast')
+        if (val > 1.5) return t('advanced.patience_patient')
+        return t('advanced.patience_balanced')
     }
 
     return (
-        <div className="space-y-6 animate-fade-in-up">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
             {/* Header */}
-            <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-500/10 rounded-lg">
+            <div className="flex justify-between items-center relative mb-4">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
                     <Sliders className="w-5 h-5 text-indigo-400" />
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold text-white">Calidad y Latencia</h3>
-                    <p className="text-xs text-slate-400">Ajuste fino del motor de voz y tiempos de respuesta.</p>
-                </div>
+                    {t('advanced.title')}
+                </h3>
             </div>
+            <p className="text-xs text-slate-400 mt-2">{t('advanced.subtitle')}</p>
 
             <div className="space-y-4">
                 {/* 1. Calidad y Latencia */}
@@ -56,12 +56,10 @@ export const AdvancedSettings = () => {
                     className="border-indigo-500/30"
                     headerClassName="hover:bg-indigo-900/20"
                     title={
-                        <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-indigo-400" />
-                            <span className="text-sm font-bold text-indigo-400 tracking-wider uppercase">
-                                Calidad, Latencia & Supresión
-                            </span>
-                        </div>
+                        <span className="text-sm font-bold text-indigo-400 tracking-wider uppercase flex items-center gap-2">
+                            <Zap className="w-4 h-4" />
+                            {t('advanced.patience_accordion_title')}
+                        </span>
                     }
                 >
                     <div className="space-y-6 pt-2">
@@ -70,7 +68,7 @@ export const AdvancedSettings = () => {
                             <div className="flex justify-between items-center mb-4">
                                 <label className="text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
                                     <Activity className="w-4 h-4" />
-                                    Paciencia del Asistente
+                                    {t('advanced.patience_label')}
                                 </label>
                                 <span className="text-xs bg-slate-900 text-indigo-400 px-2 py-1 rounded border border-indigo-500/20">
                                     {getPatienceLabel(patience)}
@@ -93,11 +91,11 @@ export const AdvancedSettings = () => {
                                 />
                             </div>
                             <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
-                                <span>⚡ Rápido (200ms)</span>
-                                <span>🐢 Paciente (3s)</span>
+                                <span>{t('advanced.patience_slider_fast')}</span>
+                                <span>{t('advanced.patience_slider_patient')}</span>
                             </div>
                             <p className="text-[10px] text-slate-400 mt-2 italic">
-                                Define cuánto silencio espera Andrea antes de responder.
+                                {t('advanced.patience_desc')}
                             </p>
                         </div>
 
@@ -106,26 +104,33 @@ export const AdvancedSettings = () => {
                             <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
                                 <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
                                     <Zap className="w-4 h-4 text-emerald-400" />
-                                    Supresión de Ruido
+                                    {t('advanced.noise_label')}
                                 </h4>
                                 <div className="space-y-3">
-                                    <label className="block text-xs text-slate-500 mb-1">Nivel Krisp AI</label>
+                                    <label className="block text-xs text-slate-500 mb-1">{t('advanced.noise_krisp')}</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        {['off', 'balanced', 'high'].map(level => (
-                                            <button
-                                                key={level}
-                                                aria-label={`Noise Suppression ${level}`}
-                                                onClick={() => update('noiseSuppressionLevel', level)}
-                                                className={`px-2 py-2 rounded text-xs font-bold border transition-all uppercase ${browser.noiseSuppressionLevel === level
-                                                    ? level === 'balanced' ? 'bg-emerald-600 text-white border-emerald-500' :
-                                                        level === 'high' ? 'bg-indigo-600 text-white border-indigo-500' :
-                                                            'bg-slate-600 text-white border-slate-500'
-                                                    : 'bg-slate-900 text-slate-500 border-slate-800'
-                                                    }`}
-                                            >
-                                                {level}
-                                            </button>
-                                        ))}
+                                        {(['off', 'balanced', 'high'] as const).map(level => {
+                                            const labelMap = {
+                                                off: t('advanced.noise_off'),
+                                                balanced: t('advanced.noise_balanced'),
+                                                high: t('advanced.noise_high')
+                                            };
+                                            return (
+                                                <button
+                                                    key={level}
+                                                    aria-label={`Noise Suppression ${level}`}
+                                                    onClick={() => update('noiseSuppressionLevel', level)}
+                                                    className={`px-2 py-2 rounded text-xs font-bold border transition-all uppercase ${browser.noiseSuppressionLevel === level
+                                                        ? level === 'balanced' ? 'bg-emerald-600 text-white border-emerald-500' :
+                                                            level === 'high' ? 'bg-indigo-600 text-white border-indigo-500' :
+                                                                'bg-slate-600 text-white border-slate-500'
+                                                        : 'bg-slate-900 text-slate-500 border-slate-800'
+                                                        }`}
+                                                >
+                                                    {labelMap[level]}
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -134,20 +139,20 @@ export const AdvancedSettings = () => {
                             <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
                                 <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-blue-400" />
-                                    Fidelidad de Audio
+                                    {t('advanced.audio_label')}
                                 </h4>
                                 <div className="space-y-3">
-                                    <label className="block text-xs text-slate-500 mb-1">Codec & Sample Rate</label>
+                                    <label className="block text-xs text-slate-500 mb-1">{t('advanced.audio_codec')}</label>
                                     <Select
                                         aria-label="Codec Selection"
                                         value={browser.audioCodec}
                                         onChange={(e) => update('audioCodec', e.target.value)}
                                     >
-                                        <option value="PCMU">G.711 PCMU (8kHz)</option>
-                                        <option value="PCMA">G.711 PCMA (8kHz)</option>
-                                        <option value="OPUS">Opus (Alta Fidelidad)</option>
+                                        <option value="PCMU">{t('advanced.audio_pcmu')}</option>
+                                        <option value="PCMA">{t('advanced.audio_pcma')}</option>
+                                        <option value="OPUS">{t('advanced.audio_opus')}</option>
                                     </Select>
-                                    <p className="text-[10px] text-slate-500 mt-1">Usa PCMU para llamadas PSTN normales.</p>
+                                    <p className="text-[10px] text-slate-500 mt-1">{t('advanced.audio_pstn_desc')}</p>
                                 </div>
                             </div>
                         </div>
@@ -159,8 +164,8 @@ export const AdvancedSettings = () => {
                                     <MessageSquare className="w-5 h-5 text-pink-400" />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-white">Escucha Activa (Backchanneling)</h4>
-                                    <p className="text-xs text-slate-400">Permite decir "Ajá", "Entiendo" mientras hablas.</p>
+                                    <h4 className="text-sm font-bold text-white">{t('advanced.backchannel_title')}</h4>
+                                    <p className="text-xs text-slate-400">{t('advanced.backchannel_desc')}</p>
                                 </div>
                             </div>
                             <input
@@ -181,17 +186,15 @@ export const AdvancedSettings = () => {
                     className="border-red-500/30"
                     headerClassName="hover:bg-red-900/20"
                     title={
-                        <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-red-500" />
-                            <span className="text-sm font-bold text-red-500 tracking-wider uppercase">
-                                Límites de Seguridad & Fallbacks
-                            </span>
-                        </div>
+                        <span className="text-sm font-bold text-red-500 tracking-wider uppercase flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            {t('advanced.limits_title')}
+                        </span>
                     }
                 >
                     <div className="grid grid-cols-2 gap-4 pt-2">
                         <div>
-                            <label className="text-xs uppercase text-slate-500 block mb-1">Duración Máx (Seg)</label>
+                            <label className="text-xs uppercase text-slate-500 block mb-1">{t('advanced.max_duration')}</label>
                             <Input
                                 type="number"
                                 aria-label="Max Duration"
@@ -200,7 +203,7 @@ export const AdvancedSettings = () => {
                             />
                         </div>
                         <div>
-                            <label className="text-xs uppercase text-slate-500 block mb-1">Max Retries</label>
+                            <label className="text-xs uppercase text-slate-500 block mb-1">{t('advanced.max_retries')}</label>
                             <Input
                                 type="number"
                                 aria-label="Max Retries"
@@ -210,9 +213,9 @@ export const AdvancedSettings = () => {
                         </div>
                         <div className="col-span-2">
                             <label className="text-xs font-semibold uppercase text-slate-500 flex justify-between items-center mb-1">
-                                <span>Mensaje Inactividad</span>
+                                <span>{t('advanced.inactivity_msg')}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-slate-500">¿Usar mismo mensaje?</span>
+                                    <span className="text-[10px] text-slate-500">{t('advanced.use_same_msg')}</span>
                                     <input
                                         type="checkbox"
                                         checked={browser.useSameInactivityMessage}
@@ -228,13 +231,13 @@ export const AdvancedSettings = () => {
                                         aria-label="Idle Message"
                                         value={Array.isArray(browser.idleMessage) ? (browser.idleMessage[0] || '') : (browser.idleMessage || '')}
                                         onChange={(e) => update('idleMessage', e.target.value)}
-                                        placeholder="¿Hola? ¿Sigues ahí?"
+                                        placeholder={t('advanced.same_msg_placeholder')}
                                         className="pr-8"
                                     />
                                     <div className="absolute top-1/2 right-2 -translate-y-1/2 cursor-help">
                                         <Info className="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors" />
                                         <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded shadow-lg border border-slate-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                                            Se usará exactamente este mismo mensaje como advertencia de inactividad para cada uno de los {browser.maxRetries} reintentos máximos limitados.
+                                            {t('advanced.same_msg_tooltip').replace('{{count}}', String(browser.maxRetries))}
                                         </div>
                                     </div>
                                 </div>
@@ -248,7 +251,7 @@ export const AdvancedSettings = () => {
                                         return (
                                             <div key={index} className="relative group flex items-center">
                                                 <div className="flex-none w-16 text-[10px] font-medium text-slate-500 text-right pr-2">
-                                                    Intento {index + 1}
+                                                    {t('advanced.attempt_lbl').replace('{{index}}', String(index + 1))}
                                                 </div>
                                                 <div className="relative flex-1">
                                                     <Input
@@ -262,13 +265,13 @@ export const AdvancedSettings = () => {
                                                             currentArr[index] = newVal;
                                                             update('idleMessage', currentArr);
                                                         }}
-                                                        placeholder={`Escribe el mensaje inactivo #${index + 1}`}
+                                                        placeholder={t('advanced.diff_msg_placeholder').replace('{{index}}', String(index + 1))}
                                                         className="pr-8"
                                                     />
                                                     <div className="absolute top-1/2 right-2 -translate-y-1/2 cursor-help">
                                                         <Info className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
                                                         <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded shadow-lg border border-slate-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                                                            Este mensaje será dictado por el agente después de agotar el tiempo máximo en el reintento de inactividad actual.
+                                                            {t('advanced.diff_msg_tooltip')}
                                                         </div>
                                                     </div>
                                                 </div>
