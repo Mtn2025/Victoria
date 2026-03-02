@@ -108,7 +108,7 @@ export const AdvancedSettings = () => {
                                 </h4>
                                 <div className="space-y-3">
                                     <label className="block text-xs text-slate-500 mb-1">{t('advanced.noise_krisp')}</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="flex flex-col gap-2">
                                         {(['off', 'balanced', 'high'] as const).map(level => {
                                             const labelMap = {
                                                 off: t('advanced.noise_off'),
