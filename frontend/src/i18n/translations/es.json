@@ -252,7 +252,17 @@
         "region_eu_west_1": "Europa (Irlanda)",
         "region_us_central": "EE.UU Central (Chicago)",
         "region_us_east": "EE.UU Este (Ashburn)",
-        "region_global": "Global Anycast"
+        "region_global": "Global Anycast",
+        "credentials_label": "Credenciales",
+        "test_call_calling": "Llamando...",
+        "test_call_error": "Error:",
+        "test_call_fail": "Fallo:",
+        "sip_uri_placeholder": "sip:usuario@dominio.com",
+        "uuid_placeholder": "ej: 123e4567-e89b-12d3...",
+        "phone_placeholder": "ej: +1 (555) 123-4567",
+        "caller_id_desc": "Sobrescribir el Caller ID predeterminado de la troncal SIP.",
+        "test_call_desc": "Realizar llamada de prueba hacia un celular real utilizando este proveedor.",
+        "sip_desc": "Rellena estos datos solo si quieres conectar infraestructura on-premise mediante SIP."
     },
     "system": {
         "title": "Sistema & Gobierno",

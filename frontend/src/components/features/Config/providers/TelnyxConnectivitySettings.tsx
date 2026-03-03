@@ -28,7 +28,7 @@ export const TelnyxConnectivitySettings = () => {
 
     const handleTestCall = async () => {
         if (!testTarget || !activeAgent?.agent_uuid) return
-        setCallStatus('Calling...')
+        setCallStatus(t('connectivity.test_call_calling'))
         try {
             const res = await api.post<{ status: string, call_id?: string, detail?: string }>('/telephony/outbound', {
                 agent_id: activeAgent.agent_uuid,
@@ -36,12 +36,12 @@ export const TelnyxConnectivitySettings = () => {
                 provider: 'telnyx'
             })
             if (res.status === 'success') {
-                setCallStatus(`Calling... ID: ${res.call_id}`)
+                setCallStatus(`${t('connectivity.test_call_calling')} ID: ${res.call_id}`)
             } else {
-                setCallStatus(`Error: ${res.detail}`)
+                setCallStatus(`${t('connectivity.test_call_error')} ${res.detail}`)
             }
         } catch (e: unknown) {
-            setCallStatus(`Fail: ${(e as Error).message}`)
+            setCallStatus(`${t('connectivity.test_call_fail')} ${(e as Error).message}`)
         }
     }
 
@@ -69,7 +69,7 @@ export const TelnyxConnectivitySettings = () => {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                         <div className="md:col-span-2">
-                            <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Credentials</label>
+                            <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">{t('connectivity.credentials_label')}</label>
                             <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 rounded border border-white/5">
                                 <span className="text-xs text-emerald-400 font-mono">🔒 API Key {t('connectivity.env_configured').replace('Configured ', '')}</span>
                             </div>
@@ -80,7 +80,7 @@ export const TelnyxConnectivitySettings = () => {
                                 label={t('connectivity.sip_conn_id')}
                                 value={telnyx.telnyxConnectionId}
                                 onChange={(e) => updateTelnyx('telnyxConnectionId', e.target.value)}
-                                placeholder="Uuid"
+                                placeholder={t('connectivity.uuid_placeholder')}
                                 className="font-mono text-xs"
                             />
                         </div>
@@ -90,14 +90,16 @@ export const TelnyxConnectivitySettings = () => {
                                 label={t('connectivity.caller_id_override')}
                                 value={telnyx.callerIdTelnyx}
                                 onChange={(e) => updateTelnyx('callerIdTelnyx', e.target.value)}
-                                placeholder="+1..."
+                                placeholder={t('connectivity.phone_placeholder')}
                                 className="font-mono text-xs"
                             />
+                            <span className="text-[10px] text-slate-400 mt-1 block">{t('connectivity.caller_id_desc')}</span>
                         </div>
 
                         {/* Test Driver Widget */}
                         <div className="md:col-span-2 mt-2 pt-3 border-t border-emerald-500/20">
-                            <label className="text-[10px] uppercase text-emerald-500 font-bold block mb-2">🚑 {t('connectivity.test_driver')}</label>
+                            <label className="text-[10px] uppercase text-emerald-500 font-bold block mb-1">🚑 {t('connectivity.test_driver')}</label>
+                            <span className="text-[10px] text-slate-400 block mb-2">{t('connectivity.test_call_desc')}</span>
                             <div className="flex gap-2">
                                 <Input
                                     aria-label="Test Call Target"
@@ -135,14 +137,15 @@ export const TelnyxConnectivitySettings = () => {
                 <div className="space-y-4">
                     {/* Telnyx SIP */}
                     <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                        <h5 className="text-xs font-bold text-slate-300 mb-3 block">{t('connectivity.telnyx_sip_trunk')}</h5>
+                        <h5 className="text-xs font-bold text-slate-300 mb-1 block">{t('connectivity.telnyx_sip_trunk')}</h5>
+                        <span className="text-[10px] text-slate-400 block mb-3">{t('connectivity.sip_desc')}</span>
                         <div className="space-y-3">
                             <Input
                                 aria-label="Telnyx SIP Trunk URI"
                                 label={t('connectivity.sip_trunk_uri')}
                                 value={telnyx.sipTrunkUriTelnyx}
                                 onChange={(e) => updateTelnyx('sipTrunkUriTelnyx', e.target.value)}
-                                placeholder="sip:..."
+                                placeholder={t('connectivity.sip_uri_placeholder')}
                                 className="text-xs font-mono"
                             />
                             <div className="grid grid-cols-2 gap-2">

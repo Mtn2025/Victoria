@@ -28,7 +28,7 @@ export const TwilioConnectivitySettings = () => {
 
     const handleTestCall = async () => {
         if (!testTarget || !activeAgent?.agent_uuid) return
-        setCallStatus('Calling...')
+        setCallStatus(t('connectivity.test_call_calling'))
         try {
             const res = await api.post<{ status: string, call_id?: string, detail?: string }>('/telephony/outbound', {
                 agent_id: activeAgent.agent_uuid,
@@ -36,12 +36,12 @@ export const TwilioConnectivitySettings = () => {
                 provider: 'twilio'
             })
             if (res.status === 'success') {
-                setCallStatus(`Calling... ID: ${res.call_id}`)
+                setCallStatus(`${t('connectivity.test_call_calling')} ID: ${res.call_id}`)
             } else {
-                setCallStatus(`Error: ${res.detail}`)
+                setCallStatus(`${t('connectivity.test_call_error')} ${res.detail}`)
             }
         } catch (e: unknown) {
-            setCallStatus(`Fail: ${(e as Error).message}`)
+            setCallStatus(`${t('connectivity.test_call_fail')} ${(e as Error).message}`)
         }
     }
 
@@ -69,7 +69,7 @@ export const TwilioConnectivitySettings = () => {
                     </h4>
                     <div className="space-y-4 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
-                            <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Credentials</label>
+                            <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">{t('connectivity.credentials_label')}</label>
                             <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 rounded border border-white/5">
                                 <span className="text-xs text-red-400 font-mono">🔒 {t('connectivity.env_configured')}</span>
                             </div>
@@ -80,14 +80,15 @@ export const TwilioConnectivitySettings = () => {
                                 label={t('connectivity.from_number')}
                                 value={twilio.twilioFromNumber}
                                 onChange={(e) => updateTwilio('twilioFromNumber', e.target.value)}
-                                placeholder="+1234567890"
+                                placeholder={t('connectivity.phone_placeholder')}
                                 className="font-mono text-xs border-l-4 border-l-red-500"
                             />
                         </div>
 
                         {/* Test Driver Widget */}
                         <div className="md:col-span-2 mt-2 pt-3 border-t border-red-500/20">
-                            <label className="text-[10px] uppercase text-red-500 font-bold block mb-2">🚑 {t('connectivity.test_driver')}</label>
+                            <label className="text-[10px] uppercase text-red-500 font-bold block mb-1">🚑 {t('connectivity.test_driver')}</label>
+                            <span className="text-[10px] text-slate-400 block mb-2">{t('connectivity.test_call_desc')}</span>
                             <div className="flex gap-2">
                                 <Input
                                     aria-label="Test Call Target"
@@ -125,14 +126,15 @@ export const TwilioConnectivitySettings = () => {
                 <div className="space-y-4">
                     {/* Twilio SIP */}
                     <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
-                        <h5 className="text-xs font-bold text-slate-300 mb-3 block">{t('connectivity.twilio_sip_trunk')}</h5>
+                        <h5 className="text-xs font-bold text-slate-300 mb-1 block">{t('connectivity.twilio_sip_trunk')}</h5>
+                        <span className="text-[10px] text-slate-400 block mb-3">{t('connectivity.sip_desc')}</span>
                         <div className="space-y-3">
                             <Input
                                 aria-label="Twilio SIP Trunk URI"
                                 label={t('connectivity.sip_trunk_uri')}
                                 value={twilio.sipTrunkUriPhone}
                                 onChange={(e) => updateTwilio('sipTrunkUriPhone', e.target.value)}
-                                placeholder="sip:..."
+                                placeholder={t('connectivity.sip_uri_placeholder')}
                                 className="text-xs font-mono"
                             />
                             <div className="grid grid-cols-2 gap-2">

@@ -252,7 +252,17 @@
         "region_eu_west_1": "Europe (Ireland)",
         "region_us_central": "US Central (Chicago)",
         "region_us_east": "US East (Ashburn)",
-        "region_global": "Global Anycast"
+        "region_global": "Global Anycast",
+        "credentials_label": "Credentials",
+        "test_call_calling": "Calling...",
+        "test_call_error": "Error:",
+        "test_call_fail": "Fail:",
+        "sip_uri_placeholder": "sip:user@domain.com",
+        "uuid_placeholder": "ex: 123e4567-e89b-12d3...",
+        "phone_placeholder": "ex: +1 (555) 123-4567",
+        "caller_id_desc": "Override the default Caller ID for this SIP trunk.",
+        "test_call_desc": "Perform a real test call to a phone number using this provider.",
+        "sip_desc": "Fill this out only if you are connecting on-premise infrastructure via SIP."
     },
     "system": {
         "title": "System & Governance",
