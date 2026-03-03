@@ -71,6 +71,7 @@ async def create_agent(
         name=agent.name,
         language=agent.language,
         is_active=agent.is_active,
+        provider=agent.provider,
         created_at=agent.created_at,
     )
 
