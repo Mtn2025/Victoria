@@ -36,6 +36,8 @@ def _model_to_agent(agent_model: AgentModel) -> Agent:
         metadata["flow_config"] = agent_model.flow_config
     if getattr(agent_model, "analysis_config", None):
         metadata["analysis_config"] = agent_model.analysis_config
+    if getattr(agent_model, "system_config", None):
+        metadata["system_config"] = agent_model.system_config
 
     agent = Agent(
         name=agent_model.name,
@@ -131,6 +133,9 @@ class SqlAlchemyAgentRepository(AgentRepository):
             if "analysis_config" in agent.metadata:
                 existing_analysis = agent_model.analysis_config or {}
                 agent_model.analysis_config = {**existing_analysis, **agent.metadata["analysis_config"]}
+            if "system_config" in agent.metadata:
+                existing_system = agent_model.system_config or {}
+                agent_model.system_config = {**existing_system, **agent.metadata["system_config"]}
 
         await self.session.commit()
 
@@ -163,6 +168,13 @@ class SqlAlchemyAgentRepository(AgentRepository):
             voice_speed=agent.voice_config.speed,
             voice_pitch=agent.voice_config.pitch,
             voice_volume=agent.voice_config.volume,
+            llm_config=agent.llm_config or {},
+            tools_config=agent.tools[0] if agent.tools else {},
+            voice_config_json=agent.metadata.get("voice_config_json") if agent.metadata else None,
+            stt_config=agent.metadata.get("stt_config") if agent.metadata else None,
+            flow_config=agent.metadata.get("flow_config") if agent.metadata else None,
+            analysis_config=agent.metadata.get("analysis_config") if agent.metadata else None,
+            system_config=agent.metadata.get("system_config") if agent.metadata else None,
         )
         self.session.add(new_model)
         await self.session.commit()
