@@ -242,7 +242,17 @@
         "amd_disabled": "Disabled",
         "amd_detect": "Detect Only",
         "amd_detect_hangup": "Detect & Hangup",
-        "amd_detect_message": "Detect Message End"
+        "amd_detect_message": "Detect Message End",
+        "twilio_sip_trunk": "Troncal SIP Twilio",
+        "telnyx_sip_trunk": "Troncal SIP Telnyx",
+        "browser_empty_title": "Telefonía No Requerida",
+        "browser_empty_desc": "El Agente de Navegador Web utiliza WebRTC para comunicarse directamente con tu micrófono y altavoces. No se requieren credenciales de conexión ni troncales SIP para este modo.",
+        "region_us_east_1": "EE.UU Este (N. Virginia)",
+        "region_us_west_1": "EE.UU Oeste (Oregon)",
+        "region_eu_west_1": "Europa (Irlanda)",
+        "region_us_central": "EE.UU Central (Chicago)",
+        "region_us_east": "EE.UU Este (Ashburn)",
+        "region_global": "Global Anycast"
     },
     "system": {
         "title": "Sistema & Gobierno",

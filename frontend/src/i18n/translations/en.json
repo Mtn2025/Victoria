@@ -242,7 +242,17 @@
         "amd_disabled": "Disabled",
         "amd_detect": "Detect Only",
         "amd_detect_hangup": "Detect & Hangup",
-        "amd_detect_message": "Detect Message End"
+        "amd_detect_message": "Detect Message End",
+        "twilio_sip_trunk": "Twilio SIP Trunking",
+        "telnyx_sip_trunk": "Telnyx SIP Trunking",
+        "browser_empty_title": "No Telephony Required",
+        "browser_empty_desc": "The Web Browser Agent uses WebRTC to communicate directly with your computer's microphone and speakers. Connection credentials or SIP Trunking are not required for this mode.",
+        "region_us_east_1": "US East (N. Virginia)",
+        "region_us_west_1": "US West (Oregon)",
+        "region_eu_west_1": "Europe (Ireland)",
+        "region_us_central": "US Central (Chicago)",
+        "region_us_east": "US East (Ashburn)",
+        "region_global": "Global Anycast"
     },
     "system": {
         "title": "System & Governance",
