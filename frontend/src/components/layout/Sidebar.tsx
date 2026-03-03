@@ -18,11 +18,23 @@ import {
     Activity,
     LogOut,
     LucideIcon,
+    Globe,
+    Smartphone,
+    Radio,
     Lock,
 } from "lucide-react"
 
 // Types of nav items
 type NavItemType = 'page' | 'config'
+
+// Profiles
+import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
+
+const PROFILES: { id: ProfileId; label: string; icon: LucideIcon }[] = [
+    { id: 'browser', label: 'Web', icon: Globe },
+    { id: 'twilio', label: 'Twilio', icon: Smartphone },
+    { id: 'telnyx', label: 'Telnyx', icon: Radio },
+]
 
 interface NavItem {
     type: NavItemType
@@ -171,7 +183,31 @@ export const Sidebar = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="mt-auto px-2 space-y-2 pt-4">
+            <div className="mt-auto px-2 space-y-2 pt-4 flex flex-col items-center">
+
+                {/* Global Provider Switcher (Vertical) */}
+                <div className="flex flex-col bg-slate-900 rounded-lg p-1 border border-slate-800 space-y-1 shadow-inner mb-2 w-10">
+                    {PROFILES.map((p) => {
+                        const Icon = p.icon
+                        const isActive = activeProfile === p.id
+                        return (
+                            <button
+                                key={p.id}
+                                onClick={() => dispatch(setActiveProfile(p.id))}
+                                title={p.label}
+                                className={cn(
+                                    "w-8 h-8 rounded-md flex items-center justify-center transition-all relative flex-shrink-0 group mx-auto",
+                                    isActive
+                                        ? "bg-blue-600/20 text-blue-400 shadow-sm ring-1 ring-blue-500/30"
+                                        : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                                )}
+                            >
+                                <Icon size={16} className={cn("transition-transform", isActive ? "scale-110" : "group-hover:scale-110")} />
+                            </button>
+                        )
+                    })}
+                </div>
+
                 {/* Font Size Switcher */}
                 <button
                     onClick={() => {
