@@ -20,11 +20,24 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('agents', sa.Column('provider', sa.String(), server_default='browser', nullable=False))
-    op.add_column('agents', sa.Column('connectivity_config', sa.JSON(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('agents')]
+
+    if 'provider' not in columns:
+        op.add_column('agents', sa.Column('provider', sa.String(), server_default='browser', nullable=False))
+    
+    if 'connectivity_config' not in columns:
+        op.add_column('agents', sa.Column('connectivity_config', sa.JSON(), nullable=True))
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_column('agents', 'connectivity_config')
-    op.drop_column('agents', 'provider')
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('agents')]
+
+    if 'connectivity_config' in columns:
+        op.drop_column('agents', 'connectivity_config')
+    if 'provider' in columns:
+        op.drop_column('agents', 'provider')
