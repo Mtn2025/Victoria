@@ -139,15 +139,6 @@ export const ConfigPage = () => {
                 </div>
             )}
 
-            {/* Stub notice for non-browser profiles */}
-            {activeProfile !== 'browser' && (
-                <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
-                    <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 border border-slate-700/40 p-2 rounded-md">
-                        <AlertCircle className="w-4 h-4 shrink-0 text-slate-600" />
-                        <span>Las configuraciones de telefonía {activeProfile === 'twilio' ? 'Twilio' : 'Telnyx'} se implementarán en una próxima fase.</span>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

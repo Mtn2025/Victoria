@@ -4,7 +4,7 @@ import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { Input } from '@/components/ui/Input'
 import { BrowserConfig } from '@/types/config'
 import { Accordion } from '@/components/ui/Accordion'
-import { Megaphone, Link, Database, Upload, FileText, Loader2, Info } from 'lucide-react'
+import { Megaphone, Link, Database, Upload, FileText, Loader2 } from 'lucide-react'
 import { useTranslation } from '@/i18n/I18nContext'
 
 export const CampaignSettings = () => {
@@ -68,15 +68,6 @@ export const CampaignSettings = () => {
                 }
             >
                 <div className="space-y-6">
-                    {/* Excusive Note */}
-                    <div className="bg-amber-900/20 border border-amber-500/20 p-3 rounded-lg flex items-start gap-3">
-                        <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                        <p className="text-[11px] text-amber-200/80 font-medium">
-                            <span className="font-bold">{t('campaigns.warning_note').split(':')[0]}:</span>
-                            {t('campaigns.warning_note').split(':')[1]}
-                        </p>
-                    </div>
-
                     <div>
                         <Input
                             aria-label="Nombre de la Campaña"
