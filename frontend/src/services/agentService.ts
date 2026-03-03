@@ -25,12 +25,14 @@ interface ActiveAgentResponse extends Agent {
     flow_config: Record<string, unknown>
     analysis_config: Record<string, unknown>
     system_config: Record<string, unknown>
+    connectivity_config: Record<string, unknown>
 }
 
 export const agentService = {
-    /** Return all agents ordered by creation date. */
-    listAgents: async (): Promise<Agent[]> => {
-        return await api.get<Agent[]>('/agents')
+    /** Return all agents ordered by creation date. Filter by provider if specified. */
+    listAgents: async (provider?: string): Promise<Agent[]> => {
+        const url = provider ? `/agents?provider=${provider}` : '/agents'
+        return await api.get<Agent[]>(url)
     },
 
     /** Create a new agent with system-default configuration. */
@@ -55,6 +57,11 @@ export const agentService = {
     /** Activate the given agent (deactivates all others). */
     activateAgent: async (agentUuid: string): Promise<Agent> => {
         return await api.post<Agent>(`/agents/${agentUuid}/activate`)
+    },
+
+    /** Clone the given agent to a new provider context. */
+    cloneAgent: async (agentUuid: string, targetProvider: string): Promise<Agent> => {
+        return await api.post<Agent>(`/agents/${agentUuid}/clone`, { provider: targetProvider })
     },
 
     /** Update config fields for a specific agent. */

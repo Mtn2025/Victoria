@@ -5,6 +5,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { Agent } from '@/types/config'
 import { agentService } from '@/services/agentService'
+import { RootState } from '@/store/store'
 
 interface AgentsState {
     agents: Agent[]
@@ -24,9 +25,13 @@ const initialState: AgentsState = {
 // Thunks                                                               //
 // ------------------------------------------------------------------ //
 
-export const fetchAgents = createAsyncThunk(
+export const fetchAgents = createAsyncThunk<Agent[], void, { state: RootState }>(
     'agents/fetchAgents',
-    async () => agentService.listAgents()
+    async (_, { getState }) => {
+        const state = getState()
+        const provider = state.ui.activeProfile
+        return await agentService.listAgents(provider)
+    }
 )
 
 export const fetchActiveAgent = createAsyncThunk(
@@ -55,6 +60,13 @@ export const deleteAgent = createAsyncThunk(
     async (agentUuid: string) => {
         await agentService.deleteAgent(agentUuid)
         return agentUuid   // return uuid to remove from state
+    }
+)
+
+export const cloneAgent = createAsyncThunk(
+    'agents/cloneAgent',
+    async ({ agentUuid, targetProvider }: { agentUuid: string, targetProvider: string }) => {
+        return await agentService.cloneAgent(agentUuid, targetProvider)
     }
 )
 
@@ -144,6 +156,17 @@ const agentsSlice = createSlice({
         })
         builder.addCase(deleteAgent.rejected, (state, action) => {
             state.error = action.error.message ?? 'No se pudo eliminar el agente'
+        })
+
+        // cloneAgent
+        builder.addCase(cloneAgent.pending, (state) => { state.loading = true })
+        builder.addCase(cloneAgent.fulfilled, (state, action: PayloadAction<Agent>) => {
+            state.loading = false
+            state.agents.unshift(action.payload)
+        })
+        builder.addCase(cloneAgent.rejected, (state, action) => {
+            state.loading = false
+            state.error = action.error.message ?? 'Error al clonar agente'
         })
     },
 })

@@ -20,6 +20,8 @@ export const ConnectivitySettings = () => {
     // Test Call State
     const [testTarget, setTestTarget] = useState('')
     const [callStatus, setCallStatus] = useState<string | null>(null)
+    const activeProfile = useAppSelector(state => state.ui.activeProfile)
+    const activeAgent = useAppSelector(state => state.agents.activeAgent)
 
     const updateTwilio = <K extends keyof TwilioConfig>(key: K, value: TwilioConfig[K]) => {
         dispatch(updateTwilioConfigState({ [key]: value }))
@@ -29,11 +31,15 @@ export const ConnectivitySettings = () => {
         dispatch(updateTelnyxConfigState({ [key]: value }))
     }
 
-    const handleTestCall = async () => {
-        if (!testTarget) return
+    const handleTestCall = async (provider: string) => {
+        if (!testTarget || !activeAgent?.agent_uuid) return
         setCallStatus('Calling...')
         try {
-            const res = await api.post<{ status: string, call_id?: string, detail?: string }>('/v1/calls/test-outbound', { to: testTarget })
+            const res = await api.post<{ status: string, call_id?: string, detail?: string }>('/telephony/outbound', {
+                agent_id: activeAgent.agent_uuid,
+                to_number: testTarget,
+                provider: provider
+            })
             if (res.status === 'success') {
                 setCallStatus(`Calling... ID: ${res.call_id}`)
             } else {
@@ -143,8 +149,8 @@ export const ConnectivitySettings = () => {
                                         className="font-mono text-xs bg-black/40"
                                     />
                                     <button
-                                        onClick={handleTestCall}
-                                        disabled={!testTarget}
+                                        onClick={() => handleTestCall(activeProfile === 'telnyx' ? 'telnyx' : (activeProfile === 'twilio' ? 'twilio' : 'unknown'))}
+                                        disabled={!testTarget || !activeAgent || activeProfile === 'browser'}
                                         className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 disabled:opacity-50"
                                     >
                                         <span>📞</span> {t('connectivity.call_btn')}

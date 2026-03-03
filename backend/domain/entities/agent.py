@@ -39,6 +39,10 @@ class Agent:
     # has the full contract — regardless of whether it came from the repository.
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    # V4 Identity fields
+    provider: str = "browser"
+    connectivity_config: Dict[str, Any] = field(default_factory=dict)
+
     # Agent management fields
     agent_uuid: Optional[str] = None       # Public UUID — exposed to frontend
     is_active: bool = False                # Only one agent active at a time

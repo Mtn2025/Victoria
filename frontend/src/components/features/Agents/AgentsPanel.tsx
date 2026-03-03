@@ -20,19 +20,105 @@ import {
     activateAgent,
     updateAgentName,
     deleteAgent,
+    cloneAgent,
 } from '@/store/slices/agentsSlice'
 import {
     Bot, Plus, Settings, Loader2, AlertCircle,
-    Trash2, Pencil, ArrowRight, X, Check, Search
+    Trash2, Pencil, ArrowRight, X, Check, Search, Download, Globe
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Button } from '@/components/ui/Button'
 import { Agent } from '@/types/config'
+import { agentService } from '@/services/agentService'
 
 const LANGUAGE_MAP: Record<string, { label: string; flag: string }> = {
     'es-MX': { label: 'Español (México)', flag: '🇲🇽' },
     'es-US': { label: 'Español (Estados Unidos)', flag: '🇺🇸' },
     'en-US': { label: 'English (US)', flag: '🇺🇸' }
+}
+
+// --------------------------------------------------------------------- //
+// Import Agent Modal                                                      //
+// --------------------------------------------------------------------- //
+interface ProviderImportModalProps {
+    onClose: () => void;
+    activeProfile: string;
+}
+
+const ProviderImportModal = ({ onClose, activeProfile }: ProviderImportModalProps) => {
+    const dispatch = useAppDispatch()
+    const navigate = useNavigate()
+    const [browserAgents, setBrowserAgents] = useState<Agent[]>([])
+    const [loading, setLoading] = useState(true)
+    const [cloning, setCloning] = useState<string | null>(null)
+
+    useEffect(() => {
+        agentService.listAgents('browser').then(data => {
+            setBrowserAgents(data)
+            setLoading(false)
+        }).catch(err => {
+            console.error('Error fetching browser agents', err)
+            setLoading(false)
+        })
+    }, [])
+
+    const handleClone = async (agent: Agent) => {
+        setCloning(agent.agent_uuid)
+        try {
+            const clone = await dispatch(cloneAgent({ agentUuid: agent.agent_uuid, targetProvider: activeProfile })).unwrap()
+            await dispatch(activateAgent(clone.agent_uuid))
+            dispatch(fetchActiveAgent())
+            onClose()
+            navigate('/config')
+        } catch (e) {
+            console.error('Clone error:', e)
+            setCloning(null)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-[500px] shadow-2xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-5 shrink-0">
+                    <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                        <Download size={15} className="text-blue-400" />
+                        Importar Agente del Navegador
+                    </h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors"><X size={16} /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                    {loading ? (
+                        <div className="flex justify-center p-10"><Loader2 className="animate-spin text-slate-500" /></div>
+                    ) : browserAgents.length === 0 ? (
+                        <div className="text-center p-10 text-sm text-slate-500">No hay agentes configurados en el Navegador Web.</div>
+                    ) : (
+                        browserAgents.map(agent => (
+                            <div key={agent.agent_uuid} className="flex items-center justify-between p-3 rounded-xl border bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 transition-all">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center border border-slate-600 shadow-inner">
+                                        <Globe size={14} className="text-slate-300" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-200">{agent.name}</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">{LANGUAGE_MAP[agent.language]?.label || agent.language}</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={() => handleClone(agent)}
+                                    disabled={cloning !== null}
+                                    variant="primary"
+                                    className="text-xs py-1.5 px-3"
+                                >
+                                    {cloning === agent.agent_uuid ? <Loader2 size={12} className="animate-spin" /> : 'Importar'}
+                                </Button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+    )
 }
 
 // --------------------------------------------------------------------- //
@@ -229,8 +315,10 @@ export const AgentsPanel = () => {
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
     const { agents, loading, error } = useAppSelector(s => s.agents)
+    const activeProfile = useAppSelector(s => s.ui.activeProfile)
 
     const [showCreateModal, setShowCreateModal] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
     const [newAgentName, setNewAgentName] = useState('')
     const [createError, setCreateError] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
@@ -342,14 +430,26 @@ export const AgentsPanel = () => {
                     />
                 </div>
 
-                <Button
-                    variant="primary"
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 shrink-0"
-                >
-                    <Plus size={14} />
-                    Nuevo Agente
-                </Button>
+                <div className="flex items-center gap-2">
+                    {activeProfile !== 'browser' && (
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowImportModal(true)}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 shrink-0 bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200"
+                        >
+                            <Download size={14} className="text-blue-400" />
+                            Importar Agente
+                        </Button>
+                    )}
+                    <Button
+                        variant="primary"
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 shrink-0"
+                    >
+                        <Plus size={14} />
+                        Nuevo Agente
+                    </Button>
+                </div>
             </div>
 
             {/* Mobile Search Bar (visible only on small screens if needed) */}
@@ -387,10 +487,18 @@ export const AgentsPanel = () => {
                 {!loading && agents.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
                         <Bot size={40} className="opacity-30" />
-                        <p className="text-sm">No hay agentes registrados.</p>
-                        <Button variant="primary" onClick={() => setShowCreateModal(true)} className="text-xs">
-                            Crear primer agente
-                        </Button>
+                        <p className="text-sm">No hay agentes registrados en {activeProfile.charAt(0).toUpperCase() + activeProfile.slice(1)}.</p>
+                        <div className="flex gap-3">
+                            {activeProfile !== 'browser' && (
+                                <Button variant="secondary" onClick={() => setShowImportModal(true)} className="text-xs bg-slate-800 hover:bg-slate-700 border-slate-700">
+                                    <Download size={14} className="mr-1.5 text-blue-400" />
+                                    Importar desde Navegador
+                                </Button>
+                            )}
+                            <Button variant="primary" onClick={() => setShowCreateModal(true)} className="text-xs">
+                                Crear agente desde cero
+                            </Button>
+                        </div>
                     </div>
                 )}
 
@@ -535,6 +643,14 @@ export const AgentsPanel = () => {
                     allAgents={agents}
                     onClose={() => setManagedAgent(null)}
                     onConfigure={handleConfigure}
+                />
+            )}
+
+            {/* Import Agent Modal */}
+            {showImportModal && (
+                <ProviderImportModal
+                    onClose={() => setShowImportModal(false)}
+                    activeProfile={activeProfile}
                 />
             )}
         </div>

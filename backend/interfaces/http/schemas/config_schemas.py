@@ -114,6 +114,7 @@ class ConfigUpdate(BaseModel):
 
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
+    connectivity_config: Optional[Dict[str, Any]] = None
 
     @model_validator(mode='before')
     @classmethod

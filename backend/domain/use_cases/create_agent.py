@@ -28,13 +28,14 @@ class CreateAgentUseCase:
     def __init__(self, repo: AgentRepository) -> None:
         self._repo = repo
 
-    async def execute(self, name: str, language: str = "es-MX") -> Agent:
+    async def execute(self, name: str, language: str = "es-MX", provider: str = "browser") -> Agent:
         """
         Create and persist a new agent.
 
         Args:
             name: Display name for the new agent. Must be non-empty.
             language: Base language used for the agent.
+            provider: Environment provider context (browser, twilio, telnyx).
 
         Returns:
             The persisted Agent with agent_uuid and created_at populated.
@@ -51,6 +52,7 @@ class CreateAgentUseCase:
             voice_config=VoiceConfig(name=_DEFAULT_VOICE_NAME),
             first_message=_DEFAULT_FIRST_MESSAGE,
             silence_timeout_ms=600,
+            provider=provider.strip(),
             agent_uuid=agent_uuid,
             is_active=False,
         )

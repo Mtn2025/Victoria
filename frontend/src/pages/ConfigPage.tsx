@@ -1,9 +1,8 @@
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
-import { setActiveProfile, ProfileId } from "@/store/slices/uiSlice"
 import { fetchAgentConfig } from "@/store/slices/configSlice"
-import { cn } from "@/utils/cn"
+
 import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
 import { FEATURES } from "@/utils/featureFlags"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
@@ -23,12 +22,6 @@ import { Check, Loader2, XCircle } from 'lucide-react'
 // Tabs activos: model, voice, transcriber
 // El resto → ComingSoon (sin eliminar los componentes originales)
 // -----------------------------------------------------------------
-
-const PROFILES: { id: ProfileId; label: string; icon: LucideIcon }[] = [
-    { id: 'browser', label: 'Simulador Web', icon: Globe },
-    { id: 'twilio', label: 'Telefonía Twilio', icon: Smartphone },
-    { id: 'telnyx', label: 'Telefonía Telnyx', icon: Radio },
-]
 
 export const ConfigPage = () => {
     const dispatch = useAppDispatch()
@@ -78,29 +71,6 @@ export const ConfigPage = () => {
             {/* Config Header */}
             <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-slate-900/50 backdrop-blur shrink-0">
                 <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase">Configuración</h2>
-
-                {/* Profile Switcher */}
-                <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700/50 space-x-1">
-                    {PROFILES.map((p) => {
-                        const Icon = p.icon
-                        const isActive = activeProfile === p.id
-                        return (
-                            <button
-                                key={p.id}
-                                onClick={() => dispatch(setActiveProfile(p.id))}
-                                title={p.label}
-                                className={cn(
-                                    "w-8 h-8 rounded-md flex items-center justify-center transition-all relative",
-                                    isActive
-                                        ? "bg-slate-600 text-white shadow-sm ring-1 ring-white/10"
-                                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
-                                )}
-                            >
-                                <Icon size={16} />
-                            </button>
-                        )
-                    })}
-                </div>
             </div>
 
             {/* Scrollable Content */}

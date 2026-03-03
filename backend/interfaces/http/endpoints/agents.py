@@ -14,6 +14,7 @@ from backend.interfaces.http.schemas.agent_schemas import (
     AgentCreateResponse,
     ActiveAgentResponse,
     AgentUpdateNameRequest,
+    AgentCloneRequest,
 )
 from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
 from backend.domain.use_cases.list_agents import ListAgentsUseCase
@@ -31,17 +32,19 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 @router.get("", response_model=list[AgentListItem])
 async def list_agents(
+    provider: str = None,
     repo: AgentRepository = Depends(get_agent_repository),
 ) -> list[AgentListItem]:
     """Return all registered agents ordered by creation date."""
     use_case = ListAgentsUseCase(repo)
-    agents = await use_case.execute()
+    agents = await use_case.execute(provider)
     return [
         AgentListItem(
             agent_uuid=a.agent_uuid,
             name=a.name,
             language=a.language,
             is_active=a.is_active,
+            provider=a.provider,
             created_at=a.created_at,
         )
         for a in agents
@@ -59,7 +62,7 @@ async def create_agent(
     """Create a new agent with system-default configuration."""
     use_case = CreateAgentUseCase(repo)
     try:
-        agent = await use_case.execute(name=request.name, language=request.language)
+        agent = await use_case.execute(name=request.name, language=request.language, provider=request.provider)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
@@ -99,6 +102,7 @@ async def get_active_agent(
         name=active.name,
         language=active.language,
         is_active=active.is_active,
+        provider=active.provider,
         created_at=active.created_at,
         system_prompt=active.system_prompt,
         first_message=active.first_message,
@@ -116,6 +120,7 @@ async def get_active_agent(
         flow_config=active.metadata.get("flow_config") or {},
         analysis_config=active.metadata.get("analysis_config") or {},
         system_config=active.metadata.get("system_config") or {},
+        connectivity_config=active.connectivity_config or {},
         # Read real tools_config from domain (never hardcoded)
         tools_config=active.tools[0] if active.tools else {},
     )
@@ -227,3 +232,34 @@ async def delete_agent(
 
     await repo.delete_agent(agent_uuid)
     return {"status": "deleted", "agent_uuid": agent_uuid}
+
+
+# --------------------------------------------------------------------------- #
+# POST /agents/{agent_uuid}/clone                                              #
+# --------------------------------------------------------------------------- #
+@router.post("/{agent_uuid}/clone", response_model=AgentListItem)
+async def clone_agent(
+    agent_uuid: str,
+    request: AgentCloneRequest,
+    repo: AgentRepository = Depends(get_agent_repository),
+) -> AgentListItem:
+    """
+    Clones an existing agent into a new UUID for the requested provider.
+    This effectively isolates the 'browser' agent into 'telnyx' or 'twilio'.
+    """
+    from backend.domain.use_cases.clone_agent import CloneAgentUseCase
+    
+    use_case = CloneAgentUseCase(repo)
+    try:
+        new_agent = await use_case.execute(agent_uuid, request.provider)
+    except AgentNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Source agent {agent_uuid} not found")
+
+    return AgentListItem(
+        agent_uuid=new_agent.agent_uuid,
+        name=new_agent.name,
+        language=new_agent.language,
+        is_active=new_agent.is_active,
+        provider=new_agent.provider,
+        created_at=new_agent.created_at,
+    )

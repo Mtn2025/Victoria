@@ -46,16 +46,16 @@ export const fetchTTSProviders = createAsyncThunk(
     }
 )
 
-export const saveBrowserConfig = createAsyncThunk(
-    'config/saveBrowserConfig',
-    async (config: Partial<BrowserConfig>, { getState, rejectWithValue }) => {
+export const saveAgentConfig = createAsyncThunk(
+    'config/saveAgentConfig',
+    async (config: Partial<BrowserConfig> & { connectivity_config?: any }, { getState, rejectWithValue }) => {
         const state = getState() as { agents: { activeAgent: { agent_uuid: string } | null } }
         const agentUuid = state.agents.activeAgent?.agent_uuid
         if (!agentUuid) {
-            console.error('[saveBrowserConfig] No active agent in Redux state. Aborting PATCH.')
+            console.error('[saveAgentConfig] No active agent in Redux state. Aborting PATCH.')
             return rejectWithValue('No active agent')
         }
-        return await configService.updateBrowserConfig(config, agentUuid)
+        return await agentService.updateAgentConfig(agentUuid, config)
     }
 )
 
@@ -363,15 +363,15 @@ export const configSlice = createSlice({
             state.isLoadingOptions = false
         })
 
-        // Save Browser Config
-        builder.addCase(saveBrowserConfig.pending, (state) => {
+        // Save Agent Config (Browser + Connectivity JSON)
+        builder.addCase(saveAgentConfig.pending, (state) => {
             state.saveStatus = 'saving'
         })
-        builder.addCase(saveBrowserConfig.fulfilled, (state) => {
+        builder.addCase(saveAgentConfig.fulfilled, (state) => {
             state.saveStatus = 'saved'
             state.lastSaved = new Date().toISOString()
         })
-        builder.addCase(saveBrowserConfig.rejected, (state) => {
+        builder.addCase(saveAgentConfig.rejected, (state) => {
             state.saveStatus = 'error'
         })
 
@@ -500,6 +500,40 @@ export const configSlice = createSlice({
                 if (tc.redact_params !== undefined) state.browser.redactParams = tc.redact_params
                 if (tc.transfer_whitelist !== undefined) state.browser.transferWhitelist = tc.transfer_whitelist
                 if (tc.state_injection_enabled !== undefined) state.browser.stateInjectionEnabled = tc.state_injection_enabled
+            }
+
+            // Hydrate Connectivity Config (Twilio / Telnyx specific isolated fields)
+            if (data.connectivity_config) {
+                const conn = data.connectivity_config
+                if (data.provider === 'twilio') {
+                    if (conn.twilioAccountSid !== undefined) state.twilio.twilioAccountSid = conn.twilioAccountSid
+                    if (conn.twilioAuthToken !== undefined) state.twilio.twilioAuthToken = conn.twilioAuthToken
+                    if (conn.twilioFromNumber !== undefined) state.twilio.twilioFromNumber = conn.twilioFromNumber
+                    if (conn.sipTrunkUriPhone !== undefined) state.twilio.sipTrunkUriPhone = conn.sipTrunkUriPhone
+                    if (conn.sipAuthUserPhone !== undefined) state.twilio.sipAuthUserPhone = conn.sipAuthUserPhone
+                    if (conn.sipAuthPassPhone !== undefined) state.twilio.sipAuthPassPhone = conn.sipAuthPassPhone
+                    if (conn.fallbackNumberPhone !== undefined) state.twilio.fallbackNumberPhone = conn.fallbackNumberPhone
+                    if (conn.geoRegionPhone !== undefined) state.twilio.geoRegionPhone = conn.geoRegionPhone
+                    if (conn.recordingChannelsPhone !== undefined) state.twilio.recordingChannelsPhone = conn.recordingChannelsPhone
+                    if (conn.recordingEnabledPhone !== undefined) state.twilio.recordingEnabledPhone = conn.recordingEnabledPhone
+                    if (conn.hipaaEnabledPhone !== undefined) state.twilio.hipaaEnabledPhone = conn.hipaaEnabledPhone
+                    if (conn.dtmfListeningEnabledPhone !== undefined) state.twilio.dtmfListeningEnabledPhone = conn.dtmfListeningEnabledPhone
+                } else if (data.provider === 'telnyx') {
+                    if (conn.telnyxApiKey !== undefined) state.telnyx.telnyxApiKey = conn.telnyxApiKey
+                    if (conn.telnyxConnectionId !== undefined) state.telnyx.telnyxConnectionId = conn.telnyxConnectionId
+                    if (conn.callerIdTelnyx !== undefined) state.telnyx.callerIdTelnyx = conn.callerIdTelnyx
+                    if (conn.sipTrunkUriTelnyx !== undefined) state.telnyx.sipTrunkUriTelnyx = conn.sipTrunkUriTelnyx
+                    if (conn.sipAuthUserTelnyx !== undefined) state.telnyx.sipAuthUserTelnyx = conn.sipAuthUserTelnyx
+                    if (conn.sipAuthPassTelnyx !== undefined) state.telnyx.sipAuthPassTelnyx = conn.sipAuthPassTelnyx
+                    if (conn.fallbackNumberTelnyx !== undefined) state.telnyx.fallbackNumberTelnyx = conn.fallbackNumberTelnyx
+                    if (conn.geoRegionTelnyx !== undefined) state.telnyx.geoRegionTelnyx = conn.geoRegionTelnyx
+                    if (conn.recordingChannelsTelnyx !== undefined) state.telnyx.recordingChannelsTelnyx = conn.recordingChannelsTelnyx
+                    if (conn.enableRecordingTelnyx !== undefined) state.telnyx.enableRecordingTelnyx = conn.enableRecordingTelnyx
+                    if (conn.hipaaEnabledTelnyx !== undefined) state.telnyx.hipaaEnabledTelnyx = conn.hipaaEnabledTelnyx
+                    if (conn.dtmfListeningEnabledTelnyx !== undefined) state.telnyx.dtmfListeningEnabledTelnyx = conn.dtmfListeningEnabledTelnyx
+                    if (conn.amdConfig !== undefined) state.telnyx.amdConfig = conn.amdConfig
+                    if (conn.interruptRMS !== undefined) state.telnyx.interruptRMS = conn.interruptRMS
+                }
             }
         })
         builder.addCase(fetchAgentConfig.rejected, (state) => {

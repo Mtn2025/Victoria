@@ -44,6 +44,8 @@ def _model_to_agent(agent_model: AgentModel) -> Agent:
         language=getattr(agent_model, "language", "es-MX") or "es-MX",
         first_message=agent_model.first_message,
         silence_timeout_ms=agent_model.silence_timeout_ms,
+        provider=getattr(agent_model, "provider", "browser") or "browser",
+        connectivity_config=getattr(agent_model, "connectivity_config", {}) or {},
         agent_uuid=agent_model.agent_uuid,
         is_active=agent_model.is_active,
         created_at=agent_model.created_at,
@@ -136,8 +138,10 @@ class SqlAlchemyAgentRepository(AgentRepository):
     # New methods for the Agent Management System                          #
     # ------------------------------------------------------------------ #
 
-    async def get_all_agents(self) -> List[Agent]:
+    async def get_all_agents(self, provider: Optional[str] = None) -> List[Agent]:
         stmt = select(AgentModel).order_by(AgentModel.created_at)
+        if provider:
+            stmt = stmt.where(AgentModel.provider == provider)
         result = await self.session.execute(stmt)
         return [_model_to_agent(m) for m in result.scalars().all()]
 
@@ -148,6 +152,8 @@ class SqlAlchemyAgentRepository(AgentRepository):
             agent_uuid=agent.agent_uuid,
             system_prompt=agent.system_prompt,
             language=getattr(agent, "language", "es-MX"),
+            provider=getattr(agent, "provider", "browser"),
+            connectivity_config=getattr(agent, "connectivity_config", {}),
             first_message=agent.first_message,
             silence_timeout_ms=agent.silence_timeout_ms,
             is_active=False,

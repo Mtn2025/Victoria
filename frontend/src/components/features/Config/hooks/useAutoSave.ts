@@ -1,18 +1,19 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
-import { saveBrowserConfig, setSaveStatus } from '@/store/slices/configSlice'
+import { saveAgentConfig, setSaveStatus } from '@/store/slices/configSlice'
 import debounce from 'lodash/debounce'
 
 export const useAutoSave = (debounceMs = 800) => {
     const dispatch = useAppDispatch()
-    const { browser, saveStatus, lastSaved } = useAppSelector(state => state.config)
+    const { browser, twilio, telnyx, saveStatus, lastSaved } = useAppSelector(state => state.config)
+    const activeProfile = useAppSelector(state => state.ui.activeProfile)
 
     const initialLoadDone = useRef(false)
-    const prevBrowser = useRef(JSON.stringify(browser))
+    const prevJSON = useRef(JSON.stringify({ browser, twilio, telnyx }))
 
     const saveChanges = useCallback(
-        debounce((currentConfig: typeof browser) => {
-            dispatch(saveBrowserConfig(currentConfig))
+        debounce((payload: any) => {
+            dispatch(saveAgentConfig(payload))
         }, debounceMs),
         [dispatch, debounceMs]
     )
@@ -24,15 +25,23 @@ export const useAutoSave = (debounceMs = 800) => {
             return
         }
 
-        const currentString = JSON.stringify(browser)
+        const currentString = JSON.stringify({ browser, twilio, telnyx })
 
         // If config changed, trigger debounced save
-        if (currentString !== prevBrowser.current) {
-            prevBrowser.current = currentString
+        if (currentString !== prevJSON.current) {
+            prevJSON.current = currentString
             dispatch(setSaveStatus('saving'))
-            saveChanges(browser)
+
+            // Construct payload: base config + connectivity_config based on profile
+            const payload: any = { ...browser }
+            if (activeProfile === 'twilio') {
+                payload.connectivity_config = twilio
+            } else if (activeProfile === 'telnyx') {
+                payload.connectivity_config = telnyx
+            }
+            saveChanges(payload)
         }
-    }, [browser, dispatch, saveChanges])
+    }, [browser, twilio, telnyx, activeProfile, dispatch, saveChanges])
 
     // Cleanup pending debounces on unmount
     useEffect(() => {

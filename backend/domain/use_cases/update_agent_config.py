@@ -160,4 +160,9 @@ class UpdateAgentConfigUseCase:
         if update.tools_config is not None:
             agent.tools = [update.tools_config]
 
+        # Connectivity / Provider Config (Twilio / Telnyx)
+        if hasattr(update, 'connectivity_config') and update.connectivity_config is not None:
+            existing_conn = getattr(agent, 'connectivity_config', None) or {}
+            agent.connectivity_config = {**existing_conn, **update.connectivity_config}
+
         await self.repository.update_agent(agent)

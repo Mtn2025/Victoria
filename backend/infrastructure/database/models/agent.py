@@ -22,6 +22,10 @@ class AgentModel(Base):
     system_prompt: Mapped[str] = mapped_column(Text)
     language: Mapped[str] = mapped_column(String, default="es-MX")
 
+    # Flow & Native Provider (V4 Identity)
+    provider: Mapped[str] = mapped_column(String, default="browser", server_default="browser", nullable=False)
+    connectivity_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
     # Voice Config
     voice_provider: Mapped[str] = mapped_column(String, default="azure")
     voice_name: Mapped[str] = mapped_column(String)
