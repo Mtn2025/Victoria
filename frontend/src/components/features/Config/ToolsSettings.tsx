@@ -79,6 +79,7 @@ export const ToolsSettings = () => {
                         onChange={(e) => update('toolServerUrl', e.target.value)}
                         placeholder="https://primary.n8n.com/webhook/..."
                         className="font-mono text-xs border-l-4 border-l-pink-500 bg-slate-800/50"
+                        autoComplete="off"
                     />
                     <Input
                         aria-label="Server Secret"
@@ -88,6 +89,7 @@ export const ToolsSettings = () => {
                         onChange={(e) => update('toolServerSecret', e.target.value)}
                         placeholder="Bearer sk-..."
                         className="font-mono text-xs bg-slate-800/50"
+                        autoComplete="new-password"
                     />
                     <div className="grid grid-cols-2 gap-6 bg-slate-800/30 p-4 rounded-lg border border-slate-700/50">
                         <Input

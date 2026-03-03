@@ -186,6 +186,7 @@ export const CampaignSettings = () => {
                                 onChange={(e) => update('webhookUrl', e.target.value)}
                                 placeholder={t('campaigns.webhook_url_placeholder')}
                                 className="bg-slate-900 border-l-2 border-l-indigo-500/50 text-xs font-mono"
+                                autoComplete="off"
                             />
                             <p className="text-[10px] text-slate-500 mt-2">{t('campaigns.webhook_desc')}</p>
                         </div>
@@ -198,6 +199,7 @@ export const CampaignSettings = () => {
                                 onChange={(e) => update('webhookSecret', e.target.value)}
                                 placeholder={t('campaigns.webhook_secret_placeholder')}
                                 className="bg-slate-900 text-xs font-mono"
+                                autoComplete="new-password"
                             />
                         </div>
                     </div>

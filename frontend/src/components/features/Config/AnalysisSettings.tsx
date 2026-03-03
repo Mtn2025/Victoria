@@ -202,6 +202,7 @@ export const AnalysisSettings = () => {
                                     value={browser.webhookUrl}
                                     onChange={(e) => update('webhookUrl', e.target.value)}
                                     placeholder="https://api.crm.com/calls/end"
+                                    autoComplete="off"
                                 />
                             </div>
 
@@ -212,6 +213,7 @@ export const AnalysisSettings = () => {
                                     type="password"
                                     value={browser.webhookSecret}
                                     onChange={(e) => update('webhookSecret', e.target.value)}
+                                    autoComplete="new-password"
                                 />
                             </div>
                         </div>

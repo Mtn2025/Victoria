@@ -196,6 +196,7 @@ export const ConnectivitySettings = () => {
                                         value={twilio.sipAuthUserPhone}
                                         onChange={(e) => updateTwilio('sipAuthUserPhone', e.target.value)}
                                         className="text-xs font-mono"
+                                        autoComplete="off"
                                     />
                                     <Input
                                         aria-label="Twilio SIP Pass"
@@ -204,6 +205,7 @@ export const ConnectivitySettings = () => {
                                         value={twilio.sipAuthPassPhone}
                                         onChange={(e) => updateTwilio('sipAuthPassPhone', e.target.value)}
                                         className="text-xs font-mono"
+                                        autoComplete="new-password"
                                     />
                                 </div>
                                 <div>
@@ -241,6 +243,7 @@ export const ConnectivitySettings = () => {
                                         value={telnyx.sipAuthUserTelnyx}
                                         onChange={(e) => updateTelnyx('sipAuthUserTelnyx', e.target.value)}
                                         className="text-xs font-mono"
+                                        autoComplete="off"
                                     />
                                     <Input
                                         aria-label="Telnyx SIP Pass"
@@ -249,6 +252,7 @@ export const ConnectivitySettings = () => {
                                         value={telnyx.sipAuthPassTelnyx}
                                         onChange={(e) => updateTelnyx('sipAuthPassTelnyx', e.target.value)}
                                         className="text-xs font-mono"
+                                        autoComplete="new-password"
                                     />
                                 </div>
                                 <div>
