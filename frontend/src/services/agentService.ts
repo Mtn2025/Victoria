@@ -35,9 +35,9 @@ export const agentService = {
         return await api.get<Agent[]>(url)
     },
 
-    /** Create a new agent with system-default configuration. */
-    createAgent: async (name: string, language: string = 'es-MX'): Promise<Agent> => {
-        return await api.post<Agent>('/agents', { name, language })
+    /** Create a new agent with system-default configuration for a specific provider. */
+    createAgent: async (name: string, language: string = 'es-MX', provider: string = 'browser'): Promise<Agent> => {
+        return await api.post<Agent>('/agents', { name, language, provider })
     },
 
     /** Return the active agent with its full configuration. Returns null on 404. */

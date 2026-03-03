@@ -41,7 +41,11 @@ export const fetchActiveAgent = createAsyncThunk(
 
 export const createAgent = createAsyncThunk(
     'agents/createAgent',
-    async (payload: { name: string, language: string }) => agentService.createAgent(payload.name, payload.language)
+    async (payload: { name: string, language: string }, { getState }) => {
+        const state = getState() as RootState
+        const provider = state.ui.activeProfile
+        return agentService.createAgent(payload.name, payload.language, provider)
+    }
 )
 
 export const activateAgent = createAsyncThunk(
