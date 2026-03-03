@@ -62,8 +62,8 @@ const NAV_ITEMS: NavItem[] = [
     { type: 'config', id: 'tools', label: 'Herramientas', icon: Briefcase, featureKey: 'CONFIG_TOOLS' },
 
     // Telephony specific tabs moved to the bottom of the config list
-    { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone, isTelephonyOnly: true, featureKey: 'CONFIG_CAMPAIGNS' },
     { type: 'config', id: 'connectivity', label: 'Conectividad', icon: Zap, isTelephonyOnly: true, featureKey: 'CONFIG_CONNECTIVITY' },
+    { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone, isTelephonyOnly: true, featureKey: 'CONFIG_CAMPAIGNS' },
 
     // ── Pages (continued) ──────────────────────────────────────────────────
     { type: 'page', path: '/history', label: 'Historial', icon: History, featureKey: 'HISTORY_LIST' },
