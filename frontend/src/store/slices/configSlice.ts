@@ -55,7 +55,7 @@ export const saveAgentConfig = createAsyncThunk(
             console.error('[saveAgentConfig] No active agent in Redux state. Aborting PATCH.')
             return rejectWithValue('No active agent')
         }
-        return await agentService.updateAgentConfig(agentUuid, config)
+        return await configService.updateBrowserConfig(config, agentUuid)
     }
 )
 

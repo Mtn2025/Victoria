@@ -92,6 +92,8 @@ interface BackendConfigUpdate {
     end_call_enabled?: boolean
     end_call_phrases?: string[]
     end_call_instructions?: string
+    // Connectivity
+    connectivity_config?: Record<string, unknown>
 }
 
 export const configService = {
@@ -260,6 +262,11 @@ export const configService = {
                 console.warn('[configService] Failed to parse extractionSchema:', e)
                 payload.extraction_schema = config.extractionSchema
             }
+        }
+
+        // --- CONNECTIVITY CONFIG (Telnyx / Twilio) ---
+        if ((config as any).connectivity_config !== undefined) {
+            payload.connectivity_config = (config as any).connectivity_config
         }
 
         return api.patch(`/agents/${agentId}`, payload)
