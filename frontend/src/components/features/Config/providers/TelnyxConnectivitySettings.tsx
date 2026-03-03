@@ -273,13 +273,13 @@ export const TelnyxConnectivitySettings = () => {
                                     <Select
                                         aria-label="Telnyx AMD Config"
                                         value={telnyx.amdConfig}
-                                        onChange={(e) => updateTelnyx('amdConfig', e.target.value as 'disabled' | 'detect' | 'detect_hangup' | 'detect_message')}
+                                        onChange={(e) => updateTelnyx('amdConfig', e.target.value as 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end')}
                                         className="text-xs"
                                     >
                                         <option value="disabled">{t('connectivity.amd_disabled')}</option>
                                         <option value="detect">{t('connectivity.amd_detect')}</option>
                                         <option value="detect_hangup">{t('connectivity.amd_detect_hangup')}</option>
-                                        <option value="detect_message">{t('connectivity.amd_detect_message')}</option>
+                                        <option value="detect_message_end">{t('connectivity.amd_detect_message')}</option>
                                     </Select>
                                 </div>
                             </div>
