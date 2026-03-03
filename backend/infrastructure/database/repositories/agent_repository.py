@@ -137,6 +137,10 @@ class SqlAlchemyAgentRepository(AgentRepository):
                 existing_system = agent_model.system_config or {}
                 agent_model.system_config = {**existing_system, **agent.metadata["system_config"]}
 
+        # Connectivity / Provider Config (Twilio / Telnyx)
+        if hasattr(agent, "connectivity_config") and agent.connectivity_config is not None:
+            agent_model.connectivity_config = agent.connectivity_config
+
         await self.session.commit()
 
     # ------------------------------------------------------------------ #
