@@ -333,7 +333,7 @@ export const AgentsPanel = () => {
     useEffect(() => {
         dispatch(fetchAgents())
         dispatch(fetchActiveAgent())
-    }, [dispatch])
+    }, [dispatch, activeProfile])
 
     // Reset pagination on search
     useEffect(() => {
@@ -413,7 +413,10 @@ export const AgentsPanel = () => {
             <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-slate-900/50 backdrop-blur shrink-0 gap-4">
                 <div className="flex items-center gap-2">
                     <Bot size={18} className="text-blue-400" />
-                    <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase shrink-0">Agentes</h2>
+                    <div className="flex flex-col">
+                        <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase shrink-0 leading-tight">Agentes</h2>
+                        <span className="text-[10px] text-blue-400 font-medium uppercase tracking-wider">{activeProfile === 'browser' ? 'Navegador Web' : activeProfile === 'twilio' ? 'Red Twilio' : 'Red Telnyx'}</span>
+                    </div>
                 </div>
 
                 {/* Search Bar */}

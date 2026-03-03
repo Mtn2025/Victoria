@@ -41,6 +41,7 @@ class CloneAgentUseCase:
         # Re-assign core identity fields
         cloned_agent.agent_uuid = str(uuid.uuid4())
         cloned_agent.provider = target_provider.strip()
+        cloned_agent.name = f"{source_agent.name} - {target_provider.capitalize()}"
         cloned_agent.created_at = None  # Force BD to generate the timestamp
         cloned_agent.is_active = False  # Avoid stealing activity status
         
