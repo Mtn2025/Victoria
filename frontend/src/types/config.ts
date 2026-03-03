@@ -260,6 +260,7 @@ export interface Agent {
     agent_uuid: string
     name: string
     language: string
+    provider: string
     is_active: boolean
     created_at: string
 }

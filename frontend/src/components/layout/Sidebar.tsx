@@ -119,9 +119,11 @@ export const Sidebar = () => {
                     let isDisabled = (item.featureKey && !FEATURES[item.featureKey]) ||
                         (item.type === 'config' && !item.featureKey)
 
-                    // NEW RULE: If it's a config tab, it MUST have an active agent to click it.
-                    if (item.type === 'config' && !activeAgent) {
-                        isDisabled = true
+                    // NEW RULE: If it's a config tab, it MUST have an active agent matching the profile to click it.
+                    if (item.type === 'config') {
+                        if (!activeAgent || activeAgent.provider !== activeProfile) {
+                            isDisabled = true
+                        }
                     }
 
                     // Determine Active State
@@ -172,7 +174,7 @@ export const Sidebar = () => {
                             {/* Tooltip */}
                             <div className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-slate-700 font-medium">
                                 {item.label}
-                                {isDisabled && (item.type === 'config' && !activeAgent && FEATURES[item.featureKey!]
+                                {isDisabled && (item.type === 'config' && (!activeAgent || activeAgent.provider !== activeProfile) && FEATURES[item.featureKey!]
                                     ? <span className="ml-1 text-slate-500">(Requiere Agent Activo)</span>
                                     : <span className="ml-1 text-slate-500">(próx. fase)</span>
                                 )}

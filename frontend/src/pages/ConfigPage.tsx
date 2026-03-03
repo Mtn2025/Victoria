@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAppSelector, useAppDispatch } from "@/hooks/useRedux"
 import { fetchAgentConfig } from "@/store/slices/configSlice"
 
-import { Globe, Smartphone, Radio, LucideIcon, AlertCircle } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 import { FEATURES } from "@/utils/featureFlags"
 import { ModelSettings } from '@/components/features/Config/ModelSettings'
 import { VoiceSettings } from '@/components/features/Config/VoiceSettings'
@@ -34,13 +34,24 @@ export const ConfigPage = () => {
     // Hydrate config from the active agent on mount,
     // and whenever activeAgent changes (e.g. user activates a different agent).
     useEffect(() => {
-        // Only redirect if AGENTS_LIST feature is active, otherwise we trap the user
-        if (!activeAgent && FEATURES.AGENTS_LIST) {
+        if (!FEATURES.AGENTS_LIST) return
+
+        // 1) Si no hay agente activo, ir a la lista
+        if (!activeAgent) {
             navigate('/agents')
             return
         }
+
+        // 2) Si el agente activo pertenece a un proveedor distinto al que acabamos de seleccionar
+        // en la barra lateral, entonces no debemos mostrar la conf de ese agente en este contexto.
+        // Lo redirigimos a la lista para que seleccione un agente válido para este proveedor.
+        if (activeAgent && activeAgent.provider !== activeProfile) {
+            navigate('/agents')
+            return
+        }
+
         dispatch(fetchAgentConfig())
-    }, [dispatch, navigate, activeAgent])
+    }, [dispatch, navigate, activeAgent, activeProfile])
 
     // Form Validation Logic — only for active (non-stub) browser profile
     const missingFields = []
