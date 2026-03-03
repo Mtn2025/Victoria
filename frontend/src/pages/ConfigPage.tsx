@@ -94,7 +94,7 @@ export const ConfigPage = () => {
                     </div>
 
                     {/* Auto-Save Toast Status */}
-                    {activeProfile === 'browser' && (
+                    {activeProfile && (
                         <div className="flex items-center gap-2 h-7 px-3 rounded-full text-[11px] font-medium transition-all bg-slate-800 border border-slate-700">
                             {saveStatus === 'saving' && (
                                 <>
@@ -130,7 +130,7 @@ export const ConfigPage = () => {
             </div>
 
             {/* Footer Actions — validation block */}
-            {activeProfile === 'browser' && missingFields.length > 0 && (
+            {missingFields.length > 0 && (
                 <div className="p-4 border-t border-white/10 bg-slate-900 sticky bottom-0 z-50">
                     <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 p-2 rounded-md">
                         <AlertCircle className="w-4 h-4 shrink-0" />

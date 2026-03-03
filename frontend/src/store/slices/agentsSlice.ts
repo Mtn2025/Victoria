@@ -102,6 +102,7 @@ const agentsSlice = createSlice({
                     name: action.payload.name,
                     language: action.payload.language,
                     is_active: action.payload.is_active,
+                    provider: action.payload.provider,
                     created_at: action.payload.created_at,
                 }
                 : null
