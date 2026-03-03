@@ -55,13 +55,15 @@ const NAV_ITEMS: NavItem[] = [
     { type: 'config', id: 'model', label: 'Asistente', icon: Cpu, featureKey: 'CONFIG_MODEL' },
     { type: 'config', id: 'voice', label: 'Voz', icon: Mic, featureKey: 'CONFIG_VOICE' },
     { type: 'config', id: 'transcriber', label: 'Oído', icon: Ear, featureKey: 'CONFIG_TRANSCRIBER' },
-    { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone, isTelephonyOnly: true, featureKey: 'CONFIG_CAMPAIGNS' },
     { type: 'config', id: 'flow', label: 'Flujo', icon: GitCompare, featureKey: 'CONFIG_FLOW' },
     { type: 'config', id: 'analysis', label: 'Análisis', icon: Activity, featureKey: 'CONFIG_ANALYSIS' },
-    { type: 'config', id: 'connectivity', label: 'Conectividad', icon: Zap, isTelephonyOnly: true, featureKey: 'CONFIG_CONNECTIVITY' },
     { type: 'config', id: 'system', label: 'Sistema', icon: Shield, featureKey: 'CONFIG_SYSTEM' },
     { type: 'config', id: 'advanced', label: 'Avanzado', icon: Settings, featureKey: 'CONFIG_ADVANCED' },
     { type: 'config', id: 'tools', label: 'Herramientas', icon: Briefcase, featureKey: 'CONFIG_TOOLS' },
+
+    // Telephony specific tabs moved to the bottom of the config list
+    { type: 'config', id: 'campaigns', label: 'Campañas', icon: Megaphone, isTelephonyOnly: true, featureKey: 'CONFIG_CAMPAIGNS' },
+    { type: 'config', id: 'connectivity', label: 'Conectividad', icon: Zap, isTelephonyOnly: true, featureKey: 'CONFIG_CONNECTIVITY' },
 
     // ── Pages (continued) ──────────────────────────────────────────────────
     { type: 'page', path: '/history', label: 'Historial', icon: History, featureKey: 'HISTORY_LIST' },
