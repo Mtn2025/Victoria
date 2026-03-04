@@ -137,6 +137,7 @@ class ConfigDTO:
     spend_limit_daily: float = 50.0
     environment: str = "dev"
     privacy_mode: bool = False
+    audit_log_enabled: bool = False
 
 
 class ConfigRepositoryPort(ABC):
