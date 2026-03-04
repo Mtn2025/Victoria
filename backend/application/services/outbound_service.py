@@ -86,7 +86,7 @@ class OutboundDialerService:
                 # 2. Registrar en base de datos la llamada enviada.
                 try:
                     await self.start_call_uc.execute(
-                        agent_id=config_dto.agent_id if hasattr(config_dto, 'agent_id') else agent_id,
+                        agent_id=agent_id,
                         call_id_value=sid,
                         from_number=from_number,
                         to_number=to_number
@@ -132,7 +132,7 @@ class OutboundDialerService:
             if call_control_id:
                 try:
                     await self.start_call_uc.execute(
-                        agent_id=config_dto.agent_id if hasattr(config_dto, 'agent_id') else agent_id,
+                        agent_id=agent_id,
                         call_id_value=call_control_id,
                         from_number=from_number,
                         to_number=to_number
