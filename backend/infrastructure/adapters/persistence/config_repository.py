@@ -229,6 +229,10 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         system_config = agent.system_config or {}
         stt_config = agent.stt_config or {}
         voice_config_json = agent.voice_config_json or {}
+        connectivity_config = agent.connectivity_config or {}
+
+        # Safe extraction for nested Telnyx config
+        telnyx_config = connectivity_config.get("telnyx", {})
         
         return ConfigDTO(
             # LLM Config
@@ -273,6 +277,9 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             stt_provider="azure",  # Default
             stt_language="es-MX",  # Default
             silence_timeout_ms=agent.silence_timeout_ms or 1000,
+            # Telephony
+            telnyx_phone_number=telnyx_config.get("outbound_phone_number", None),
+            telnyx_connection_id=telnyx_config.get("connection_id", None),
             # Advanced
             enable_denoising=stt_config.get("noise_suppression_level", "balanced") != "off",
             noise_suppression_level=stt_config.get("noise_suppression_level", "balanced"),

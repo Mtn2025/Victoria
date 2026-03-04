@@ -106,6 +106,8 @@ class ConfigDTO:
     # Telephony
     silence_timeout_ms_phone: Optional[int] = None
     silence_timeout_ms_telnyx: Optional[int] = None
+    telnyx_phone_number: Optional[str] = None
+    telnyx_connection_id: Optional[str] = None
 
     # Function Calling (Tools)
     tool_server_url: Optional[str] = None

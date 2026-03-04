@@ -102,8 +102,9 @@ class OutboundDialerService:
             raise ValueError("Telnyx API Key not configured")
 
         url = f"{settings.TELNYX_API_BASE}/calls"
-        from_number = getattr(settings, "TELNYX_PHONE_NUMBER", "+1234567890")
-        connection_id = settings.TELNYX_CONNECTION_ID
+        # 1. Prefer agent-specific config from DB, 2. Fallback to Global Settings
+        from_number = getattr(config_dto, "telnyx_phone_number", None) or getattr(settings, "TELNYX_PHONE_NUMBER", "+1234567890")
+        connection_id = getattr(config_dto, "telnyx_connection_id", None) or settings.TELNYX_CONNECTION_ID
 
         payload = {
             "to": to_number,
