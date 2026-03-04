@@ -109,6 +109,32 @@ class TelnyxClient(TelephonyPort):
         except Exception:
             pass # Non-critical
 
+    async def start_recording(self, call_control_id: str, channels: str = "dual"):
+        """
+        Send 'record_start' command to Telnyx.
+        """
+        if not self.api_key:
+            return
+
+        url = f"{self.base_url}/calls/{call_control_id}/actions/record_start"
+        
+        payload = {
+            "format": "mp3",
+            "channels": channels,
+            "play_beep": False,
+            "client_state": base64.b64encode(json.dumps({"call_control_id": call_control_id, "action": "record_start"}).encode()).decode()
+        }
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, headers=self.headers, json=payload)
+                if response.status_code >= 400:
+                    logger.error(f"Failed to start recording on Telnyx call {call_control_id}: {response.text}")
+                else:
+                    logger.info(f"Telnyx Recording started: {call_control_id} [{channels}]")
+        except Exception as e:
+            logger.error(f"Telnyx start_recording error: {e}")
+
     async def end_call(self, call_id: CallId) -> None:
         """
         End a call (Hangup).

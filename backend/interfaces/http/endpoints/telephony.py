@@ -197,6 +197,24 @@ async def telnyx_call_control(
             use_case = StartStreamUseCase(telnyx_adapter)
             background_tasks.add_task(use_case.execute, call_control_id, ws_url, client_state)
 
+            # Phase 1: Call Recording (Telnyx)
+            async def _start_recording_if_enabled(cid: str):
+                from backend.domain.value_objects.call_id import CallId
+                try:
+                    call = await call_repo.get_by_id(CallId(cid))
+                    if call and hasattr(call, 'agent'):
+                        agent = call.agent
+                        conn_config = getattr(agent, "connectivity_config", {}) or {}
+                        # Check if Telnyx recording is enabled
+                        if conn_config.get("enableRecordingTelnyx", False):
+                            channels = conn_config.get("recordingChannelsTelnyx", "dual")
+                            logger.info(f"🎙️ Triggering native Telnyx recording for call {cid} (channels: {channels})")
+                            await telnyx_adapter.start_recording(cid, channels)
+                except Exception as e:
+                    logger.error(f"Failed to trigger Telnyx recording for {cid}: {e}")
+                    
+            background_tasks.add_task(_start_recording_if_enabled, call_control_id)
+
         # Telephony Network Status Events
         elif event_type == "call.hangup":
             # Determine reason
@@ -221,6 +239,13 @@ async def telnyx_call_control(
                     logger.info(f"✅ DB Update: Telnyx Call {call_control_id} ended with {mapped_reason}")
             except Exception as e:
                 logger.error(f"Failed to update Telnyx call {call_control_id}: {e}")
+
+        # DTMF Gathering (Keypad)
+        elif event_type == "call.dtmf.received":
+            digit = payload.get("digit")
+            logger.info(f"🔢 Telnyx DTMF Received on call {call_control_id}: {digit}")
+            # Here we can store the digit or pass it to a specialized processor if needed in the future
+            # For now, we capture it to prevent the orchestrator from being blind to keypad.
 
         # Answering Machine Detection (AMD)
         elif event_type in ("call.machine.greeting.ended", "call.machine.premium.greeting.ended", "call.machine.detect"):
