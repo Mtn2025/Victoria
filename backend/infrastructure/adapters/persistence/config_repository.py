@@ -94,7 +94,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 updated_flow = dict(agent.flow_config)
                 updated_flow[key] = value
                 agent.flow_config = updated_flow
-            elif key in ["analysis_prompt", "success_rubric", "extraction_schema", "sentiment_analysis", "webhook_url", "webhook_secret", "log_webhook_url", "pii_redaction_enabled", "cost_tracking_enabled", "retention_days"]:
+            elif key in ["analysis_prompt", "success_rubric", "extraction_schema", "sentiment_analysis", "webhook_url", "webhook_secret", "log_webhook_url", "pii_redaction_enabled", "cost_tracking_enabled", "retention_days", "crm_enabled"]:
                 current_analysis = dict(agent.analysis_config) if agent.analysis_config else {}
                 current_analysis[key] = value
                 agent.analysis_config = current_analysis
@@ -186,6 +186,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "pii_redaction_enabled": config.pii_redaction_enabled,
                 "cost_tracking_enabled": config.cost_tracking_enabled,
                 "retention_days": config.retention_days,
+                "crm_enabled": config.crm_enabled,
             },
             system_config={
                 "concurrency_limit": config.concurrency_limit,
@@ -300,6 +301,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             pii_redaction_enabled=analysis_config.get("pii_redaction_enabled", False),
             cost_tracking_enabled=analysis_config.get("cost_tracking_enabled", False),
             retention_days=analysis_config.get("retention_days", 30),
+            crm_enabled=analysis_config.get("crm_enabled", False),
             # System
             concurrency_limit=system_config.get("concurrency_limit", 1),
             spend_limit_daily=system_config.get("spend_limit_daily", 10.0),

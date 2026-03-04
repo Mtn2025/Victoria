@@ -130,6 +130,7 @@ class ConfigDTO:
     pii_redaction_enabled: bool = False
     cost_tracking_enabled: bool = False
     retention_days: int = 30
+    crm_enabled: bool = False
 
     # System
     concurrency_limit: int = 10

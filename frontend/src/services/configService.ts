@@ -76,6 +76,7 @@ interface BackendConfigUpdate {
     pii_redaction_enabled?: boolean
     cost_tracking_enabled?: boolean
     retention_days?: number
+    crm_enabled?: boolean
     // System
     concurrency_limit?: number
     spend_limit_daily?: number
@@ -245,6 +246,7 @@ export const configService = {
         if (config.piiRedactionEnabled !== undefined) payload.pii_redaction_enabled = config.piiRedactionEnabled
         if (config.costTrackingEnabled !== undefined) payload.cost_tracking_enabled = config.costTrackingEnabled
         if (config.retentionDays !== undefined) payload.retention_days = config.retentionDays
+        if (config.crmEnabled !== undefined) payload.crm_enabled = config.crmEnabled
 
         // --- SYSTEM & GOVERNANCE ---
         if (config.concurrencyLimit !== undefined) payload.concurrency_limit = config.concurrencyLimit

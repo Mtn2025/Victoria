@@ -94,6 +94,7 @@ class ConfigUpdate(BaseModel):
     pii_redaction_enabled: Optional[bool] = None
     cost_tracking_enabled: Optional[bool] = None
     retention_days: Optional[int] = None
+    crm_enabled: Optional[bool] = None   # CRM Integration FLAG
     
     # System / Governance
     concurrency_limit: Optional[int] = None
