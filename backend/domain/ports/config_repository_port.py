@@ -52,14 +52,14 @@ class ConfigDTO:
     voice_language: str = "es-MX"
     
     # Advanced / Multi-provider Voice Controls
-    voiceStyleDegree: float = 1.0
-    voiceBgSound: str = "none"
-    voiceBgUrl: Optional[str] = None
-    voiceStability: Optional[float] = None
-    voiceSimilarityBoost: Optional[float] = None
-    voiceStyleExaggeration: Optional[float] = None
-    voiceSpeakerBoost: Optional[bool] = None
-    voiceMultilingual: Optional[bool] = None
+    voice_style_degree: float = 1.0
+    voice_bg_sound: str = "none"
+    voice_bg_url: Optional[str] = None
+    voice_stability: Optional[float] = None
+    voice_similarity_boost: Optional[float] = None
+    voice_style_exaggeration: Optional[float] = None
+    voice_speaker_boost: Optional[bool] = None
+    voice_multilingual: Optional[bool] = None
 
     # Runtime client type — determines audio format across the pipeline
     # 'browser' = 24 kHz PCM  |  'twilio'/'telnyx' = 8 kHz mulaw

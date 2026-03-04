@@ -261,14 +261,14 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             voice_pitch=agent.voice_pitch or 0.0,
             voice_volume=agent.voice_volume or 100.0,
             voice_language=getattr(agent, "language", "es-MX") or "es-MX",  # Default Root
-            voiceStyleDegree=float(voice_config_json.get("voiceStyleDegree", 1.0) if voice_config_json.get("voiceStyleDegree") is not None else 1.0),
-            voiceBgSound=voice_config_json.get("voiceBgSound", "none"),
-            voiceBgUrl=voice_config_json.get("voiceBgUrl", None),
-            voiceStability=voice_config_json.get("voiceStability", None),
-            voiceSimilarityBoost=voice_config_json.get("voiceSimilarityBoost", None),
-            voiceStyleExaggeration=voice_config_json.get("voiceStyleExaggeration", None),
-            voiceSpeakerBoost=voice_config_json.get("voiceSpeakerBoost", None),
-            voiceMultilingual=voice_config_json.get("voiceMultilingual", None),
+            voice_style_degree=float(voice_config_json.get("voiceStyleDegree", 1.0) if voice_config_json.get("voiceStyleDegree") is not None else 1.0),
+            voice_bg_sound=voice_config_json.get("voiceBgSound", "none"),
+            voice_bg_url=voice_config_json.get("voiceBgUrl", None),
+            voice_stability=voice_config_json.get("voiceStability", None),
+            voice_similarity_boost=voice_config_json.get("voiceSimilarityBoost", None),
+            voice_style_exaggeration=voice_config_json.get("voiceStyleExaggeration", None),
+            voice_speaker_boost=voice_config_json.get("voiceSpeakerBoost", None),
+            voice_multilingual=voice_config_json.get("voiceMultilingual", None),
             # STT Config
             stt_provider="azure",  # Default
             stt_language="es-MX",  # Default
