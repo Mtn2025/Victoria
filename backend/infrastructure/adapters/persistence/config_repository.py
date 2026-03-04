@@ -228,6 +228,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         analysis_config = agent.analysis_config or {}
         system_config = agent.system_config or {}
         stt_config = agent.stt_config or {}
+        voice_config_json = agent.voice_config_json or {}
         
         return ConfigDTO(
             # LLM Config
