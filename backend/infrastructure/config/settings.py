@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     TELNYX_API_KEY: Optional[str] = None
     TELNYX_API_BASE: str = "https://api.telnyx.com/v2"
     TELNYX_PUBLIC_KEY: Optional[str] = None
+    TELNYX_CONNECTION_ID: Optional[str] = None
+    TELNYX_PHONE_NUMBER: Optional[str] = None
     # Webhook Security
     VICTORIA_API_KEY: Optional[str] = None
     WS_MEDIA_STREAM_PATH: str = "/ws/media-stream"
