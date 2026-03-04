@@ -46,11 +46,16 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         """
         from sqlalchemy import select
         from backend.infrastructure.database.models import AgentModel
+        import uuid
         
-        # Query agent by name (profile)
-        result = await self._session.execute(
-            select(AgentModel).where(AgentModel.name == profile)
-        )
+        # Query agent by uuid or name (profile)
+        try:
+            val_uuid = uuid.UUID(profile)
+            stmt = select(AgentModel).where(AgentModel.agent_uuid == str(val_uuid))
+        except ValueError:
+            stmt = select(AgentModel).where(AgentModel.name == profile)
+            
+        result = await self._session.execute(stmt)
         agent = result.scalar_one_or_none()
         
         if not agent:
@@ -66,11 +71,16 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         """
         from sqlalchemy import select
         from backend.infrastructure.database.models import AgentModel
+        import uuid
         
-        # Fetch agent
-        result = await self._session.execute(
-            select(AgentModel).where(AgentModel.name == profile)
-        )
+        # Fetch agent by uuid or name
+        try:
+            val_uuid = uuid.UUID(profile)
+            stmt = select(AgentModel).where(AgentModel.agent_uuid == str(val_uuid))
+        except ValueError:
+            stmt = select(AgentModel).where(AgentModel.name == profile)
+            
+        result = await self._session.execute(stmt)
         agent = result.scalar_one_or_none()
         
         if not agent:
