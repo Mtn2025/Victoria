@@ -70,12 +70,13 @@ export const CampaignSettings = () => {
                 <div className="space-y-6">
                     <div>
                         <Input
-                            aria-label="Nombre de la Campaña"
+                            aria-label={t('campaigns.name_label')}
                             label={t('campaigns.name_label')}
                             value={campaignName}
                             onChange={(e) => setCampaignName(e.target.value)}
                             placeholder={t('campaigns.name_placeholder')}
                         />
+                        <span className="text-[10px] text-slate-400 mt-2 block pl-1">{t('campaigns.name_desc')}</span>
                     </div>
 
                     <div>
@@ -92,13 +93,16 @@ export const CampaignSettings = () => {
                                 <div className="text-slate-400">
                                     <Upload className="w-8 h-8 mx-auto mb-3 opacity-60 text-blue-400" />
                                     <p className="text-[13px] font-medium text-slate-300">{t('campaigns.csv_drop')}</p>
-                                    <p className="text-[10px] text-slate-500 mt-2">{t('campaigns.csv_cols')}</p>
+                                    <p className="text-[10px] text-slate-500 mt-2">
+                                        {t('campaigns.csv_cols')}<br />
+                                        {t('campaigns.csv_help')}
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="text-blue-400 font-medium flex flex-col items-center justify-center gap-2">
                                     <FileText className="w-8 h-8 mb-2" />
                                     <span className="text-sm">{campaignFile.name}</span>
-                                    <span className="text-[10px] text-slate-500 mt-1">Archivo listo para subir</span>
+                                    <span className="text-[10px] text-slate-500 mt-1">{t('campaigns.file_ready')}</span>
                                 </div>
                             )}
                         </div>
