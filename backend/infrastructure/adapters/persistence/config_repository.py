@@ -278,8 +278,8 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             stt_language="es-MX",  # Default
             silence_timeout_ms=agent.silence_timeout_ms or 1000,
             # Telephony
-            telnyx_phone_number=telnyx_config.get("outbound_phone_number", None),
-            telnyx_connection_id=telnyx_config.get("connection_id", None),
+            telnyx_phone_number=telnyx_config.get("callerIdTelnyx", None),
+            telnyx_connection_id=telnyx_config.get("telnyxConnectionId", None),
             # Advanced
             enable_denoising=stt_config.get("noise_suppression_level", "balanced") != "off",
             noise_suppression_level=stt_config.get("noise_suppression_level", "balanced"),
