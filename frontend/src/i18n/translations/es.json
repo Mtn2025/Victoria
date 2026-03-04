@@ -205,11 +205,11 @@
         "accordion_integrations": "Integraciones",
         "crm_label": "Habilitar Integración CRM (Baserow)",
         "crm_desc": "Sincronizar contactos automáticamente.",
-        "webhook_title": "Webhook Integration (n8n/make)",
-        "webhook_url_label": "Webhook URL (End-of-Call)",
+        "webhook_title": "Integración Webhook (n8n/make)",
+        "webhook_url_label": "URL del Webhook (Fin de llamada)",
         "webhook_url_placeholder": "https://webhook.site/...",
         "webhook_desc": "Se enviará un reporte JSON al finalizar cada llamada.",
-        "webhook_secret_label": "Webhook Secret (Opcional)",
+        "webhook_secret_label": "Secreto del Webhook (Opcional)",
         "webhook_secret_placeholder": "Secret Key..."
     },
     "connectivity": {

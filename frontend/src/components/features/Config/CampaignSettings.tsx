@@ -83,7 +83,7 @@ export const CampaignSettings = () => {
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">{t('campaigns.csv_label')}</label>
                         <div className="border-2 border-dashed border-slate-700/80 rounded-xl p-8 text-center hover:border-blue-500/50 hover:bg-slate-800/30 transition-all cursor-pointer relative bg-[#0f111a]">
                             <input
-                                aria-label="Archivo de Contactos"
+                                aria-label={t('campaigns.csv_label')}
                                 type="file"
                                 accept=".csv"
                                 onChange={handleFileChange}
@@ -175,7 +175,7 @@ export const CampaignSettings = () => {
 
                         <div>
                             <Input
-                                aria-label="Webhook URL"
+                                aria-label={t('campaigns.webhook_url_label')}
                                 label={t('campaigns.webhook_url_label')}
                                 value={browser.webhookUrl}
                                 onChange={(e) => update('webhookUrl', e.target.value)}
@@ -187,7 +187,7 @@ export const CampaignSettings = () => {
                         </div>
                         <div>
                             <Input
-                                aria-label="Webhook Secret"
+                                aria-label={t('campaigns.webhook_secret_label')}
                                 label={t('campaigns.webhook_secret_label')}
                                 type="password"
                                 value={browser.webhookSecret}
