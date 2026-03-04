@@ -73,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(config.router, prefix="/api", dependencies=[Depends(get_api_key)]) 
     app.include_router(history.router, prefix="/api", dependencies=[Depends(get_api_key)])
     app.include_router(agents.router, prefix="/api", dependencies=[Depends(get_api_key)])
+    app.include_router(telephony.protected_router, prefix="/api", dependencies=[Depends(get_api_key)])
     
     # Monitoring
     from backend.interfaces.http.endpoints import health

@@ -30,26 +30,15 @@ export const TelnyxConnectivitySettings = () => {
         if (!testTarget || !activeAgent?.agent_uuid) return
         setCallStatus(t('connectivity.test_call_calling'))
         try {
-            // Bypass api.ts wrapper because /telephony is a public root endpoint without /api prefix
-            const apiKey = localStorage.getItem('api_key') || ''
-            const response = await fetch('/telephony/outbound', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': apiKey
-                },
-                body: JSON.stringify({
-                    agent_id: activeAgent.agent_uuid,
-                    to_number: testTarget,
-                    provider: 'telnyx'
-                })
+            const res = await api.post<{ status: string, call_id?: string, detail?: string }>('/telephony/outbound', {
+                agent_id: activeAgent.agent_uuid,
+                to_number: testTarget,
+                provider: 'telnyx'
             })
-
-            const res = await response.json()
-            if (response.ok && res.status === 'success') {
+            if (res.status === 'success') {
                 setCallStatus(`${t('connectivity.test_call_calling')} ID: ${res.call_id}`)
             } else {
-                setCallStatus(`${t('connectivity.test_call_error')} ${res.detail || response.statusText}`)
+                setCallStatus(`${t('connectivity.test_call_error')} ${res.detail}`)
             }
         } catch (e: unknown) {
             setCallStatus(`${t('connectivity.test_call_fail')} ${(e as Error).message}`)

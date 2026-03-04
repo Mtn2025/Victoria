@@ -20,6 +20,7 @@ from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
 # For Phase 9, we focus on functionality. We can import security if available or scaffold it.
 
 router = APIRouter(prefix="/telephony", tags=["telephony"])
+protected_router = APIRouter(prefix="/telephony", tags=["Telephony Actions"])
 logger = logging.getLogger(__name__)
 
 # Instantiate client (Singleton-ish) acting as Port Adapter
@@ -332,7 +333,7 @@ class OutboundCallRequest(BaseModel):
     to_number: str
     provider: str = "twilio"
 
-@router.post("/outbound")
+@protected_router.post("/outbound")
 async def create_outbound_call(
     request: OutboundCallRequest,
     config_repo: ConfigRepositoryPort = Depends(get_config_repository),
