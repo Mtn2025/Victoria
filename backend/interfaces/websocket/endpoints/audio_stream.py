@@ -11,6 +11,7 @@ import base64
 import json
 import logging
 import uuid
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
