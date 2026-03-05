@@ -201,6 +201,20 @@ async def telnyx_call_control(
                 
             use_case = StartStreamUseCase(telnyx_adapter)
             background_tasks.add_task(use_case.execute, call_control_id, ws_url, client_state)
+            
+            # --- Move Call to IN_PROGRESS in DB ---
+            async def _mark_call_in_progress(cid: str):
+                from backend.domain.value_objects.call_id import CallId
+                try:
+                    call = await call_repo.get_by_id(CallId(cid))
+                    if call:
+                        call.start()
+                        await call_repo.save(call)
+                        logger.info(f"✅ DB Update: Call {cid} officially answered and marked IN_PROGRESS")
+                except Exception as e:
+                    logger.error(f"Failed to mark call {cid} as answered: {e}")
+                    
+            background_tasks.add_task(_mark_call_in_progress, call_control_id)
 
             # Phase 1: Call Recording (Telnyx)
             async def _start_recording_if_enabled(cid: str):
@@ -222,17 +236,19 @@ async def telnyx_call_control(
 
         # Telephony Network Status Events
         elif event_type == "call.hangup":
-            # Determine reason
-            cause = payload.get("sip_hangup_cause") or payload.get("hangup_cause") or ""
+            # Determine reason (Force strictly to string to avoid AttributeError on integer codes like 603)
+            raw_cause = payload.get("sip_hangup_cause") or payload.get("hangup_cause") or ""
+            cause = str(raw_cause).lower()
             mapped_reason = "completed"
             
-            if "busy" in cause.lower() or cause in ["486", "600"]:
+            # https://developers.telnyx.com/docs/api/v2/call-control/Call-Control-Concepts
+            if "busy" in cause or cause in ["486", "600", "603"]:
                 mapped_reason = "busy"
-            elif "no answer" in cause.lower() or "timeout" in cause.lower() or cause in ["408", "480"]:
+            elif "no answer" in cause or "timeout" in cause or cause in ["408", "480"]:
                 mapped_reason = "no_answer"
             elif cause in ["404", "410", "484", "503"]:
                 mapped_reason = "failed"
-            elif cause == "normal_clearing":
+            elif cause in ["normal_clearing", "200"]:
                 mapped_reason = "completed"
                 
             from backend.domain.value_objects.call_id import CallId

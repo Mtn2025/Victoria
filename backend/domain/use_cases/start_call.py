@@ -89,8 +89,9 @@ class StartCallUseCase:
         call.update_metadata("to_number", to_number)
         call.update_metadata("client_type", client_type)
 
-        # 4. Change State
-        call.start()
+        # 4. Change State to Ringing initially
+        from backend.domain.entities.call import CallStatus
+        call.status = CallStatus.RINGING
 
         # 5. Persist
         await self.call_repo.save(call)
