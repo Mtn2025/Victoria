@@ -39,7 +39,7 @@ from backend.application.processors.frames import AudioFrame, FrameDirection
 logger = logging.getLogger(__name__)
 
 
-def _agent_to_config_dto(agent) -> ConfigDTO:
+def _agent_to_config_dto(agent, client_type_override: Optional[str] = None) -> ConfigDTO:
     """
     Bridge function: converts Agent entity → ConfigDTO at the pipeline boundary.
 
@@ -97,7 +97,7 @@ def _agent_to_config_dto(agent) -> ConfigDTO:
         pacing_end_call_phrases  = flow.get('pacing_end_call_phrases', []),
 
         # --- Runtime ---
-        client_type = llm.get('client_type', 'browser'),
+        client_type = client_type_override if client_type_override and client_type_override != "unknown" else llm.get('client_type', 'browser'),
         
         # --- Analysis Post-Call ---
         analysis_prompt       = analysis.get('analysis_prompt', None),
@@ -236,7 +236,7 @@ class CallOrchestrator:
             
             # Capture agent reference immediately for Pipeline and Greeting
             agent = self.current_call.agent
-            config = _agent_to_config_dto(agent)
+            config = _agent_to_config_dto(agent, client_type_override=client_type)
             
             self.max_retries = config.max_retries
             self.idle_messages = config.idle_message
@@ -258,7 +258,7 @@ class CallOrchestrator:
                 # Convert Agent entity → ConfigDTO (flat) so every processor
                 # reads from ConfigDTO attributes. See _agent_to_config_dto().
                 self.pipeline = await PipelineFactory.create_pipeline(
-                    config=_agent_to_config_dto(agent),
+                    config=_agent_to_config_dto(agent, client_type_override=client_type),
                     stt_port=self.stt_port,
                     llm_port=self.llm_port,
                     tts_port=self.tts_port,
