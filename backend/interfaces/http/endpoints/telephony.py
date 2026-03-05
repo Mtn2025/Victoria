@@ -196,7 +196,9 @@ async def telnyx_call_control(
             
             # RUTEO ESTRICTO PARA TELNYX E2E
             ws_url = f"{ws_scheme}://{host}/ws/telnyx/media-stream?call_control_id={call_control_id}"
-                
+            
+            logger.info(f"🚨 [TELNYX MEDIA HANDSHAKE] Attempting to connect Streaming to URL: {ws_url}")
+            
             use_case = StartStreamUseCase(telnyx_adapter)
             background_tasks.add_task(use_case.execute, call_control_id, ws_url, client_state)
             
