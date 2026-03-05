@@ -95,7 +95,10 @@ interface BackendConfigUpdate {
     end_call_instructions?: string
     // Connectivity
     connectivity_config?: Record<string, unknown>
+    // System Agent Provider (Browser / Twilio / Telnyx)
+    agent_provider?: string
 }
+
 
 export const configService = {
     /**
@@ -110,6 +113,10 @@ export const configService = {
         }
 
         const payload: BackendConfigUpdate = {}
+
+        if ((config as any).agent_provider !== undefined) {
+            payload.agent_provider = (config as any).agent_provider
+        }
 
         // LLM
         if (config.provider !== undefined) payload.llm_provider = config.provider

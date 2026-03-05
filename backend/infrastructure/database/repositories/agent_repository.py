@@ -103,6 +103,8 @@ class SqlAlchemyAgentRepository(AgentRepository):
         agent_model.language = getattr(agent, "language", "es-MX")
         agent_model.first_message = agent.first_message
         agent_model.silence_timeout_ms = agent.silence_timeout_ms
+        agent_model.provider = agent.provider
+
 
         if agent.voice_config:
             agent_model.voice_provider = agent.voice_config.provider

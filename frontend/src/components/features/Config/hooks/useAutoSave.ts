@@ -34,6 +34,8 @@ export const useAutoSave = (debounceMs = 800) => {
 
             // Construct payload: base config + connectivity_config based on profile
             const payload: any = { ...browser }
+            payload.agent_provider = activeProfile
+
             if (activeProfile === 'twilio') {
                 payload.connectivity_config = twilio
             } else if (activeProfile === 'telnyx') {

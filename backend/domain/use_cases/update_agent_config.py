@@ -28,6 +28,9 @@ class UpdateAgentConfigUseCase:
             agent.first_message = update.first_message
         if update.silence_timeout_ms is not None:
             agent.silence_timeout_ms = update.silence_timeout_ms
+        if getattr(update, "agent_provider", None) is not None:
+            agent.provider = update.agent_provider
+
 
         # Voice Config update
         if any([

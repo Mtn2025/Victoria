@@ -83,6 +83,7 @@ class ConfigUpdate(BaseModel):
     # Agent identity — optional when patching via /agents/{uuid} (UUID is already in the URL).
     # Still accepted if sent by legacy callers.
     agent_id: Optional[str] = None
+    agent_provider: Optional[str] = None
     
     # Optional PII & Retentions
     analysis_prompt: Optional[str] = None
