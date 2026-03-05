@@ -299,11 +299,17 @@ class CallOrchestrator:
                     # agent.voice_config is always set — the repo guarantees it.
                     voice_config = agent.voice_config
                     
+                    # Resolve correct format (Telnyx -> 8000Hz mulaw vs Browser -> 24000Hz pcm)
+                    from backend.domain.value_objects.audio_format import AudioFormat
+                    client = getattr(self.config, 'client_type', 'browser') if hasattr(self, 'config') else 'browser'
+                    target_format = AudioFormat.for_client(client)
+                    
                     # Synthesize greeting (direct TTS, no LLM overhead)
                     greeting_audio = await self.synthesize_text_uc.execute(
                         text=agent.first_message,
                         voice_config=voice_config,
-                        trace_id=stream_id
+                        trace_id=stream_id,
+                        audio_format=target_format
                     )
                     logger.info(f"✅ Greeting synthesized ({len(greeting_audio)} bytes)")
                     
@@ -673,11 +679,15 @@ class CallOrchestrator:
                         from datetime import datetime, timezone
                         if msg and getattr(self, "synthesize_text_uc", None) and self.tts_port and self.current_call and self._audio_output_callback:
                             try:
-                                voice_config = self.current_call.agent.voice_config
+                                from backend.domain.value_objects.audio_format import AudioFormat
+                                client_type = getattr(self.config, 'client_type', 'browser') if hasattr(self, 'config') else 'browser'
+                                target_format = AudioFormat.for_client(client_type)
+                                
                                 audio_bytes = await self.synthesize_text_uc.execute(
                                     text=msg,
-                                    voice_config=voice_config,
-                                    trace_id=getattr(self, "session_id", "idle-msg")
+                                    voice_config=self.current_call.agent.voice_config,
+                                    trace_id=self.current_call.id.value,
+                                    audio_format=target_format
                                 )
                                 # Inyectar audio al transport y texto al UI History
                                 await self._audio_output_callback(audio_bytes)
