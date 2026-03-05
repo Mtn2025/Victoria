@@ -189,9 +189,12 @@ async def telnyx_call_control(
             client_state = payload.get("client_state")
             
             proto = request.headers.get("x-forwarded-proto", "https")
-            host = request.headers.get("host")
+            forwarded_host = request.headers.get("x-forwarded-host")
+            host = forwarded_host if forwarded_host else request.headers.get("host")
+            
             if not host:
                 raise ValueError("Host header is missing")
+                
             ws_scheme = "wss" if proto == "https" else "ws"
             
             # RUTEO ESTRICTO PARA TELNYX E2E
