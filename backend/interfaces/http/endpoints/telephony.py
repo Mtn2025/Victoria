@@ -194,10 +194,8 @@ async def telnyx_call_control(
                 raise ValueError("Host header is missing")
             ws_scheme = "wss" if proto == "https" else "ws"
             
-            ws_url = f"{ws_scheme}://{host}{settings.WS_MEDIA_STREAM_PATH}?client=telnyx&call_control_id={call_control_id}"
-            
-            if client_state:
-                ws_url += f"&client_state={client_state}"
+            # RUTEO ESTRICTO PARA TELNYX E2E
+            ws_url = f"{ws_scheme}://{host}/ws/telnyx/media-stream?call_control_id={call_control_id}"
                 
             use_case = StartStreamUseCase(telnyx_adapter)
             background_tasks.add_task(use_case.execute, call_control_id, ws_url, client_state)
