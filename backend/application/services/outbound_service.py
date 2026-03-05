@@ -31,7 +31,7 @@ class OutboundDialerService:
         if provider == "twilio":
             return await self._create_twilio_call(to_number, config_dto, amd_enabled)
         elif provider == "telnyx":
-            return await self._create_telnyx_call(to_number, config_dto, amd_enabled)
+            return await self._create_telnyx_call(to_number, config_dto, amd_enabled, agent_id)
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
@@ -96,7 +96,7 @@ class OutboundDialerService:
 
             return tw_data
 
-    async def _create_telnyx_call(self, to_number: str, config_dto: Any, amd_enabled: bool) -> Dict[str, Any]:
+    async def _create_telnyx_call(self, to_number: str, config_dto: Any, amd_enabled: bool, agent_id: str) -> Dict[str, Any]:
         api_key = settings.TELNYX_API_KEY
         if not api_key:
             raise ValueError("Telnyx API Key not configured")

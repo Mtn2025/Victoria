@@ -63,7 +63,7 @@ def create_app() -> FastAPI:
     # Mount Routers
     # Mount Routers
     # Public (Webhooks need signature validation, handled internally)
-    app.include_router(telephony.router)
+    app.include_router(telephony.router, prefix="/api")
     app.include_router(audio_stream.router)
 
     # Protected (Dashboard/API access)
