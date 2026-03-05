@@ -197,8 +197,11 @@ async def telnyx_call_control(
                 
             ws_scheme = "wss" if proto == "https" else "ws"
             
-            # RUTEO ESTRICTO PARA TELNYX E2E
-            ws_url = f"{ws_scheme}://{host}/ws/telnyx/media-stream?call_control_id={call_control_id}"
+            # Restauración al Path probado y Whitelisteado por el Proxy
+            ws_url = f"{ws_scheme}://{host}{settings.WS_MEDIA_STREAM_PATH}?client=telnyx&call_control_id={call_control_id}"
+            
+            if client_state:
+                ws_url += f"&client_state={client_state}"
             
             logger.info(f"🚨 [TELNYX MEDIA HANDSHAKE] Attempting to connect Streaming to URL: {ws_url}")
             

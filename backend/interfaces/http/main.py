@@ -65,9 +65,6 @@ def create_app() -> FastAPI:
     # Public (Webhooks need signature validation, handled internally)
     app.include_router(telephony.router, prefix="/api")
     app.include_router(audio_stream.router)
-    
-    from backend.interfaces.websocket.endpoints import telnyx_stream
-    app.include_router(telnyx_stream.router)
 
     # Protected (Dashboard/API access)
     from backend.infrastructure.security.core import get_api_key

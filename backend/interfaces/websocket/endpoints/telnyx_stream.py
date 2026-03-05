@@ -58,8 +58,7 @@ async def build_telnyx_orchestrator(
     )
 
 
-@router.websocket("/ws/telnyx/media-stream")
-async def telnyx_audio_stream(
+async def handle_telnyx_stream(
     websocket: WebSocket,
     call_control_id: str,
     client_state: Optional[str] = None,
@@ -68,9 +67,9 @@ async def telnyx_audio_stream(
     call_repo: CallRepository = Depends(get_call_repository),
 ):
     """
-    WebSocket endpoint exclusivo para Audio Streaming de Telnyx.
-    No acepta configuraciones volátiles en la URL. Toda la configuración
-    del agente es extraída íntegra y textualmente desde la Base de Datos.
+    Función exclusiva para Audio Streaming de Telnyx.
+    Aislado lógicamente del navegador y Twilio, pero invocado en el endpoint unificado
+    para evitar reglas de bloqueo proxy (Error 422).
     """
     await websocket.accept()
     logger.info(f"[TELNYX E2E] WS Connected: call_control_id={call_control_id}")

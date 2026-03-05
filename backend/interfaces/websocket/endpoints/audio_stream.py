@@ -107,7 +107,22 @@ async def audio_stream(
     Supports Twilio, Telnyx, and Browser (Simulator).
     """
     # ------------------------------------------------------------------ #
-    # 1. Pre-connection setup                                              #
+    # 1. Rutas de Separación Pura E2E (Telnyx)                           #
+    # ------------------------------------------------------------------ #
+    if client == "telnyx":
+        logger.info(f"☎️ [WSS] Telnyx client recognized. Bypassing mixed logic -> Routing to isolated handler.")
+        from backend.interfaces.websocket.endpoints.telnyx_stream import handle_telnyx_stream
+        return await handle_telnyx_stream(
+            websocket=websocket,
+            call_control_id=call_control_id,
+            client_state=client_state,
+            agent_id=agent_id,
+            agent_repo=agent_repo,
+            call_repo=call_repo
+        )
+
+    # ------------------------------------------------------------------ #
+    # 2. Pre-connection setup (Twilio / Browser)                         #
     # ------------------------------------------------------------------ #
     if client == "browser":
         if not call_control_id:
