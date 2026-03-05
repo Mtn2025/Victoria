@@ -202,7 +202,7 @@ async def audio_stream(
                     # Start session — passes callbacks so TTS audio and transcripts reach client
                     greeting_audio = await orchestrator.start_session(
                         agent_id=agent_id,
-                        stream_id=stream_id,
+                        stream_id=call_control_id or stream_id,
                         audio_output_callback=send_tts_audio,       # TTS → WS return path
                         transcript_callback=send_transcript_event,  # STT/LLM → simulator panel
                         disconnect_callback=disconnect_call,        # For forceful Idle Hangup
