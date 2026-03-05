@@ -237,6 +237,7 @@ class CallOrchestrator:
             # Capture agent reference immediately for Pipeline and Greeting
             agent = self.current_call.agent
             config = _agent_to_config_dto(agent, client_type_override=client_type)
+            self.config = config
             
             self.max_retries = config.max_retries
             self.idle_messages = config.idle_message
