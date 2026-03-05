@@ -4,10 +4,11 @@ import { updateTelnyxConfigState } from '@/store/slices/configSlice'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { TelnyxConfig } from '@/types/config'
-import { Server } from 'lucide-react'
+import { Server, PhoneForwarded, PhoneOff } from 'lucide-react'
 import { api } from '@/services/api'
 import { Accordion } from '@/components/ui/Accordion'
 import { useTranslation } from '@/i18n/I18nContext'
+import { useAudioSimulator } from '@/hooks/useAudioSimulator'
 
 export const TelnyxConnectivitySettings = () => {
     const dispatch = useAppDispatch()
@@ -17,10 +18,13 @@ export const TelnyxConnectivitySettings = () => {
     // Control de Acordeones
     const [openSection, setOpenSection] = useState<string | null>('keys')
 
-    // Test Call State
+    // Test Call State & Telemetry
     const [testTarget, setTestTarget] = useState('')
-    const [callStatus, setCallStatus] = useState<string | null>(null)
+    const [callStatusText, setCallStatusText] = useState<string | null>(null)
     const activeAgent = useAppSelector(state => state.agents.activeAgent)
+
+    // Intercept WebSocket Telemetry silently (Just for statuses, no mic/audio needed here)
+    const { callStatus, startTest, stopTest } = useAudioSimulator()
 
     const updateTelnyx = <K extends keyof TelnyxConfig>(key: K, value: TelnyxConfig[K]) => {
         dispatch(updateTelnyxConfigState({ [key]: value }))
@@ -28,7 +32,11 @@ export const TelnyxConnectivitySettings = () => {
 
     const handleTestCall = async () => {
         if (!testTarget || !activeAgent?.agent_uuid) return
-        setCallStatus(t('connectivity.test_call_calling'))
+        setCallStatusText(t('connectivity.test_call_calling'))
+
+        // Stop any previous telemetry socket
+        stopTest()
+
         try {
             const res = await api.post<{ status: string, call_id?: string, detail?: string }>('/telephony/outbound', {
                 agent_id: activeAgent.agent_uuid,
@@ -36,13 +44,51 @@ export const TelnyxConnectivitySettings = () => {
                 provider: 'telnyx'
             })
             if (res.status === 'success') {
-                setCallStatus(`${t('connectivity.test_call_calling')} ID: ${res.call_id}`)
+                setCallStatusText(`${t('connectivity.test_call_calling')} ID: ${res.call_id}`)
+                // Start a silent telemetry stream to catch "connected" and "stop" events from the WS
+                startTest({ initialMsg: '', initiator: 'system', voiceStyle: '' })
             } else {
-                setCallStatus(`${t('connectivity.test_call_error')} ${res.detail}`)
+                setCallStatusText(`${t('connectivity.test_call_error')} ${res.detail}`)
             }
         } catch (e: unknown) {
-            setCallStatus(`${t('connectivity.test_call_fail')} ${(e as Error).message}`)
+            setCallStatusText(`${t('connectivity.test_call_fail')} ${(e as Error).message}`)
         }
+    }
+
+    // Dynamic Graphic Badge computation based on real-time WS Call Status
+    const renderCallBadge = () => {
+        if (!callStatusText && callStatus === 'idle') return null;
+
+        if (callStatus === 'ringing') {
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full w-max mt-3 animate-pulse">
+                    <PhoneForwarded className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs font-medium text-blue-400">Llamando (Ringing)...</span>
+                </div>
+            )
+        }
+        if (callStatus === 'in_progress') {
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full w-max mt-3">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-xs font-medium text-emerald-400">Llamada en Curso</span>
+                </div>
+            )
+        }
+        if (callStatus === 'ended') {
+            return (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 rounded-full w-max mt-3">
+                    <PhoneOff className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="text-xs font-medium text-rose-400">Llamada Finalizada</span>
+                </div>
+            )
+        }
+
+        // Fallback for REST API Text Responses (Pre-ringing or Errors)
+        return <span className="text-[10px] text-slate-400 mt-2 block">{callStatusText}</span>;
     }
 
     return (
@@ -116,7 +162,7 @@ export const TelnyxConnectivitySettings = () => {
                                     <span>📞</span> {t('connectivity.call_btn')}
                                 </button>
                             </div>
-                            {callStatus && <span className="text-[10px] text-slate-400 mt-2 block">{callStatus}</span>}
+                            {renderCallBadge()}
                         </div>
                     </div>
                 </div>
