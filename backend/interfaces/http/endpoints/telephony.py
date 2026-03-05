@@ -354,12 +354,43 @@ async def create_outbound_call(
             to_number=request.to_number,
             provider=request.provider
         )
-        return {"status": "success", "call": result}
+        
+        call_id = None
+        if request.provider == "telnyx":
+            call_id = result.get("data", {}).get("call_control_id")
+        elif request.provider == "twilio":
+            call_id = result.get("sid")
+            
+        return {"status": "success", "call": result, "call_id": call_id or "undefined"}
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         logger.error(f"Error creating outbound call: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@protected_router.get("/status/{call_id}")
+async def get_call_status(
+    call_id: str,
+    call_repo: CallRepository = Depends(get_call_repository)
+):
+    """
+    Lightweight endpoint for frontend polling of live call statuses without loading WebSockets.
+    """
+    from backend.domain.value_objects.call_id import CallId
+    try:
+        call = await call_repo.get_by_id(CallId(call_id))
+        if call:
+            st = call.status.value
+            ui_status = "ringing"
+            if st == "in_progress":
+                ui_status = "in_progress"
+            elif st in ["completed", "voicemail", "failed", "busy", "no_answer"]:
+                ui_status = "ended"
+            return {"status": "success", "call_status": ui_status}
+        return {"status": "not_found", "call_status": "idle"}
+    except Exception as e:
+        logger.error(f"Error fetching status for {call_id}: {e}")
+        return {"status": "error", "message": str(e), "call_status": "idle"}
 
 @router.get("/voicemail-audio")
 async def get_voicemail_audio(agent_id: str):
