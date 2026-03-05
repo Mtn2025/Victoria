@@ -138,8 +138,8 @@ export const FlowSettings = () => {
                                     type="number"
                                     aria-label="AMD Sensitivity"
                                     step="0.1" min="0" max="1"
-                                    value={browser.machineDetectionSensitivity}
-                                    onChange={(e) => update('machineDetectionSensitivity', parseFloat(e.target.value))}
+                                    value={browser.amdSensitivity}
+                                    onChange={(e) => update('amdSensitivity', parseFloat(e.target.value))}
                                 />
                             </div>
                             <div>
