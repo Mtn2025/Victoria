@@ -42,11 +42,11 @@ class TelephonyProtocol:
                  chunk = base64.b64decode(payload)
                  return {"type": "media", "data": chunk}
             elif event_type == "start":
-                 # Telnyx V2: Extract stream_id and call_control_id
+                 # Telnyx V2: Extract stream_id and call_control_id (can be nested under 'start')
                  return {
                      "type": "start",
-                     "stream_id": msg.get("stream_id"),
-                     "call_control_id": msg.get("call_control_id")
+                     "stream_id": msg.get("start", {}).get("stream_id") or msg.get("stream_id"),
+                     "call_control_id": msg.get("start", {}).get("call_control_id") or msg.get("call_control_id")
                  }
             elif event_type == "call.hangup":
                  return {"type": "stop"}

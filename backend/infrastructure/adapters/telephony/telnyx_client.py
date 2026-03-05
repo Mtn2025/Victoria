@@ -79,7 +79,7 @@ class TelnyxClient(TelephonyPort):
             "stream_url": stream_url,
             "stream_track": "inbound_track", # we only need Start for inbound handling usually, or generic
             "stream_bidirectional_mode": "rtp",
-            "stream_bidirectional_codec": "PCMA",
+            "stream_bidirectional_codec": "PCMU",
             "client_state": client_state
         }
         
