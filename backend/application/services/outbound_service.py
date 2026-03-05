@@ -105,12 +105,18 @@ class OutboundDialerService:
         # 1. Prefer agent-specific config from DB, 2. Fallback to Global Settings
         from_number = getattr(config_dto, "telnyx_phone_number", None) or getattr(settings, "TELNYX_PHONE_NUMBER", "+1234567890")
         connection_id = getattr(config_dto, "telnyx_connection_id", None) or settings.TELNYX_CONNECTION_ID
+        
+        # Strip invisible characters or trailing spaces from UI copy-paste
+        if connection_id:
+            connection_id = str(connection_id).strip()
 
         payload = {
             "to": to_number,
             "from": from_number,
             "connection_id": connection_id,
         }
+        
+        logger.info(f"TELNYX PAYLOAD GENERATED: {payload}")
 
         # --- FLOW CONFIG: Telnyx AMD ---
         if amd_enabled:
@@ -125,7 +131,7 @@ class OutboundDialerService:
         async with httpx.AsyncClient() as client:
             resp = await client.post(url, headers=headers, json=payload)
             if resp.status_code >= 400:
-                logger.error(f"Telnyx Call creation failed: {resp.text}")
+                logger.error(f"Telnyx Call creation failed for Connection ID [{connection_id}]: {resp.text}")
                 raise RuntimeError(f"Telnyx API error: {resp.text}")
                 
             tx_data = resp.json()
