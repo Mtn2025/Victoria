@@ -231,8 +231,8 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
         voice_config_json = agent.voice_config_json or {}
         connectivity_config = agent.connectivity_config or {}
 
-        # Safe extraction for nested Telnyx config
-        telnyx_config = connectivity_config.get("telnyx", {})
+        # Safe extraction for flat connectivity config
+        telnyx_config = connectivity_config
         
         return ConfigDTO(
             # LLM Config
