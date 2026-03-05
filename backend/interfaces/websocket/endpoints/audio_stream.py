@@ -171,8 +171,18 @@ async def audio_stream(
                             if client == "browser":
                                 await websocket.send_bytes(audio_bytes)
                             else:
-                                msg = protocol.create_media_message(audio_bytes)
-                                await websocket.send_text(msg)
+                                # Telephony Gateway (Telnyx/Twilio) requires atomic RTP chunks (20ms/160 bytes for MuLaw 8kHz).
+                                # Azure TTS sends mega-chunks (4096 bytes / ~512ms) which break the SIP Decoder (Robot Noise).
+                                # We must chunkify it geometrically and inject a synthetic sleep (20ms) to respect the timeline.
+                                chunk_size = 160
+                                sleep_time = 0.02  # 160 bytes @ 8000Hz MuLaw = 20ms
+                                
+                                for i in range(0, len(audio_bytes), chunk_size):
+                                    chunk = audio_bytes[i:i + chunk_size]
+                                    msg = protocol.create_media_message(chunk)
+                                    await websocket.send_text(msg)
+                                    await asyncio.sleep(sleep_time)
+
                         except Exception as ws_err:
                             logger.warning(f"[TTS→WS] Failed to send audio chunk: {ws_err}")
 
@@ -216,8 +226,14 @@ async def audio_stream(
                             # Browser expects raw binary PCM
                             await websocket.send_bytes(greeting_audio)
                         else:
-                            resp_msg = protocol.create_media_message(greeting_audio)
-                            await websocket.send_text(resp_msg)
+                            # Chunkify greeting audio to prevent static noise on Telephony Providers
+                            chunk_size = 160
+                            sleep_time = 0.02
+                            for i in range(0, len(greeting_audio), chunk_size):
+                                chunk = greeting_audio[i:i + chunk_size]
+                                resp_msg = protocol.create_media_message(chunk)
+                                await websocket.send_text(resp_msg)
+                                await asyncio.sleep(sleep_time)
 
                 # ── "media" event (browser sends base64 PCM via JSON) ──
                 elif event["type"] == "media":
@@ -248,8 +264,22 @@ async def audio_stream(
                                 resp_msg = protocol.create_media_message(response_chunk)
                                 await websocket.send_text(resp_msg)
 
+                # ── "connected" event (Telephony provider signals Answer) ──
+                elif event["type"] == "connected":
+                    logger.info(f"☎️ [WS-IN] Telephony Gateway Answered: {stream_id}")
+                    # Forward status to the Simulator Hook to change Ringing visual indicator
+                    await websocket.send_text(json.dumps({
+                        "type": "call_status", 
+                        "status": "in_progress"
+                    }))
+
+                # ── "stop" event ──
                 elif event["type"] == "stop":
-                    logger.info("Stop event received")
+                    logger.info(f"Stop event received for stream: {stream_id}")
+                    await websocket.send_text(json.dumps({
+                        "type": "call_status", 
+                        "status": "ended"
+                    }))
                     break
 
             # ── BINARY messages (raw PCM from browser, alternative path) ─

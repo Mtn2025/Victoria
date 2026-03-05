@@ -27,6 +27,7 @@ export interface SimulatorMetrics {
 }
 
 export type SimulatorState = 'ready' | 'connecting' | 'connected' | 'error';
+export type CallStatus = 'ringing' | 'in_progress' | 'ended' | 'idle';
 
 export interface DebugLog {
     type: string;
@@ -47,6 +48,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
 
     // ── UI state (only for rendering) ──
     const [simState, setSimState] = useState<SimulatorState>('ready');
+    const [callStatus, setCallStatus] = useState<CallStatus>('idle');
     const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
     const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
     const [vadLevel, setVadLevel] = useState(0);
@@ -143,6 +145,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
         outputAnalyser.current = null;
 
         setSimState('ready');
+        setCallStatus('idle');
         setIsAgentSpeaking(false);
         log('SYSTEM', { event: 'STOP_TEST' });
     };
@@ -262,6 +265,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
         }
 
         setSimState('connecting');
+        setCallStatus('ringing');
         setTranscripts([]);
         log('SYSTEM', { event: 'START_TEST_INIT', config });
 
@@ -340,6 +344,9 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
                         if (processor.current) {
                             processor.current.port.postMessage({ type: 'clear' });
                         }
+                    } else if (msg.type === 'call_status') {
+                        console.log(`[SIM] Call Status Update: ${msg.status}`);
+                        setCallStatus(msg.status as CallStatus);
                     } else if (msg.type === 'transcript') {
                         const newMsg: TranscriptMessage = {
                             role: msg.role,
@@ -387,6 +394,7 @@ export const useAudioSimulator = ({ onTranscript, onDebugLog }: UseAudioSimulato
     // ─────────────────────────────────────────────────────────────────────────
     return {
         simState,
+        callStatus,
         vadLevel,
         isAgentSpeaking,
         metrics,

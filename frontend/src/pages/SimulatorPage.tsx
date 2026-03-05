@@ -16,6 +16,7 @@ const SimulatorPage = () => {
 
     const {
         simState,
+        callStatus,
         vadLevel,
         isAgentSpeaking,
         metrics,
@@ -144,10 +145,12 @@ const SimulatorPage = () => {
                         {simState !== 'connected' && (
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none bg-slate-950/40 backdrop-blur-[2px]">
                                 <div className="flex flex-col items-center space-y-4 p-6 rounded-2xl bg-black/60 border border-white/5 shadow-2xl backdrop-blur-md">
-                                    {simState === 'connecting' ? (
+                                    {(simState === 'connecting' || callStatus === 'ringing') ? (
                                         <>
                                             <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin" />
-                                            <h3 className="text-blue-400 font-medium tracking-wide animate-pulse">Estableciendo Conexión Segura...</h3>
+                                            <h3 className="text-blue-400 font-medium tracking-wide animate-pulse">
+                                                {callStatus === 'ringing' ? 'Timbrando (Ringing)...' : 'Conectando con Gateway...'}
+                                            </h3>
                                         </>
                                     ) : (
                                         <>
@@ -159,6 +162,11 @@ const SimulatorPage = () => {
                                             <h3 className="text-slate-200 font-semibold text-lg tracking-wide">Sistema en Reposo</h3>
                                             <p className="text-slate-500 text-sm">Haz clic en "Iniciar Prueba" para conectar con el agente interactivo.</p>
                                         </>
+                                    )}
+                                    {callStatus === 'ended' && simState === 'ready' && (
+                                        <div className="mt-2 text-rose-400 font-semibold animate-pulse text-sm">
+                                            Llamada finalizada por el Gateway Telefónico.
+                                        </div>
                                     )}
                                 </div>
                             </div>
