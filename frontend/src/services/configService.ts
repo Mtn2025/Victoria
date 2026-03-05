@@ -268,7 +268,29 @@ export const configService = {
 
         // --- CONNECTIVITY CONFIG (Telnyx / Twilio) ---
         if ((config as any).connectivity_config !== undefined) {
-            payload.connectivity_config = (config as any).connectivity_config
+            const rawConn = (config as any).connectivity_config;
+            const mappedConn: Record<string, any> = {};
+
+            // Translate camelCase keys to snake_case dynamically for connectivity_config
+            for (const key in rawConn) {
+                if (Object.prototype.hasOwnProperty.call(rawConn, key)) {
+                    // Manual overrides for specific nomenclature required by the backend
+                    if (key === 'telnyxConnectionId') {
+                        mappedConn['telnyx_connection_id'] = rawConn[key];
+                    } else if (key === 'callerIdTelnyx') {
+                        mappedConn['telnyx_phone_number'] = rawConn[key];
+                    } else if (key === 'enableRecordingTelnyx') {
+                        mappedConn['enable_recording_telnyx'] = rawConn[key];
+                    } else if (key === 'recordingChannelsTelnyx') {
+                        mappedConn['recording_channels_telnyx'] = rawConn[key];
+                    } else {
+                        // Generic camelCase to snake_case converter for other keys
+                        const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+                        mappedConn[snakeKey] = rawConn[key];
+                    }
+                }
+            }
+            payload.connectivity_config = mappedConn;
         }
 
         return api.patch(`/agents/${agentId}`, payload)
