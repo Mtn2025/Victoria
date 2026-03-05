@@ -176,9 +176,13 @@ async def telnyx_call_control(
         logger.info(f"📞 Telnyx Event: {event_type} | Call: {call_control_id}")
 
         if event_type == "call.initiated":
-            # Answer the call via Use Case
-            use_case = AnswerCallUseCase(telnyx_adapter)
-            background_tasks.add_task(use_case.execute, call_control_id)
+            direction = payload.get("direction")
+            if direction == "inbound":
+                # Answer the call via Use Case
+                use_case = AnswerCallUseCase(telnyx_adapter)
+                background_tasks.add_task(use_case.execute, call_control_id)
+            else:
+                logger.info(f"Outbound call initiated (ringing): {call_control_id}, waiting for answered event.")
 
         elif event_type == "call.answered":
             # Start streaming via Use Case
