@@ -503,96 +503,86 @@ export const configSlice = createSlice({
             }
 
             // Hydrate Connectivity Config (Twilio / Telnyx specific isolated fields)
+            // Fix: Hydrate regardless of current active provider, otherwise inactive provider tabs look empty.
             if (data.connectivity_config) {
                 const conn = data.connectivity_config
-                if (data.provider === 'twilio') {
-                    if (conn.twilio_account_sid !== undefined) state.twilio.twilioAccountSid = conn.twilio_account_sid
-                    else if (conn.twilioAccountSid !== undefined) state.twilio.twilioAccountSid = conn.twilioAccountSid
 
-                    if (conn.twilio_auth_token !== undefined) state.twilio.twilioAuthToken = conn.twilio_auth_token
-                    else if (conn.twilioAuthToken !== undefined) state.twilio.twilioAuthToken = conn.twilioAuthToken
+                // --- TWILIO ---
+                if (conn.twilio_account_sid !== undefined) state.twilio.twilioAccountSid = conn.twilio_account_sid
+                else if (conn.twilioAccountSid !== undefined) state.twilio.twilioAccountSid = conn.twilioAccountSid
 
-                    if (conn.twilio_from_number !== undefined) state.twilio.twilioFromNumber = conn.twilio_from_number
-                    else if (conn.twilioFromNumber !== undefined) state.twilio.twilioFromNumber = conn.twilioFromNumber
+                if (conn.twilio_auth_token !== undefined) state.twilio.twilioAuthToken = conn.twilio_auth_token
+                else if (conn.twilioAuthToken !== undefined) state.twilio.twilioAuthToken = conn.twilioAuthToken
 
-                    if (conn.sip_trunk_uri_phone !== undefined) state.twilio.sipTrunkUriPhone = conn.sip_trunk_uri_phone
-                    else if (conn.sipTrunkUriPhone !== undefined) state.twilio.sipTrunkUriPhone = conn.sipTrunkUriPhone
+                if (conn.twilio_from_number !== undefined) state.twilio.twilioFromNumber = conn.twilio_from_number
+                else if (conn.twilioFromNumber !== undefined) state.twilio.twilioFromNumber = conn.twilioFromNumber
 
-                    if (conn.sip_auth_user_phone !== undefined) state.twilio.sipAuthUserPhone = conn.sip_auth_user_phone
-                    else if (conn.sipAuthUserPhone !== undefined) state.twilio.sipAuthUserPhone = conn.sipAuthUserPhone
+                if (conn.sip_trunk_uri_phone !== undefined) state.twilio.sipTrunkUriPhone = conn.sip_trunk_uri_phone
+                else if (conn.sipTrunkUriPhone !== undefined) state.twilio.sipTrunkUriPhone = conn.sipTrunkUriPhone
 
-                    if (conn.sip_auth_pass_phone !== undefined) state.twilio.sipAuthPassPhone = conn.sip_auth_pass_phone
-                    else if (conn.sipAuthPassPhone !== undefined) state.twilio.sipAuthPassPhone = conn.sipAuthPassPhone
+                if (conn.sip_auth_user_phone !== undefined) state.twilio.sipAuthUserPhone = conn.sip_auth_user_phone
+                else if (conn.sipAuthUserPhone !== undefined) state.twilio.sipAuthUserPhone = conn.sipAuthUserPhone
 
-                    if (conn.fallback_number_phone !== undefined) state.twilio.fallbackNumberPhone = conn.fallback_number_phone
-                    else if (conn.fallbackNumberPhone !== undefined) state.twilio.fallbackNumberPhone = conn.fallbackNumberPhone
+                if (conn.sip_auth_pass_phone !== undefined) state.twilio.sipAuthPassPhone = conn.sip_auth_pass_phone
+                else if (conn.sipAuthPassPhone !== undefined) state.twilio.sipAuthPassPhone = conn.sipAuthPassPhone
 
-                    if (conn.geo_region_phone !== undefined) state.twilio.geoRegionPhone = conn.geo_region_phone
-                    else if (conn.geoRegionPhone !== undefined) state.twilio.geoRegionPhone = conn.geoRegionPhone
+                if (conn.fallback_number_phone !== undefined) state.twilio.fallbackNumberPhone = conn.fallback_number_phone
+                else if (conn.fallbackNumberPhone !== undefined) state.twilio.fallbackNumberPhone = conn.fallbackNumberPhone
 
-                    if (conn.recording_channels_phone !== undefined) state.twilio.recordingChannelsPhone = conn.recording_channels_phone
-                    else if (conn.recordingChannelsPhone !== undefined) state.twilio.recordingChannelsPhone = conn.recordingChannelsPhone
+                if (conn.geo_region_phone !== undefined) state.twilio.geoRegionPhone = conn.geo_region_phone
+                else if (conn.geoRegionPhone !== undefined) state.twilio.geoRegionPhone = conn.geoRegionPhone
 
-                    if (conn.recording_enabled_phone !== undefined) state.twilio.recordingEnabledPhone = conn.recording_enabled_phone
-                    else if (conn.recordingEnabledPhone !== undefined) state.twilio.recordingEnabledPhone = conn.recordingEnabledPhone
+                if (conn.recording_channels_phone !== undefined) state.twilio.recordingChannelsPhone = conn.recording_channels_phone
+                else if (conn.recordingChannelsPhone !== undefined) state.twilio.recordingChannelsPhone = conn.recordingChannelsPhone
 
-                    if (conn.hipaa_enabled_phone !== undefined) state.twilio.hipaaEnabledPhone = conn.hipaa_enabled_phone
-                    else if (conn.hipaaEnabledPhone !== undefined) state.twilio.hipaaEnabledPhone = conn.hipaaEnabledPhone
+                if (conn.recording_enabled_phone !== undefined) state.twilio.recordingEnabledPhone = conn.recording_enabled_phone
+                else if (conn.recordingEnabledPhone !== undefined) state.twilio.recordingEnabledPhone = conn.recordingEnabledPhone
 
-                    if (conn.dtmf_listening_enabled_phone !== undefined) state.twilio.dtmfListeningEnabledPhone = conn.dtmf_listening_enabled_phone
-                    else if (conn.dtmfListeningEnabledPhone !== undefined) state.twilio.dtmfListeningEnabledPhone = conn.dtmfListeningEnabledPhone
-                } else if (data.provider === 'telnyx') {
-                    // Fix destructive auto-save: map snake_case from DB back to camelCase in Redux
-                    if (conn.telnyx_api_key !== undefined) state.telnyx.telnyxApiKey = conn.telnyx_api_key
-                    else if (conn.telnyxApiKey !== undefined) state.telnyx.telnyxApiKey = conn.telnyxApiKey
+                if (conn.hipaa_enabled_phone !== undefined) state.twilio.hipaaEnabledPhone = conn.hipaa_enabled_phone
+                else if (conn.hipaaEnabledPhone !== undefined) state.twilio.hipaaEnabledPhone = conn.hipaaEnabledPhone
 
-                    if (conn.telnyx_connection_id !== undefined) state.telnyx.telnyxConnectionId = conn.telnyx_connection_id
-                    else if (conn.telnyxConnectionId !== undefined) state.telnyx.telnyxConnectionId = conn.telnyxConnectionId
+                if (conn.dtmf_listening_enabled_phone !== undefined) state.twilio.dtmfListeningEnabledPhone = conn.dtmf_listening_enabled_phone
+                else if (conn.dtmfListeningEnabledPhone !== undefined) state.twilio.dtmfListeningEnabledPhone = conn.dtmfListeningEnabledPhone
+                // --- TELNYX ---
+                // Fix destructive auto-save: map snake_case from DB back to camelCase in Redux
+                if (conn.telnyx_api_key !== undefined) state.telnyx.telnyxApiKey = conn.telnyx_api_key
+                else if (conn.telnyxApiKey !== undefined) state.telnyx.telnyxApiKey = conn.telnyxApiKey
 
-                    if (conn.telnyx_phone_number !== undefined) state.telnyx.callerIdTelnyx = conn.telnyx_phone_number
-                    else if (conn.callerIdTelnyx !== undefined) state.telnyx.callerIdTelnyx = conn.callerIdTelnyx
+                if (conn.telnyx_connection_id !== undefined) state.telnyx.telnyxConnectionId = conn.telnyx_connection_id
+                else if (conn.telnyxConnectionId !== undefined) state.telnyx.telnyxConnectionId = conn.telnyxConnectionId
 
-                    if (conn.sip_trunk_uri_telnyx !== undefined) state.telnyx.sipTrunkUriTelnyx = conn.sip_trunk_uri_telnyx
-                    else if (conn.sipTrunkUriTelnyx !== undefined) state.telnyx.sipTrunkUriTelnyx = conn.sipTrunkUriTelnyx
+                if (conn.telnyx_phone_number !== undefined) state.telnyx.callerIdTelnyx = conn.telnyx_phone_number
+                else if (conn.callerIdTelnyx !== undefined) state.telnyx.callerIdTelnyx = conn.callerIdTelnyx
 
-                    if (conn.sip_auth_user_telnyx !== undefined) state.telnyx.sipAuthUserTelnyx = conn.sip_auth_user_telnyx
-                    else if (conn.sipAuthUserTelnyx !== undefined) state.telnyx.sipAuthUserTelnyx = conn.sipAuthUserTelnyx
+                if (conn.sip_trunk_uri_telnyx !== undefined) state.telnyx.sipTrunkUriTelnyx = conn.sip_trunk_uri_telnyx
+                else if (conn.sipTrunkUriTelnyx !== undefined) state.telnyx.sipTrunkUriTelnyx = conn.sipTrunkUriTelnyx
 
-                    if (conn.sip_auth_pass_telnyx !== undefined) state.telnyx.sipAuthPassTelnyx = conn.sip_auth_pass_telnyx
-                    else if (conn.sipAuthPassTelnyx !== undefined) state.telnyx.sipAuthPassTelnyx = conn.sipAuthPassTelnyx
+                if (conn.sip_auth_user_telnyx !== undefined) state.telnyx.sipAuthUserTelnyx = conn.sip_auth_user_telnyx
+                else if (conn.sipAuthUserTelnyx !== undefined) state.telnyx.sipAuthUserTelnyx = conn.sipAuthUserTelnyx
 
-                    if (conn.fallback_number_telnyx !== undefined) state.telnyx.fallbackNumberTelnyx = conn.fallback_number_telnyx
-                    else if (conn.fallbackNumberTelnyx !== undefined) state.telnyx.fallbackNumberTelnyx = conn.fallbackNumberTelnyx
+                if (conn.sip_auth_pass_telnyx !== undefined) state.telnyx.sipAuthPassTelnyx = conn.sip_auth_pass_telnyx
+                else if (conn.sipAuthPassTelnyx !== undefined) state.telnyx.sipAuthPassTelnyx = conn.sipAuthPassTelnyx
 
-                    if (conn.geo_region_telnyx !== undefined) state.telnyx.geoRegionTelnyx = conn.geo_region_telnyx
-                    else if (conn.geoRegionTelnyx !== undefined) state.telnyx.geoRegionTelnyx = conn.geoRegionTelnyx
+                if (conn.fallback_number_telnyx !== undefined) state.telnyx.fallbackNumberTelnyx = conn.fallback_number_telnyx
+                else if (conn.fallbackNumberTelnyx !== undefined) state.telnyx.fallbackNumberTelnyx = conn.fallbackNumberTelnyx
 
-                    if (conn.recording_channels_telnyx !== undefined) state.telnyx.recordingChannelsTelnyx = conn.recording_channels_telnyx
-                    else if (conn.recordingChannelsTelnyx !== undefined) state.telnyx.recordingChannelsTelnyx = conn.recordingChannelsTelnyx
+                if (conn.geo_region_telnyx !== undefined) state.telnyx.geoRegionTelnyx = conn.geo_region_telnyx
+                else if (conn.geoRegionTelnyx !== undefined) state.telnyx.geoRegionTelnyx = conn.geoRegionTelnyx
 
-                    if (conn.enable_recording_telnyx !== undefined) state.telnyx.enableRecordingTelnyx = conn.enable_recording_telnyx
-                    else if (conn.enableRecordingTelnyx !== undefined) state.telnyx.enableRecordingTelnyx = conn.enableRecordingTelnyx
+                if (conn.recording_channels_telnyx !== undefined) state.telnyx.recordingChannelsTelnyx = conn.recording_channels_telnyx
+                else if (conn.recordingChannelsTelnyx !== undefined) state.telnyx.recordingChannelsTelnyx = conn.recordingChannelsTelnyx
 
-                    if (conn.hipaa_enabled_telnyx !== undefined) state.telnyx.hipaaEnabledTelnyx = conn.hipaa_enabled_telnyx
-                    else if (conn.hipaaEnabledTelnyx !== undefined) state.telnyx.hipaaEnabledTelnyx = conn.hipaaEnabledTelnyx
+                if (conn.enable_recording_telnyx !== undefined) state.telnyx.enableRecordingTelnyx = conn.enable_recording_telnyx
+                else if (conn.enableRecordingTelnyx !== undefined) state.telnyx.enableRecordingTelnyx = conn.enableRecordingTelnyx
 
-                    if (conn.dtmf_listening_enabled_telnyx !== undefined) state.telnyx.dtmfListeningEnabledTelnyx = conn.dtmf_listening_enabled_telnyx
-                    else if (conn.dtmfListeningEnabledTelnyx !== undefined) state.telnyx.dtmfListeningEnabledTelnyx = conn.dtmfListeningEnabledTelnyx
-                    if (conn.telnyxApiKey !== undefined) state.telnyx.telnyxApiKey = conn.telnyxApiKey
-                    if (conn.telnyxConnectionId !== undefined) state.telnyx.telnyxConnectionId = conn.telnyxConnectionId
-                    if (conn.callerIdTelnyx !== undefined) state.telnyx.callerIdTelnyx = conn.callerIdTelnyx
-                    if (conn.sipTrunkUriTelnyx !== undefined) state.telnyx.sipTrunkUriTelnyx = conn.sipTrunkUriTelnyx
-                    if (conn.sipAuthUserTelnyx !== undefined) state.telnyx.sipAuthUserTelnyx = conn.sipAuthUserTelnyx
-                    if (conn.sipAuthPassTelnyx !== undefined) state.telnyx.sipAuthPassTelnyx = conn.sipAuthPassTelnyx
-                    if (conn.fallbackNumberTelnyx !== undefined) state.telnyx.fallbackNumberTelnyx = conn.fallbackNumberTelnyx
-                    if (conn.geoRegionTelnyx !== undefined) state.telnyx.geoRegionTelnyx = conn.geoRegionTelnyx
-                    if (conn.recordingChannelsTelnyx !== undefined) state.telnyx.recordingChannelsTelnyx = conn.recordingChannelsTelnyx
-                    if (conn.enableRecordingTelnyx !== undefined) state.telnyx.enableRecordingTelnyx = conn.enableRecordingTelnyx
-                    if (conn.hipaaEnabledTelnyx !== undefined) state.telnyx.hipaaEnabledTelnyx = conn.hipaaEnabledTelnyx
-                    if (conn.dtmfListeningEnabledTelnyx !== undefined) state.telnyx.dtmfListeningEnabledTelnyx = conn.dtmfListeningEnabledTelnyx
-                    if (conn.amdConfig !== undefined) state.telnyx.amdConfig = conn.amdConfig
-                    if (conn.interruptRMS !== undefined) state.telnyx.interruptRMS = conn.interruptRMS
-                }
+                if (conn.hipaa_enabled_telnyx !== undefined) state.telnyx.hipaaEnabledTelnyx = conn.hipaa_enabled_telnyx
+                else if (conn.hipaaEnabledTelnyx !== undefined) state.telnyx.hipaaEnabledTelnyx = conn.hipaaEnabledTelnyx
+
+                if (conn.dtmf_listening_enabled_telnyx !== undefined) state.telnyx.dtmfListeningEnabledTelnyx = conn.dtmf_listening_enabled_telnyx
+                else if (conn.dtmfListeningEnabledTelnyx !== undefined) state.telnyx.dtmfListeningEnabledTelnyx = conn.dtmfListeningEnabledTelnyx
+
+                if (conn.amdConfig !== undefined) state.telnyx.amdConfig = conn.amdConfig
+                if (conn.interruptRMS !== undefined) state.telnyx.interruptRMS = conn.interruptRMS
             }
         })
         builder.addCase(fetchAgentConfig.rejected, (state) => {
