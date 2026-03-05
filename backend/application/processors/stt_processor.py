@@ -121,7 +121,7 @@ class STTProcessor(FrameProcessor):
                 )
                 # --- Mismatch guard: detecta discrepancia de formato en runtime ---
                 if self.audio_format and frame.sample_rate != self.audio_format.sample_rate:
-                    logger.warning(
+                    logger.debug(
                         f"[STT MISMATCH] Frame sample_rate={frame.sample_rate} "
                         f"!= declared format sample_rate={self.audio_format.sample_rate}. "
                         f"Azure recibirá audio ininteligible. "

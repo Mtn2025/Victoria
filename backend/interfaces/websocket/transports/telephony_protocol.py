@@ -48,7 +48,7 @@ class TelephonyProtocol:
                      "stream_id": msg.get("start", {}).get("stream_id") or msg.get("stream_id"),
                      "call_control_id": msg.get("start", {}).get("call_control_id") or msg.get("call_control_id")
                  }
-            elif event_type == "call.hangup":
+            elif event_type in ("stop", "call.hangup"):
                  return {"type": "stop"}
 
         # Browser / Generic
@@ -94,8 +94,7 @@ class TelephonyProtocol:
                 "event": "media",
                 "stream_id": self.stream_id,
                 "media": {
-                    "payload": b64_payload,
-                    "track": "inbound_track"
+                    "payload": b64_payload
                 }
             })
             
