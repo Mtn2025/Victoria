@@ -6,6 +6,7 @@ Prevents audio ghosting, manages transitions, validates operations.
 """
 from enum import Enum
 import logging
+import asyncio
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class ConversationFSM:
         """
         self._state = initial_state
         self._can_late_interrupt = False  # Track if we can do a late barge-in against frontend buffer
+        self._lock = asyncio.Lock()
         logger.info(f"🎯 FSM initialized: {initial_state.value}")
     
     @property
@@ -76,29 +78,30 @@ class ConversationFSM:
         Returns:
             True if transition succeeded, False otherwise
         """
-        # Validate transition
-        if not self._is_valid_transition(self._state, new_state):
-            logger.warning(
-                f"❌ Invalid transition: {self._state.value} → {new_state.value} "
+        async with self._lock:
+            # Validate transition
+            if not self._is_valid_transition(self._state, new_state):
+                logger.warning(
+                    f"❌ Invalid transition: {self._state.value} → {new_state.value} "
+                    f"(reason: {reason})"
+                )
+                return False
+            
+            old_state = self._state
+            self._state = new_state
+            
+            # Track allowance for late interruptions (barge-in against frontend slow playback)
+            if new_state in (ConversationState.SPEAKING, ConversationState.PROCESSING):
+                self._can_late_interrupt = True
+            elif new_state == ConversationState.INTERRUPTED:
+                self._can_late_interrupt = False
+            
+            logger.info(
+                f"🔄 State transition: {old_state.value} → {new_state.value} "
                 f"(reason: {reason})"
             )
-            return False
-        
-        old_state = self._state
-        self._state = new_state
-        
-        # Track allowance for late interruptions (barge-in against frontend slow playback)
-        if new_state in (ConversationState.SPEAKING, ConversationState.PROCESSING):
-            self._can_late_interrupt = True
-        elif new_state == ConversationState.INTERRUPTED:
-            self._can_late_interrupt = False
-        
-        logger.info(
-            f"🔄 State transition: {old_state.value} → {new_state.value} "
-            f"(reason: {reason})"
-        )
-        
-        return True
+            
+            return True
     
     def _is_valid_transition(
         self,
@@ -162,20 +165,21 @@ class ConversationFSM:
             
         Use this before generating TTS to prevent audio ghosting.
         """
-        allowed_states = {
-            ConversationState.LISTENING,
-            ConversationState.PROCESSING,
-            ConversationState.SPEAKING,  # Can continue speaking
-        }
-        
-        can = self._state in allowed_states
-        
-        if not can:
-            logger.debug(
-                f"🚫 Speaking blocked - state: {self._state.value}"
-            )
-        
-        return can
+        async with self._lock:
+            allowed_states = {
+                ConversationState.LISTENING,
+                ConversationState.PROCESSING,
+                ConversationState.SPEAKING,  # Can continue speaking
+            }
+            
+            can = self._state in allowed_states
+            
+            if not can:
+                logger.debug(
+                    f"🚫 Speaking blocked - state: {self._state.value}"
+                )
+            
+            return can
     
     async def can_interrupt(self) -> bool:
         """
@@ -186,23 +190,24 @@ class ConversationFSM:
             
         Only allow interruption when assistant is speaking/processing.
         """
-        allowed_states = {
-            ConversationState.SPEAKING,
-            ConversationState.PROCESSING,
-        }
-        
-        can = self._state in allowed_states
-        
-        # Allow late interruption from LISTENING only once after speaking/processing
-        if self._state == ConversationState.LISTENING and self._can_late_interrupt:
-            can = True
-        
-        if not can:
-            logger.debug(
-                f"🚫 Interrupt blocked - state: {self._state.value}"
-            )
-        
-        return can
+        async with self._lock:
+            allowed_states = {
+                ConversationState.SPEAKING,
+                ConversationState.PROCESSING,
+            }
+            
+            can = self._state in allowed_states
+            
+            # Allow late interruption from LISTENING only once after speaking/processing
+            if self._state == ConversationState.LISTENING and self._can_late_interrupt:
+                can = True
+            
+            if not can:
+                logger.debug(
+                    f"🚫 Interrupt blocked - state: {self._state.value}"
+                )
+            
+            return can
     
     async def can_process(self) -> bool:
         """
@@ -211,14 +216,16 @@ class ConversationFSM:
         Returns:
             True if processing is allowed
         """
-        allowed_states = {
-            ConversationState.LISTENING,
-            ConversationState.INTERRUPTED,
-        }
-        
-        return self._state in allowed_states
+        async with self._lock:
+            allowed_states = {
+                ConversationState.LISTENING,
+                ConversationState.INTERRUPTED,
+            }
+            
+            return self._state in allowed_states
     
-    def reset(self):
+    async def reset(self):
         """Reset FSM to IDLE state."""
-        self._state = ConversationState.IDLE
-        logger.info("🔄 FSM reset to IDLE")
+        async with self._lock:
+            self._state = ConversationState.IDLE
+            logger.info("🔄 FSM reset to IDLE")

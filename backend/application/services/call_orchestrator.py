@@ -417,11 +417,13 @@ class CallOrchestrator:
                 # This assumes Call entity has db_id attribute or similar
                 call_db_id = getattr(self.current_call, 'db_id', None)
                 if call_db_id:
-                    await self.transcript_repo.save(
+                    # --- FASE 7 (I/O OFFLOADING) ---
+                    # Prevención de Bloqueo del Event Loop por SQLAlchemy
+                    asyncio.create_task(self.transcript_repo.save(
                         call_id=call_db_id,
                         role="user",
                         content=text_input
-                    )
+                    ))
             
             # Generate Response
             response_text = ""
@@ -579,7 +581,7 @@ class CallOrchestrator:
         self.control_channel.close()
         
         # Reset FSM
-        self.fsm.reset()
+        await self.fsm.reset()
         
         logger.info("✅ Orchestrator stopped")
     
