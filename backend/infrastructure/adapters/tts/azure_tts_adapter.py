@@ -123,14 +123,31 @@ class AzureTTSAdapter(TTSPort):
         result_future = synthesizer.speak_ssml_async(ssml)
         
         try:
-            # Yield chunks as they arrive in the queue
+            # -------------------------------------------------------------
+            # CAPA 5: MICRO-CHUNKING MATEMÁTICO E2E (LATENCIA CERO)
+            # Twilio/Telnyx RTP requieren un P-Time estricto de 20ms.
+            # En MuLaw 8kHz 8-bit, 20ms = 160 bytes.
+            # En PCM 24kHz 16-bit (Browser), 20ms = 960 bytes.
+            # Azure escupe fragmentos asimétricos pesados. Refaccionamos
+            # los fragmentos localmente para que la red no sature.
+            # -------------------------------------------------------------
+            chunk_size = 160 if format.encoding in ("mulaw", "ulaw", "alaw") else 960
+            buffer = bytearray()
+
             while not is_finished.is_set() or not audio_queue.empty():
                 try:
                     chunk = await asyncio.wait_for(audio_queue.get(), timeout=0.1)
                     if chunk:
-                        yield chunk
+                        buffer.extend(chunk)
+                        while len(buffer) >= chunk_size:
+                            yield bytes(buffer[:chunk_size])
+                            buffer = buffer[chunk_size:]
                 except asyncio.TimeoutError:
                     continue
+            
+            # Enviar la estela acústica final si queda remanente
+            if buffer:
+                yield bytes(buffer)
         finally:
             # Ensure future completes or gets garbage collected cleanly
             if not is_finished.is_set():
