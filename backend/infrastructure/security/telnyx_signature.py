@@ -19,6 +19,18 @@ from typing import Optional
 
 from fastapi import Request
 
+# Top-level imports: fail fast at startup if cryptography is not installed.
+# This prevents the UnboundLocalError that occurs when an import inside a
+# try block fails and then the except clause references the not-yet-defined name.
+try:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from cryptography.exceptions import InvalidSignature
+    _CRYPTO_AVAILABLE = True
+except ImportError:
+    _CRYPTO_AVAILABLE = False
+    Ed25519PublicKey = None  # type: ignore[assignment]
+    InvalidSignature = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 # Maximum allowed difference between webhook timestamp and current time (seconds)
@@ -43,6 +55,15 @@ async def verify_telnyx_signature(request: Request, body: bytes) -> bool:
     if settings.ENVIRONMENT == "development":
         logger.debug("🔓 [TelnyxSig] Dev bypass — signature check skipped")
         return True
+
+    # ── Crypto library check ─────────────────────────────────────────────────
+    if not _CRYPTO_AVAILABLE:
+        logger.error(
+            "❌ [TelnyxSig] 'cryptography' package not installed. "
+            "Add 'cryptography>=3.0.0' to requirements.txt and redeploy. "
+            "Rejecting request."
+        )
+        return False
 
     # ── Read required config ─────────────────────────────────────────────────
     pub_key_b64: Optional[str] = settings.TELNYX_PUBLIC_KEY
@@ -82,9 +103,6 @@ async def verify_telnyx_signature(request: Request, body: bytes) -> bool:
     signed_payload = f"{timestamp_str}|".encode() + body
 
     try:
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-        from cryptography.exceptions import InvalidSignature
-
         pub_key_bytes = base64.b64decode(pub_key_b64)
         pub_key = Ed25519PublicKey.from_public_bytes(pub_key_bytes)
         sig_bytes = base64.b64decode(signature_b64)

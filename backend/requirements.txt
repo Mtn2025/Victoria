@@ -38,6 +38,7 @@ sentry-sdk[fastapi]>=1.39.0
 # Security & Middlewares
 slowapi>=0.1.7
 asgi-correlation-id>=4.3.0
+cryptography>=3.0.0
 
 # Cache & Message Broker
 redis>=5.0.0
