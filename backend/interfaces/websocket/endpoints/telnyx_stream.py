@@ -200,12 +200,7 @@ async def handle_telnyx_stream(
                                     break
                             # 2. Wake up pacing worker to cancel sleep
                             clear_event.set()
-
-                            # 3. Send clear to PSTN Jitter Buffer
-                            clear_msg = protocol.create_clear_message()
-                            if clear_msg:
-                                await websocket.send_text(clear_msg)
-                                logger.info(f"☎️ [TELNYX E2E/BARGE-IN] CLEAR event successfully dispatched")
+                            logger.info(f"☎️ [TELNYX E2E/BARGE-IN] Local RTP queue cleared successfully")
 
                     async def disconnect_call() -> None:
                         logger.info(f"[TELNYX E2E] Closing stream {stream_id}")
