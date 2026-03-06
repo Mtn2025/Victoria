@@ -7,6 +7,7 @@ import base64
 import json
 import logging
 import asyncio
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -134,31 +135,43 @@ async def handle_telnyx_stream(
                     clear_event = asyncio.Event()
 
                     async def pacing_worker():
-                        """Background task that sends queued audio and sleeps for the physical chunk duration"""
+                        """Background task that sends queued audio and chunk-paces it for Telnyx RTP"""
                         logger.info(f"☎️ [TELNYX E2E] Pacing Worker started for {stream_id}")
+                        chunk_size = 160  # 20ms of 8000Hz 8-bit mulaw
+                        sleep_time = 0.02 # 20ms sleep
+                        
                         while True:
                             try:
                                 audio_bytes = await media_queue.get()
                                 
-                                # Send to Telnyx
-                                logger.info(f"☎️ [TELNYX E2E] Sending {len(audio_bytes)} bytes of media to remote PSTN queue")
-                                msg = protocol.create_media_message(audio_bytes)
-                                await websocket.send_text(msg)
+                                logger.info(f"☎️ [TELNYX E2E] Dispensing {len(audio_bytes)} bytes of media to PSTN queue in {chunk_size}-byte chunks")
                                 
-                                # Calculate sleep time (90% of actual duration to avoid stutter/overlap)
-                                # AudioFormat is 8000 Hz, 1 channel, 8 bits/sample = 8000 bytes/sec
-                                duration_sec = len(audio_bytes) / 8000.0
-                                sleep_sec = duration_sec * 0.90
-                                
-                                # Sleep, but wake up immediately if clear_event is set
-                                clear_event.clear()
-                                try:
-                                    await asyncio.wait_for(clear_event.wait(), timeout=sleep_sec)
-                                    logger.debug(f"☎️ [TELNYX E2E] Pacing Worker interrupted during sleep (Barge-In)")
-                                except asyncio.TimeoutError:
-                                    # Normal: sleep finished
-                                    pass
+                                next_tick = time.time()
+                                for i in range(0, len(audio_bytes), chunk_size):
+                                    if clear_event.is_set():
+                                        logger.info("☎️ [TELNYX E2E] Pacing Worker cleanly interrupted (Barge-In)")
+                                        clear_event.clear()
+                                        break
+                                        
+                                    chunk = audio_bytes[i:i + chunk_size]
+                                    msg = protocol.create_media_message(chunk)
+                                    await websocket.send_text(msg)
                                     
+                                    next_tick += sleep_time
+                                    delay = next_tick - time.time()
+                                    if delay > 0:
+                                        # await wait_for an event allows cancelling sleep instantly
+                                        try:
+                                            await asyncio.wait_for(clear_event.wait(), timeout=delay)
+                                            # If wait_for returns instead of raising TimeoutError, event was set
+                                            logger.info("☎️ [TELNYX E2E] Pacing Worker interrupted during sleep (Barge-In)")
+                                            clear_event.clear()
+                                            break
+                                        except (asyncio.TimeoutError, TimeoutError):
+                                            pass
+                                    else:
+                                        await asyncio.sleep(0)  # Yield loop, we are lagging slightly
+                                        
                                 media_queue.task_done()
                             except asyncio.CancelledError:
                                 logger.info(f"☎️ [TELNYX E2E] Pacing Worker cancelled for {stream_id}")
