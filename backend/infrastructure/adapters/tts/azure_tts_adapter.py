@@ -132,7 +132,13 @@ class AzureTTSAdapter(TTSPort):
             # los fragmentos localmente para que la red no sature.
             # -------------------------------------------------------------
             chunk_size = 160 if format.encoding in ("mulaw", "ulaw", "alaw") else 960
+            bytes_per_second = format.sample_rate * format.channels * (format.bits_per_sample // 8)
             buffer = bytearray()
+            
+            # --- PACING MATEMÁTICO (E2E Latency sync) ---
+            # Evita desbordar los buffers SIP de Telnyx al inicio de las frases
+            start_time = time.time()
+            bytes_sent = 0
 
             while not is_finished.is_set() or not audio_queue.empty():
                 try:
@@ -142,6 +148,13 @@ class AzureTTSAdapter(TTSPort):
                         while len(buffer) >= chunk_size:
                             yield bytes(buffer[:chunk_size])
                             buffer = buffer[chunk_size:]
+                            
+                            # PACING ESTRICTO: Si empujamos paquetes más rápido que el tiempo real (20ms), frenamos
+                            bytes_sent += chunk_size
+                            expected_time = bytes_sent / bytes_per_second
+                            elapsed_time = time.time() - start_time
+                            if expected_time > elapsed_time:
+                                await asyncio.sleep(expected_time - elapsed_time)
                 except asyncio.TimeoutError:
                     continue
             

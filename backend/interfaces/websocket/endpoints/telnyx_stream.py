@@ -93,9 +93,11 @@ async def handle_telnyx_stream(
     telnyx_client = TelnyxClient()
 
     # Disparadores Asíncronos Inmediatos para limpiar tráfico (No bloqueantes)
-    if flow_config.get("telnyx_noise_suppression", True):
-        logger.info(f"🎧 [TELNYX E2E] Activating Dynamic Noise Suppression for {call_control_id}")
-        asyncio.create_task(telnyx_client.start_noise_suppression(call_control_id))
+    # NOTA FASE 8: 'telnyx_noise_suppression' ha sido desactivada nativamente 
+    # porque los algoritmos AGC de Telnyx causan fluctuaciones de volumen y silencian al Asistente.
+    # if flow_config.get("telnyx_noise_suppression", True):
+    #     logger.info(f"🎧 [TELNYX E2E] Activating Dynamic Noise Suppression for {call_control_id}")
+    #     asyncio.create_task(telnyx_client.start_noise_suppression(call_control_id))
         
     if flow_config.get("telnyx_record_s3", False):
         logger.info(f"📼 [TELNYX E2E] Activating Dual Cloud Recording for {call_control_id}")
