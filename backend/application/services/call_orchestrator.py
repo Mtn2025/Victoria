@@ -271,8 +271,11 @@ class CallOrchestrator:
                 # Add duration to the future
                 self.playback_end_time += duration_sec
                 
+                logger.info(f"📐 [PLAYBACK TRACKER] Encoded {len(audio_bytes)} bytes. Duration: {duration_sec:.2f}s. Target end: {self.playback_end_time:.2f} (Now: {current_time:.2f})")
+                
                 # Force FSM to speaking whenever audio is generated
                 if self.fsm.state != ConversationState.SPEAKING:
+                    logger.info("📐 [PLAYBACK TRACKER] FSM locked to SPEAKING during physical playback")
                     await self.fsm.transition(ConversationState.SPEAKING, "playback_buffer_filled")
                 
                 if audio_output_callback:
@@ -698,6 +701,7 @@ class CallOrchestrator:
                 else:
                     # Playback just died naturally. Switch to listening.
                     if self.fsm.state == ConversationState.SPEAKING:
+                        logger.info("📐 [PLAYBACK TRACKER] Physical audio finished successfully. Transitioning to LISTENING.")
                         await self.fsm.transition(ConversationState.LISTENING, "playback_finished")
                         self.last_interaction_time = now
                 

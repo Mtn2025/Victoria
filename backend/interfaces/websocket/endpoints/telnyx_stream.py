@@ -134,6 +134,7 @@ async def handle_telnyx_stream(
                             # E2E Nativo Telnyx: Enviar carga atómica completa, dejando que 
                             # el PSTN remote Jitter Buffer pacifique el stream sin asfixiar a Python.
                             if audio_bytes:
+                                logger.info(f"☎️ [TELNYX E2E] Sending {len(audio_bytes)} bytes of media to remote PSTN queue")
                                 msg = protocol.create_media_message(audio_bytes)
                                 await websocket.send_text(msg)
                         except Exception as ws_err:
@@ -146,6 +147,7 @@ async def handle_telnyx_stream(
                             clear_msg = protocol.create_clear_message()
                             if clear_msg:
                                 await websocket.send_text(clear_msg)
+                                logger.info(f"☎️ [TELNYX E2E/BARGE-IN] CLEAR event successfully dispatched")
 
                     async def disconnect_call() -> None:
                         logger.info(f"[TELNYX E2E] Closing stream {stream_id}")
