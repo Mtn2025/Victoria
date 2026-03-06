@@ -88,12 +88,13 @@ class AudioFormat:
 
     @classmethod
     def for_telephony(cls) -> 'AudioFormat':
-        """Factory for Telephony Standard (8kHz MuLaw)."""
+        """Factory for Telephony Standard (8kHz MuLaw).
+           Internally ingested as 16-bit PCM (decoded boundary)."""
         return cls(
             sample_rate=8000,
             encoding="mulaw",
             channels=1,
-            bits_per_sample=8
+            bits_per_sample=16  # Decoded from 8-bit ulaw at WS ingress
         )
 
     @classmethod

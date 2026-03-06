@@ -8,6 +8,7 @@ import json
 import logging
 import asyncio
 import time
+import audioop
 from typing import Optional
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -177,8 +178,20 @@ async def handle_telnyx_stream(
                 elif event["type"] == "media":
                     raw_bytes = event.get("data", b"")
                     if raw_bytes and orchestrator.active:
+                        # -------------------------------------------------------------
+                        # CAPA 3: CURA E2E G.711 µ-LAW A PCM 16-BIT
+                        # Telnyx inyecta bytes logarítmicamente comprimidos (µ-law).
+                        # VAD y STT de IA exigen vectores lineales enteros de 16 bits.
+                        # Aquí purificamos/inflamos el audio antes de someterlo al Cerebro.
+                        # -------------------------------------------------------------
+                        try:
+                            pcm16_bytes = audioop.ulaw2lin(raw_bytes, 2)
+                        except Exception as dec_err:
+                            logger.error(f"Error decoding ulaw to pcm: {dec_err}")
+                            pcm16_bytes = raw_bytes # Fallback inseguro
+
                         await orchestrator.push_audio_frame(
-                            raw_audio=raw_bytes,
+                            raw_audio=pcm16_bytes,
                             sample_rate=audio_fmt.sample_rate,
                             channels=audio_fmt.channels
                         )
