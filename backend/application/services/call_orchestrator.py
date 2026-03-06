@@ -339,17 +339,17 @@ class CallOrchestrator:
             wait_for_greeting = llm_config.get('mode') == 'listen-first'
             
             if agent.first_message and self.synthesize_text_uc and self.tts_port and not wait_for_greeting:
-                logger.info(f"👋 Greeting: {agent.first_message[:50]}...")
+                logger.info(f"👋 Greeting: {agent.first_message[:60]}...")
                 try:
                     # Use the agent's existing voice_config (already a VoiceConfig VO)
                     # agent.voice_config is always set — the repo guarantees it.
                     voice_config = agent.voice_config
-                    
+
                     # Resolve correct format (Telnyx -> 8000Hz mulaw vs Browser -> 24000Hz pcm)
                     from backend.domain.value_objects.audio_format import AudioFormat
                     client = getattr(self.config, 'client_type', 'browser') if hasattr(self, 'config') else 'browser'
                     target_format = AudioFormat.for_client(client)
-                    
+
                     # Synthesize greeting (direct TTS, no LLM overhead)
                     greeting_audio = await self.synthesize_text_uc.execute(
                         text=agent.first_message,
@@ -358,18 +358,18 @@ class CallOrchestrator:
                         audio_format=target_format
                     )
                     logger.info(f"✅ Greeting synthesized ({len(greeting_audio)} bytes)")
-                    
+
                     # FASE 4: Mathematical Tracking for Greeting
                     duration_sec = len(greeting_audio) / bytes_per_second
                     current_time = time.time()
                     if self.playback_end_time < current_time:
                         self.playback_end_time = current_time
                     self.playback_end_time += duration_sec
-                    
+
                     logger.debug(f"📐 [PLAYBACK TRACKER] Encoded GREETING {len(greeting_audio)} bytes. Duration: {duration_sec:.2f}s. Target end: {self.playback_end_time:.2f} (Now: {current_time:.2f})")
                     if self.fsm.state != ConversationState.SPEAKING:
                         await self.fsm.transition(ConversationState.SPEAKING, "playback_buffer_filled")
-                    
+
                     # Notify Simulator front-end about the greeting transcript
                     if transcript_callback:
                         try:
@@ -378,6 +378,21 @@ class CallOrchestrator:
                             pass
                 except Exception as e:
                     logger.warning(f"⚠️ Greeting synthesis failed: {e}")
+            else:
+                # Diagnostic: explain exactly why greeting was skipped
+                reasons = []
+                if not agent.first_message:
+                    reasons.append("first_message is empty — configure it in the Dashboard > Agent > First Message")
+                if not self.synthesize_text_uc:
+                    reasons.append("synthesize_text_uc not set")
+                if not self.tts_port:
+                    reasons.append("tts_port not set")
+                if wait_for_greeting:
+                    reasons.append(f"mode=listen-first (llm_config.mode={llm_config.get('mode')!r})")
+                logger.warning(
+                    f"🔇 Greeting SKIPPED — agent={agent.name!r}: " + "; ".join(reasons)
+                )
+
 
             # STEP 6 (moved after greeting): Start idle monitor so the countdown
             # only begins once the session is fully ready for user input.

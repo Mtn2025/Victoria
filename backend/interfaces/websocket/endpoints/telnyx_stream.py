@@ -302,6 +302,12 @@ async def handle_telnyx_stream(
             # ── 'stop' — stream ended cleanly ────────────────────────────────
             elif event["type"] == "stop":
                 logger.info(f"☎️ [TELNYX] Stop event: stream_id={stream_id}")
+                # Grace period: give Azure STT time to flush the last recognized
+                # utterance that may still be in-flight at the moment Telnyx
+                # closes the media stream. Without this, the final recognition
+                # (e.g. user's last word) arrives AFTER pipeline teardown and
+                # the LLM never receives the text → assistant appears deaf.
+                await asyncio.sleep(1.5)
                 await orchestrator.end_session(reason="completed")
                 break
 
