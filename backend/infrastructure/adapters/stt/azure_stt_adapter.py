@@ -286,6 +286,16 @@ class AzureSTTAdapter(STTPort):
             audio_config=audio_config,
             language=language,
         )
+        
+        # --- FLOW CONFIG: Dynamic Silence Timeout ---
+        # Override Azure's default 1000ms end-of-speech timeout with our aggressive E2E parameter
+        timeout_ms_str = str(config.silence_timeout if config else 600)
+        recognizer.properties.set_property(
+            speechsdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, timeout_ms_str
+        )
+        recognizer.properties.set_property(
+            speechsdk.PropertyId.Speech_SegmentationSilenceTimeoutMs, timeout_ms_str
+        )
 
         # --- FIX Bug 2: Create session FIRST (registers callbacks), THEN start ---
         session = AzureSTTSession(recognizer, push_stream)
