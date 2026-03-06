@@ -258,26 +258,33 @@ class CallOrchestrator:
                 bytes_per_second = 8000
                 
             async def wrapped_audio_output_callback(audio_bytes: bytes) -> None:
+                # Bug fix: if orchestrator stopped (WS closed, call ended), discard
+                # any in-flight TTS chunks. Without this guard:
+                # (a) send_tts_audio() tries to send on a closed WebSocket → warning spam
+                # (b) fsm.transition(SPEAKING) fires AFTER fsm.reset() → invalid transition
+                if not self.active:
+                    return
                 if not audio_bytes:
                     return
                 # Calculate physical playback duration of this chunk
                 duration_sec = len(audio_bytes) / bytes_per_second
-                
+
                 # Sync track: if we are behind current real-time, jump to now
                 current_time = time.time()
                 if self.playback_end_time < current_time:
                     self.playback_end_time = current_time
-                
+
                 # Add duration to the future
                 self.playback_end_time += duration_sec
-                
+
                 logger.debug(f"📐 [PLAYBACK TRACKER] Encoded {len(audio_bytes)} bytes. Duration: {duration_sec:.2f}s. Target end: {self.playback_end_time:.2f} (Now: {current_time:.2f})")
-                
+
                 # Force FSM to speaking whenever audio is generated
-                if self.fsm.state != ConversationState.SPEAKING:
+                # Guard: only transition if orchestrator still active
+                if self.active and self.fsm.state != ConversationState.SPEAKING:
                     logger.debug("📐 [PLAYBACK TRACKER] FSM locked to SPEAKING during physical playback")
                     await self.fsm.transition(ConversationState.SPEAKING, "playback_buffer_filled")
-                
+
                 if audio_output_callback:
                     await audio_output_callback(audio_bytes)
 

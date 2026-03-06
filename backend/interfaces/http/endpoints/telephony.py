@@ -161,7 +161,6 @@ async def twilio_status_callback(
 async def telnyx_call_control(
     request: Request,
     background_tasks: BackgroundTasks,
-    call_repo: CallRepository = Depends(get_call_repository),
 ):
     """
     Telnyx Call Control Webhook — Dispatcher completo (18 eventos).
@@ -170,6 +169,13 @@ async def telnyx_call_control(
     1. Responder INMEDIATAMENTE < 2s → asyncio.create_task() para todo
     2. Verificar firma Ed25519 ANTES de procesar
     3. Usar call_session_id como correlator principal
+
+    IMPORTANT — Session lifecycle:
+    call_repo is NOT injected via FastAPI DI here. The DI session is tied to
+    the HTTP request lifecycle — it gets closed the moment we return 200.
+    Background tasks spawned with asyncio.create_task() would then operate on
+    a closed session → IllegalStateChangeError.
+    Each handler creates its OWN session via AsyncSessionLocal().
     """
     # 1. Leer body como bytes (necesario para verificación de firma)
     body = await request.body()
@@ -196,9 +202,10 @@ async def telnyx_call_control(
     logger.info(f"☎️ [TELNYX] [{call_session_id}] Event: {event_type}")
 
     # 4. Dispatch async — NEVER await here
+    # NOTE: call_repo is NOT passed — each handler opens its own session
     asyncio.create_task(
         _route_telnyx_event(
-            event_type, payload, call_session_id, call_control_id, request, call_repo
+            event_type, payload, call_session_id, call_control_id, request
         )
     )
 
@@ -212,11 +219,32 @@ async def _route_telnyx_event(
     session_id: str,
     cid: str,
     request: Request,
-    call_repo: CallRepository,
 ) -> None:
     """
     Dispatcher central. Catálogo completo según telnyx_call_architecture.md §4.
+
+    Each handler creates its own DB session via AsyncSessionLocal() to avoid
+    the IllegalStateChangeError caused by using a FastAPI DI session that is
+    tied to the parent request lifecycle (already closed by the time this
+    background task runs).
     """
+    from backend.infrastructure.database.session import AsyncSessionLocal
+    from backend.infrastructure.database.repositories import SqlAlchemyCallRepository
+
+    async with AsyncSessionLocal() as db:
+        call_repo = SqlAlchemyCallRepository(db)
+        await _dispatch_event(event_type, payload, session_id, cid, request, call_repo)
+
+
+async def _dispatch_event(
+    event_type: str,
+    payload: dict,
+    session_id: str,
+    cid: str,
+    request: Request,
+    call_repo: CallRepository,
+) -> None:
+    """Inner dispatcher — runs with a guaranteed-fresh DB session."""
     handlers = {
         # Ciclo de vida
         "call.initiated":    _handle_initiated,
