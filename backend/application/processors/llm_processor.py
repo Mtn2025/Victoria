@@ -5,6 +5,7 @@ Part of the Application Layer (Hexagonal Architecture).
 import asyncio
 import logging
 import re
+import random
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
@@ -208,10 +209,9 @@ class LLMProcessor(FrameProcessor):
         should_end_call = False
         
         # --- FLOW CONFIG: Response Delay (Pacing) ---
-        response_delay_ms = get_cfg('pacing_response_delay_ms', 0)
-        if response_delay_ms > 0:
-             logger.info(f"⏳ [Pacing] Waiting {response_delay_ms}ms before querying LLM...")
-             await asyncio.sleep(response_delay_ms / 1000.0)
+        # Removido: El sleep(pacing_response_delay_ms) fue erradicado de esta capa 
+        # tras Auditoría E2E, ya que estipular latencias duras antes de Groq 
+        # viola 'The 2-Second Rule' de telefonía, induciendo caídas artificiales del RTP.
         
         # Streaming
         async for chunk in self.llm_port.generate_stream(request):
@@ -227,6 +227,28 @@ class LLMProcessor(FrameProcessor):
                 
                 # Execute Regular Tool
                 if self.execute_tool:
+                    # --- CAPA 2 (VOICE FILLER INJECTION) ---
+                    # Inyección Acústica Proactiva antes del Stoppage Sincrónico
+                    voice_filler = get_cfg('voiceFillerInjection', get_cfg('voice_filler_injection', False))
+                    if voice_filler:
+                        fillers = [
+                            "Un momento por favor...",
+                            "Permíteme buscar esa información...",
+                            "Revisando los datos, un segundo...",
+                            "Déjame validar eso enseguida..."
+                        ]
+                        chosen_filler = random.choice(fillers)
+                        logger.info(f"🗣️ [Voice Filler Injection] Enviando acústica de relleno: '{chosen_filler}' antes del Tool Stoppage.")
+                        
+                        await self.push_frame(TextFrame(text=chosen_filler, role="assistant", is_final=True), FrameDirection.DOWNSTREAM)
+                        
+                        # Notificar al UI Simulator si existe
+                        if self.transcript_callback:
+                            try:
+                                await self.transcript_callback("assistant", chosen_filler)
+                            except Exception:
+                                pass
+                                
                     tool_response = await self.execute_tool.execute(ToolRequest(
                         tool_name=chunk.function_call.name,
                         arguments=chunk.function_call.arguments,
