@@ -332,12 +332,21 @@ class CallOrchestrator:
             logger.info("✅ Control loop started")
 
             logger.info("🚀 All subsystems running")
-            
+
             # STEP 7: Send initial greeting (FASE 3B)
             greeting_audio = None
             llm_config = getattr(agent, 'llm_config', {}) or {}
             wait_for_greeting = llm_config.get('mode') == 'listen-first'
-            
+
+            # Diagnostic: always log the first_message value at call start
+            logger.info(
+                f"\U0001f50d [GREETING CHECK] agent={agent.name!r} "
+                f"first_message={agent.first_message!r} "
+                f"len={len(agent.first_message) if agent.first_message else 0} "
+                f"synthesize_uc={'OK' if self.synthesize_text_uc else 'MISSING'} "
+                f"tts_port={'OK' if self.tts_port else 'MISSING'} "
+                f"wait_for_greeting={wait_for_greeting}"
+            )
             if agent.first_message and self.synthesize_text_uc and self.tts_port and not wait_for_greeting:
                 logger.info(f"👋 Greeting: {agent.first_message[:60]}...")
                 try:

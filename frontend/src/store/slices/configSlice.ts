@@ -402,8 +402,8 @@ export const configSlice = createSlice({
             const data = action.payload as any
 
             // Hydrate Browser Config from Server
-            if (data.system_prompt) state.browser.prompt = data.system_prompt
-            if (data.first_message) state.browser.msg = data.first_message
+            if (data.system_prompt !== undefined) state.browser.prompt = data.system_prompt
+            if (data.first_message !== undefined) state.browser.msg = data.first_message
             if (data.silence_timeout_ms !== undefined) state.browser.sttSilenceTimeout = data.silence_timeout_ms
 
             if (data.voice) {
