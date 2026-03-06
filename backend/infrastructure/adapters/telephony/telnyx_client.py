@@ -148,7 +148,9 @@ class TelnyxClient(TelephonyPort):
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code >= 400:
+                if response.status_code == 422:
+                    logger.info(f"Telnyx call {call_id.value} is already ended (422).")
+                elif response.status_code >= 400:
                     logger.error(f"Failed to hangup Telnyx call {call_id.value}: {response.text}")
         except Exception as e:
             logger.error(f"Telnyx hangup error: {e}")
