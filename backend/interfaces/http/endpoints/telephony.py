@@ -273,13 +273,14 @@ async def telnyx_call_control(
             logger.info(f"🔢 Telnyx DTMF Received on call {call_control_id}: {digit}")
             # Here we can store the digit or pass it to a specialized processor if needed in the future
             # For now, we capture it to prevent the orchestrator from being blind to keypad.
-
         # Answering Machine Detection (AMD)
         elif event_type in ("call.machine.greeting.ended", "call.machine.premium.greeting.ended", "call.machine.detect"):
-            # Telnyx detected a voicemail. If it's a 'detect' event, 'result' must be 'machine'.
+            # Telnyx AMD events all carry a 'result' field.
+            # We ONLY want to trigger Voicemail handling if the result is strictly 'machine'.
             amd_result = payload.get("result", "")
-            if event_type == "call.machine.detect" and amd_result != "machine":
-                pass # Not a machine
+            if amd_result != "machine":
+                logger.info(f"🤖 Telnyx AMD triggered ({event_type}), but result is '{amd_result}'. NOT hanging up.")
+                pass
             else:
                 from backend.domain.value_objects.call_id import CallId
                 try:
