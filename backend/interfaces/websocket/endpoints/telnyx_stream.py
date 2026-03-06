@@ -146,9 +146,14 @@ async def handle_telnyx_stream(
                     async def send_transcript_event(role: str, text: str) -> None:
                         # Evento especial del Orchestrator para notificar limpieza remota
                         if role == "clear":
-                            logger.info(f"☎️ [TELNYX E2E/BARGE-IN] Local TTS streams halted. Skipping residual network queues.")
-                            # La limpieza ahora se delega completamente a la finalización asíncrona
-                            # del Generador TTS. No hay cola de intermediario que vaciar.
+                            logger.info(f"☎️ [TELNYX E2E/BARGE-IN] Local TTS streams halted. Trashing Telnyx network queue.")
+                            clear_msg = protocol.create_clear_message()
+                            if clear_msg:
+                                    try:
+                                        await websocket.send_text(clear_msg)
+                                        logger.info("🗑️ [TELNYX E2E] Sent native clear event to Telnyx WebSocket.")
+                                    except Exception as e:
+                                        logger.error(f"Failed to send clear message: {e}")
 
                     async def disconnect_call() -> None:
                         logger.info(f"[TELNYX E2E] Closing stream {stream_id}")
