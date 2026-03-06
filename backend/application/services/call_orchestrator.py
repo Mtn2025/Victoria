@@ -183,6 +183,9 @@ class CallOrchestrator:
         self.max_retries = 1
         self.current_idle_retry = 0
         
+        # Playback Tracking (FASE 4)
+        self.playback_end_time = 0.0
+        
         # FASE 3A: Lifecycle management
         self.start_time = time.time()
         self.last_interaction_time = time.time()
@@ -245,6 +248,38 @@ class CallOrchestrator:
             
             # STEP 2: FSM transition to LISTENING
             await self.fsm.transition(ConversationState.LISTENING, "session_started")
+            
+            # --- FASE 4: Mathematical Playback Tracking ---
+            client_type_for_calc = client_type if client_type and client_type != "unknown" else getattr(config, 'client_type', 'browser')
+            from backend.domain.value_objects.audio_format import AudioFormat
+            fmt = AudioFormat.for_client(client_type_for_calc)
+            bytes_per_second = fmt.sample_rate * fmt.channels * (fmt.bits_per_sample // 8)
+            if bytes_per_second <= 0:
+                bytes_per_second = 8000
+                
+            async def wrapped_audio_output_callback(audio_bytes: bytes) -> None:
+                if not audio_bytes:
+                    return
+                # Calculate physical playback duration of this chunk
+                duration_sec = len(audio_bytes) / bytes_per_second
+                
+                # Sync track: if we are behind current real-time, jump to now
+                current_time = time.time()
+                if self.playback_end_time < current_time:
+                    self.playback_end_time = current_time
+                
+                # Add duration to the future
+                self.playback_end_time += duration_sec
+                
+                # Force FSM to speaking whenever audio is generated
+                if self.fsm.state != ConversationState.SPEAKING:
+                    await self.fsm.transition(ConversationState.SPEAKING, "playback_buffer_filled")
+                
+                if audio_output_callback:
+                    await audio_output_callback(audio_bytes)
+
+            self._audio_output_callback = wrapped_audio_output_callback
+            # -----------------------------------------------
             
             # STEP 3: Build pipeline (if ports available)
             if self.stt_port and self.llm_port and self.tts_port:
@@ -581,6 +616,9 @@ class CallOrchestrator:
             f"user_spoke: {text[:30]}" if text else "vad_detected"
         )
         
+        # 5.5 Clear mathematical playback tracker, dropping the future predictions
+        self.playback_end_time = time.time()
+        
         # 6. Send interrupt signal to control channel
         await send_interrupt(
             self.control_channel,
@@ -648,8 +686,20 @@ class CallOrchestrator:
         
         while self.active:
             try:
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.5)  # More aggressive polling for exact match
                 now = time.time()
+                
+                # Mathematical Playback Check
+                if now < self.playback_end_time:
+                    # System is physically speaking right now in the remote speaker
+                    if self.fsm.state != ConversationState.SPEAKING:
+                        await self.fsm.transition(ConversationState.SPEAKING, "playback_active")
+                    continue
+                else:
+                    # Playback just died naturally. Switch to listening.
+                    if self.fsm.state == ConversationState.SPEAKING:
+                        await self.fsm.transition(ConversationState.LISTENING, "playback_finished")
+                        self.last_interaction_time = now
                 
                 # Max duration check
                 if now - self.start_time > self.max_duration:
