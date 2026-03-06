@@ -25,6 +25,10 @@ class TelephonyProtocol:
         # Twilio
         if self.client_type == "twilio":
             if event_type == "media":
+                track = msg["media"].get("track", "inbound")
+                if track == "outbound":
+                    return {"type": "ignore"}
+                
                 payload = msg["media"]["payload"]
                 chunk = base64.b64decode(payload)
                 return {"type": "media", "data": chunk}
@@ -38,6 +42,10 @@ class TelephonyProtocol:
         # Telnyx
         elif self.client_type == "telnyx":
             if event_type == "media":
+                 track = msg["media"].get("track", "inbound")
+                 if track == "outbound":
+                     return {"type": "ignore"}
+                     
                  payload = msg["media"]["payload"]
                  chunk = base64.b64decode(payload)
                  return {"type": "media", "data": chunk}
