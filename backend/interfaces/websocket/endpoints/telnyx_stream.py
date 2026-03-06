@@ -143,12 +143,18 @@ async def handle_telnyx_stream(
                             try:
                                 audio_bytes = await media_queue.get()
                                 
+                                # Si hubo un barge-in (interrupción) mentras estábamos inactivos (esperando),
+                                # la bandera se quedó 'seteada'. Debemos limpiarla para no descartar
+                                # ESTE nuevo audio orgánico recién salido del horno.
+                                if clear_event.is_set():
+                                    clear_event.clear()
+                                
                                 logger.info(f"☎️ [TELNYX E2E] Dispensing {len(audio_bytes)} bytes of media to PSTN queue in {chunk_size}-byte chunks")
                                 
                                 next_tick = time.time()
                                 for i in range(0, len(audio_bytes), chunk_size):
                                     if clear_event.is_set():
-                                        logger.info("☎️ [TELNYX E2E] Pacing Worker cleanly interrupted (Barge-In)")
+                                        logger.info("☎️ [TELNYX E2E] Pacing Worker cleanly interrupted (Barge-In) mid-stream")
                                         clear_event.clear()
                                         break
                                         
