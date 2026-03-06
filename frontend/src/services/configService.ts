@@ -93,6 +93,12 @@ interface BackendConfigUpdate {
     end_call_enabled?: boolean
     end_call_phrases?: string[]
     end_call_instructions?: string
+    // Sprint 4: DTMF + gather_using_ai
+    dtmf_enabled?: boolean
+    dtmf_map?: Record<string, string> | null
+    gather_ai_enabled?: boolean
+    gather_ai_greeting?: string
+    gather_ai_voice?: string | null
     // Connectivity
     connectivity_config?: Record<string, unknown>
     // System Agent Provider (Browser / Twilio / Telnyx)
@@ -244,6 +250,15 @@ export const configService = {
                 ? (Array.isArray(config.idleMessage) ? config.idleMessage[0] : config.idleMessage)
                 : config.idleMessage
         }
+        // Sprint 4: DTMF + gather_using_ai
+        if (config.dtmfEnabled !== undefined) payload.dtmf_enabled = config.dtmfEnabled
+        if (config.dtmfMap !== undefined) {
+            try { payload.dtmf_map = config.dtmfMap ? JSON.parse(config.dtmfMap) : null }
+            catch { payload.dtmf_map = null }
+        }
+        if (config.gatherAiEnabled !== undefined) payload.gather_ai_enabled = config.gatherAiEnabled
+        if (config.gatherAiGreeting !== undefined) payload.gather_ai_greeting = config.gatherAiGreeting
+        if (config.gatherAiVoice !== undefined) payload.gather_ai_voice = config.gatherAiVoice || null
         // --- ANALYSIS & INTEGRATIONS ---
         if (config.analysisPrompt !== undefined) payload.analysis_prompt = config.analysisPrompt
         if (config.successRubric !== undefined) payload.success_rubric = config.successRubric

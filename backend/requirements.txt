@@ -25,7 +25,7 @@ azure-cognitiveservices-speech>=1.30.0
 
 # Telephony
 twilio>=8.0.0
-telnyx>=1.0.0
+telnyx>=2.0.0
 
 # Audio & Signal Processing
 numpy>=1.24.0

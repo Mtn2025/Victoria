@@ -1,257 +1,402 @@
 """
 Telnyx Client (Infrastructure Adapter).
-Handles explicit API calls to Telnyx (Answer, Streaming).
+Part of the Infrastructure Layer (Hexagonal Architecture).
+
+Implements TelephonyPort for Telnyx Call Control API.
+
+MIGRATED (Sprint Limpieza — Marzo 2026):
+  - 100% SDK oficial telnyx 4.x (AsyncClient)
+  - Eliminado httpx crudo, _post() helper y _http AsyncClient
+  - command_id en todos los comandos (idempotencia garantizada)
+  - Codec L16 / PCMU configurable en start_streaming()
+  - gather_using_ai() y gather_stop() nativos del SDK
+
+References:
+  - telnyx_call_architecture.md §6 — Reglas de Producción
+  - sprint4_reference.md — B-05, B-08, B-09, B-10
 """
-import logging
 import base64
 import json
-import httpx
-from typing import Optional, Any
-from urllib.parse import quote
+import logging
+import uuid
+from typing import Optional
+
+import telnyx
+from telnyx import AsyncClient
+from telnyx import APIError, APITimeoutError, APIConnectionError
 
 from backend.infrastructure.config.settings import settings
-
-logger = logging.getLogger(__name__)
-
 from backend.domain.ports.telephony_port import TelephonyPort
 from backend.domain.value_objects.call_id import CallId
 from backend.domain.value_objects.phone_number import PhoneNumber
 
+logger = logging.getLogger(__name__)
+
+
 class TelnyxClient(TelephonyPort):
     """
-    Client for Telnyx Call Control API.
+    Official Telnyx SDK client for Call Control API.
+
+    Uses telnyx.AsyncClient (SDK 4.x) exclusively — no raw httpx.
+    All action commands include a `command_id` for idempotency.
+
+    Lifecycle:
+        client = TelnyxClient()
+        ...
+        await client.close()   # on server shutdown
     """
-    
-    def __init__(self, api_key: str | None = None):
+
+    def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.TELNYX_API_KEY
         self.base_url = settings.TELNYX_API_BASE
-        
+
         if not self.api_key:
-            logger.warning("Telnyx API Key not set. API calls will fail.")
+            logger.warning("⚠️ [TelnyxClient] API Key not set. All calls will be skipped.")
 
-    @property
-    def headers(self):
-        return {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        # Official async SDK client — manages connection pooling internally
+        self._sdk = AsyncClient(
+            api_key=self.api_key or "",
+            base_url=self.base_url,
+            timeout=10.0,
+            max_retries=2,
+        )
 
-    async def answer_call(self, call_control_id: str):
+    # ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    async def close(self) -> None:
+        """Close the SDK client. Call on server shutdown."""
+        await self._sdk.close()
+        logger.info("✅ [TelnyxClient] SDK client closed")
+
+    # ── Internal helpers ──────────────────────────────────────────────────────
+
+    def _cid(self, prefix: str, call_id: str) -> str:
         """
-        Send 'answer' command to Telnyx.
-        Stores call_control_id in client_state for persistence.
+        Generate unique command_id for idempotency.
+        Format: {prefix}-{last8_of_call_id}-{random6hex}
+        Telnyx deduplicates commands with same command_id within 60s.
         """
+        short = (call_id or "unknown")[-8:].replace(":", "")
+        return f"{prefix}-{short}-{uuid.uuid4().hex[:6]}"
+
+    async def _run(self, coro, label: str):
+        """Execute an SDK coroutine with unified error handling."""
+        try:
+            return await coro
+        except APITimeoutError:
+            logger.error(f"[TelnyxClient] ⏱️ Timeout: {label}")
+        except APIConnectionError as exc:
+            logger.error(f"[TelnyxClient] 🔌 Connection error: {label} — {exc}")
+        except APIError as exc:
+            if hasattr(exc, "status_code") and exc.status_code == 422:
+                logger.info(f"[TelnyxClient] 422 Unprocessable (call ended?): {label}")
+            else:
+                logger.error(f"[TelnyxClient] ❌ API error: {label} — {exc}")
+        except Exception as exc:
+            logger.error(f"[TelnyxClient] ❌ Unexpected error: {label} — {exc}")
+        return None
+
+    # ── TelephonyPort — Core Commands ─────────────────────────────────────────
+
+    async def answer_call(self, call_control_id: str) -> None:
+        """Answer an incoming call."""
         if not self.api_key:
             return
-            
-        url = f"{self.base_url}/calls/{call_control_id}/actions/answer"
-        
+
         client_state = base64.b64encode(
             json.dumps({"call_control_id": call_control_id}).encode()
         ).decode()
-        
-        payload = {"client_state": client_state}
-        
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code >= 400:
-                    logger.error(f"Failed to answer Telnyx call: {response.text}")
-                else:
-                    logger.info(f"Telnyx Call answered: {call_control_id}")
-        except Exception as e:
-            logger.error(f"Telnyx answer error: {e}")
 
-    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: Optional[str] = None):
+        result = await self._run(
+            self._sdk.calls.actions.answer(
+                call_control_id,
+                client_state=client_state,
+                command_id=self._cid("ans", call_control_id),
+            ),
+            label=f"answer({call_control_id})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] Call answered: {call_control_id}")
+
+    async def start_streaming(
+        self,
+        call_control_id: str,
+        stream_url: str,
+        client_state: Optional[str] = None,
+        codec: str = "PCMU",
+    ) -> None:
         """
-        Send 'streaming_start' command to Telnyx.
+        Start bidirectional media streaming.
+
+        B-05 — Codec configurable:
+          "PCMU"  → G.711 µ-law 8kHz (legacy telephony, default)
+          "L16"   → PCM linear 16kHz (Voice AI, lower latency)
+
+        To enable L16: set ConfigDTO.audio_codec = "L16" in agent config.
+        telnyx_stream.py detects codec automatically from the 'start' event.
         """
         if not self.api_key:
             return
 
-        # Construct WS URL if needed, but usually passed fully formed
-        # Legacy logic constructed it here. We will assume caller constructs it or we do it here.
-        # Caller (Endpoint) has access to Request scope (Host), so Endpoint should build URL.
-        
-        url = f"{self.base_url}/calls/{call_control_id}/actions/streaming_start"
-        
-        payload = {
-            "stream_url": stream_url,
-            "stream_track": "both_tracks",
+        sample_rate = 16000 if codec == "L16" else 8000
+        extra: dict = {
             "stream_bidirectional_mode": "rtp",
-            "stream_bidirectional_codec": "PCMU",
-            "client_state": client_state
+            "stream_bidirectional_codec": codec,
+            "stream_bidirectional_sampling_rate": sample_rate,
+            "command_id": self._cid("str", call_control_id),
         }
-        
-        # Remove None values
-        payload = {k: v for k, v in payload.items() if v is not None}
+        if client_state:
+            extra["client_state"] = client_state
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code >= 400:
-                    logger.error(f"Failed to start streaming: {response.text}")
-                else:
-                    logger.info(f"Telnyx Streaming started: {call_control_id}")
-                    
-            # Also start noise suppression as per legacy
+        result = await self._run(
+            self._sdk.calls.actions.start_streaming(
+                call_control_id,
+                stream_url=stream_url,
+                stream_track="both_tracks",
+                **extra,
+            ),
+            label=f"start_streaming({call_control_id}, codec={codec})",
+        )
+        if result is not None:
+            logger.info(
+                f"☎️ [TelnyxClient] Streaming started: {call_control_id} "
+                f"(codec={codec}, rate={sample_rate}Hz)"
+            )
+            # Activate Telnyx noise suppression (non-critical best-effort)
             await self.start_noise_suppression(call_control_id)
-            
-        except Exception as e:
-            logger.error(f"Telnyx start_streaming error: {e}")
 
-    async def start_noise_suppression(self, call_control_id: str):
-        url = f"{self.base_url}/calls/{call_control_id}/actions/suppression_start"
-        payload = {"direction": "both"}
+    async def start_noise_suppression(self, call_control_id: str) -> None:
+        """
+        Activate Telnyx native noise suppression.
+        NOTE: Re-enable only with explicit config flag —
+        Telnyx AGC was found to cause volume fluctuations (FASE 8).
+        """
         try:
-            async with httpx.AsyncClient() as client:
-                await client.post(url, headers=self.headers, json=payload)
+            await self._sdk.calls.actions.suppression_start(
+                call_control_id, direction="both"
+            )
         except Exception:
-            pass # Non-critical
+            pass  # Non-critical — failure is silent
 
-    async def start_recording(self, call_control_id: str, channels: str = "dual"):
-        """
-        Send 'record_start' command to Telnyx.
-        """
+    async def start_recording(
+        self, call_control_id: str, channels: str = "dual"
+    ) -> None:
+        """Start call recording in MP3 format."""
         if not self.api_key:
             return
 
-        url = f"{self.base_url}/calls/{call_control_id}/actions/record_start"
-        
-        payload = {
-            "format": "mp3",
-            "channels": channels,
-            "play_beep": False,
-            "client_state": base64.b64encode(json.dumps({"call_control_id": call_control_id, "action": "record_start"}).encode()).decode()
-        }
-        
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code >= 400:
-                    logger.error(f"Failed to start recording on Telnyx call {call_control_id}: {response.text}")
-                else:
-                    logger.info(f"Telnyx Recording started: {call_control_id} [{channels}]")
-        except Exception as e:
-            logger.error(f"Telnyx start_recording error: {e}")
+        result = await self._run(
+            self._sdk.calls.actions.record_start(
+                call_control_id,
+                format="mp3",
+                channels=channels,
+                play_beep=False,
+                command_id=self._cid("rec", call_control_id),
+            ),
+            label=f"record_start({call_control_id})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] Recording started: {call_control_id} [{channels}]")
 
     async def end_call(self, call_id: CallId) -> None:
+        """Hang up an active call (TelephonyPort interface)."""
+        if not self.api_key:
+            return
+
+        cid = call_id.value
+        result = await self._run(
+            self._sdk.calls.actions.hangup(
+                cid,
+                command_id=self._cid("hup", cid),
+            ),
+            label=f"hangup({cid})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] Call hung up: {cid}")
+
+    async def hangup_call(self, call_control_id: str) -> None:
         """
-        End a call (Hangup).
+        Convenience hangup by raw call_control_id string.
+        Used from webhook handlers that don't have a CallId VO.
         """
         if not self.api_key:
             return
 
-        url = f"{self.base_url}/calls/{call_id.value}/actions/hangup"
-        payload = {"client_state": "hanging_up"}
-        
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code == 422:
-                    logger.info(f"Telnyx call {call_id.value} is already ended (422).")
-                elif response.status_code >= 400:
-                    logger.error(f"Failed to hangup Telnyx call {call_id.value}: {response.text}")
-        except Exception as e:
-            logger.error(f"Telnyx hangup error: {e}")
-
-    async def start_forking(self, call_control_id: str, udp_target: str):
-        """
-        Send 'fork_start' command to fork incoming media to an external UDP target.
-        """
-        if not self.api_key or not udp_target: return
-        url = f"{self.base_url}/calls/{call_control_id}/actions/fork_start"
-        # UDP target often expects format ip:port
-        ip, _, port_str = udp_target.rpartition(':')
-        payload = {
-            "target": f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}",
-            "rx": f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}", 
-            "tx": f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}"
-        }
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(url, headers=self.headers, json=payload)
-                logger.info(f"Telnyx Forking started to {udp_target}")
-        except Exception as e:
-            logger.error(f"Telnyx forking error: {e}")
-
-    async def start_siprec(self, call_control_id: str, siprec_dest: str):
-        """
-        Send 'siprec_start' command to copy the call to a compliance recorder.
-        """
-        if not self.api_key or not siprec_dest: return
-        url = f"{self.base_url}/calls/{call_control_id}/actions/siprec_start"
-        payload = {
-            "connector_name": siprec_dest # Can be connector_name or sip_uri depending on Telnyx exact API spec, assuming connector_name for raw passing
-        }
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(url, headers=self.headers, json=payload)
-                logger.info(f"Telnyx SIPREC started to {siprec_dest}")
-        except Exception as e:
-            logger.error(f"Telnyx SIPREC error: {e}")
-
-    async def bridge_call(self, call_control_id: str, target_number: str, telnyx_from_number: str):
-        """
-        Transfers the caller to a human using native bridging.
-        """
-        if not self.api_key or not target_number: return
-        # First we must dial the target_number to get a new call_control_id, then bridge them.
-        # As per Telnyx API, an easier way is often `transfer` instead of bridge if DDI is simple.
-        # We will use /actions/transfer for a direct handoff.
-        url = f"{self.base_url}/calls/{call_control_id}/actions/transfer"
-        payload = {
-            "to": target_number,
-            "from": telnyx_from_number
-        }
-        try:
-            async with httpx.AsyncClient() as client:
-                res = await client.post(url, headers=self.headers, json=payload)
-                logger.info(f"Telnyx Call Transferred to {target_number} [Code: {res.status_code}]")
-        except Exception as e:
-            logger.error(f"Telnyx Transfer error: {e}")
+        await self._run(
+            self._sdk.calls.actions.hangup(
+                call_control_id,
+                command_id=self._cid("hup", call_control_id),
+            ),
+            label=f"hangup({call_control_id})",
+        )
 
     async def transfer_call(self, call_id: CallId, target: PhoneNumber) -> None:
-        """
-        Transfer call to another number.
-        """
+        """Transfer (REFER) call to another number."""
         if not self.api_key:
             return
 
-        url = f"{self.base_url}/calls/{call_id.value}/actions/transfer"
-        payload = {
+        cid = call_id.value
+        kwargs: dict = {
             "to": target.value,
-            "webhook_url": f"{settings.BASE_URL}/telephony/telnyx/call-control" if hasattr(settings, 'BASE_URL') else None
+            "command_id": self._cid("xfr", cid),
         }
-        # Filter None
-        payload = {k: v for k, v in payload.items() if v is not None}
+        if hasattr(settings, "BASE_URL") and settings.BASE_URL:
+            kwargs["webhook_url"] = (
+                f"{settings.BASE_URL}/telephony/telnyx/call-control"
+            )
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code >= 400:
-                    logger.error(f"Failed to transfer Telnyx call {call_id.value}: {response.text}")
-                else:
-                    logger.info(f"Telnyx Call transferred: {call_id.value} -> {target.value}")
-        except Exception as e:
-            logger.error(f"Telnyx transfer error: {e}")
+        result = await self._run(
+            self._sdk.calls.actions.transfer(cid, **kwargs),
+            label=f"transfer({cid} → {target.value})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] Call transferred: {cid} → {target.value}")
 
     async def send_dtmf(self, call_id: CallId, digits: str) -> None:
+        """Send DTMF tones on an active call."""
+        if not self.api_key:
+            return
+
+        cid = call_id.value
+        result = await self._run(
+            self._sdk.calls.actions.send_dtmf(
+                cid,
+                digits=digits,
+                command_id=self._cid("dtmf", cid),
+            ),
+            label=f"send_dtmf({cid}, {digits!r})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] DTMF sent: {cid} → {digits!r}")
+
+    # ── Extended Commands ─────────────────────────────────────────────────────
+
+    async def bridge_call(
+        self, call_control_id: str, target_number: str, from_number: str
+    ) -> None:
+        """Transfer caller to a human agent."""
+        if not self.api_key or not target_number:
+            return
+
+        result = await self._run(
+            self._sdk.calls.actions.transfer(
+                call_control_id,
+                to=target_number,
+                **{"from": from_number},
+                command_id=self._cid("brd", call_control_id),
+            ),
+            label=f"bridge({call_control_id} → {target_number})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] Call bridged: {call_control_id} → {target_number}")
+
+    async def start_forking(self, call_control_id: str, udp_target: str) -> None:
+        """Fork RTP audio stream to an external UDP endpoint."""
+        if not self.api_key or not udp_target:
+            return
+
+        ip, _, port_str = udp_target.rpartition(":")
+        udp_uri = f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}"
+        await self._run(
+            self._sdk.calls.actions.fork_start(
+                call_control_id,
+                target=udp_uri,
+                rx=udp_uri,
+                tx=udp_uri,
+            ),
+            label=f"fork_start({call_control_id} → {udp_target})",
+        )
+
+    async def start_siprec(self, call_control_id: str, siprec_dest: str) -> None:
+        """Start SIPREC compliance recording to an external recorder."""
+        if not self.api_key or not siprec_dest:
+            return
+
+        await self._run(
+            self._sdk.calls.actions.siprec_start(
+                call_control_id,
+                connector_name=siprec_dest,
+            ),
+            label=f"siprec_start({call_control_id})",
+        )
+
+    async def playback_start(
+        self,
+        call_control_id: str,
+        audio_url: str,
+        client_state: Optional[str] = None,
+    ) -> None:
+        """Play an audio file on the call."""
+        if not self.api_key:
+            return
+
+        kwargs: dict = {
+            "audio_url": audio_url,
+            "command_id": self._cid("pb", call_control_id),
+        }
+        if client_state:
+            kwargs["client_state"] = client_state
+
+        result = await self._run(
+            self._sdk.calls.actions.playback_start(call_control_id, **kwargs),
+            label=f"playback_start({call_control_id})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] Playback started: {call_control_id}")
+
+    # ── B-10: gather_using_ai ─────────────────────────────────────────────────
+
+    async def gather_using_ai(
+        self,
+        call_control_id: str,
+        greeting: str,
+        parameters: dict,
+        voice: Optional[str] = None,
+    ) -> None:
         """
-        Send DTMF tones.
+        Telnyx native AI-powered data gathering (Sep 2024).
+
+        Sends a conversational prompt and collects structured data from
+        the caller using a Telnyx-hosted LLM.
+
+        Response arrives in the 'gather.ended' webhook:
+            payload.parameters_result → dict of collected fields
+
+        Args:
+            greeting:    Opening message to the caller
+            parameters:  JSON Schema defining fields to collect
+            voice:       Optional TTS voice (e.g. "Polly.Lupe-Neural")
+
+        Reference: sprint4_reference.md §B-10
         """
         if not self.api_key:
             return
 
-        url = f"{self.base_url}/calls/{call_id.value}/actions/send_dtmf"
-        payload = {"digits": digits}
+        kwargs: dict = {
+            "greeting": greeting,
+            "parameters": parameters,
+            "command_id": self._cid("gai", call_control_id),
+        }
+        if voice:
+            kwargs["voice"] = voice
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=self.headers, json=payload)
-                if response.status_code >= 400:
-                    logger.error(f"Failed to send DTMF on Telnyx call {call_id.value}: {response.text}")
-                else:
-                    logger.info(f"Telnyx DTMF sent: {call_id.value} -> {digits}")
-        except Exception as e:
-            logger.error(f"Telnyx DTMF error: {e}")
+        result = await self._run(
+            self._sdk.calls.actions.gather_using_ai(call_control_id, **kwargs),
+            label=f"gather_using_ai({call_control_id})",
+        )
+        if result is not None:
+            logger.info(f"☎️ [TelnyxClient] gather_using_ai started: {call_control_id}")
+
+    async def gather_stop(self, call_control_id: str) -> None:
+        """Cancel an active gather session."""
+        if not self.api_key:
+            return
+
+        await self._run(
+            self._sdk.calls.actions.gather_stop(
+                call_control_id,
+                command_id=self._cid("gstop", call_control_id),
+            ),
+            label=f"gather_stop({call_control_id})",
+        )
+        logger.info(f"☎️ [TelnyxClient] gather_stop sent: {call_control_id}")

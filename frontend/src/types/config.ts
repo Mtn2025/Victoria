@@ -97,7 +97,7 @@ export interface BrowserConfig {
 
     // Advanced / Quality
     noiseSuppressionLevel: string // 'off' | 'balanced' | 'high'
-    audioCodec: string // 'PCMU' | 'PCMA' | 'OPUS'
+    audioCodec: 'PCMU' | 'L16'   // PCMU = G.711 8kHz (default) | L16 = PCM 16kHz (Voice AI)
     enableBackchannel: boolean
     maxDuration: number
     maxRetries: number
@@ -106,6 +106,13 @@ export interface BrowserConfig {
     endCallEnabled: boolean
     endCallPhrases: string
     endCallInstructions: string
+
+    // Telephony Pipeline (Sprint 4)
+    dtmfEnabled: boolean          // DTMF routing activo (default true)
+    dtmfMap: string               // JSON custom mapping digit→action
+    gatherAiEnabled: boolean      // gather_using_ai habilitado al contestar
+    gatherAiGreeting: string      // Frase de apertura del gather
+    gatherAiVoice: string         // Voz TTS del gather (ej: Polly.Lupe-Neural)
 
     // Campaigns / Integrations
     crmEnabled: boolean

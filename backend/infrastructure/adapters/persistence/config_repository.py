@@ -99,7 +99,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 current_voice = dict(agent.voice_config_json) if agent.voice_config_json else {}
                 current_voice[key] = value
                 agent.voice_config_json = current_voice
-            elif (key.startswith("barge_") or key.startswith("amd_") or key.startswith("pacing_")) and agent.flow_config is not None:
+            elif key.startswith("barge_") or key.startswith("amd_") or key.startswith("pacing_") or key.startswith("dtmf_") or key.startswith("gather_ai_"):
                 # SQLAlchemy JSON in-place mutations might need flag_modified or re-assignment
                 updated_flow = dict(agent.flow_config)
                 updated_flow[key] = value
@@ -180,6 +180,14 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "pacing_end_call_phrases": config.pacing_end_call_phrases,
                 "enable_backchannel": config.enable_backchannel,
                 "idle_message": config.idle_message,
+                # B-09: DTMF pipeline
+                "dtmf_enabled": config.dtmf_enabled,
+                "dtmf_map": config.dtmf_map,
+                # B-10: gather_using_ai
+                "gather_ai_enabled": config.gather_ai_enabled,
+                "gather_ai_greeting": config.gather_ai_greeting,
+                "gather_ai_schema": config.gather_ai_schema,
+                "gather_ai_voice": config.gather_ai_voice,
             },
             stt_config={
                 "noise_suppression_level": config.noise_suppression_level,
@@ -308,6 +316,14 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             pacing_wait_for_greeting=flow_config.get("pacing_wait_for_greeting", False),
             pacing_hyphenation=flow_config.get("pacing_hyphenation", False),
             pacing_end_call_phrases=flow_config.get("pacing_end_call_phrases", []),
+            # B-09: DTMF pipeline
+            dtmf_enabled=flow_config.get("dtmf_enabled", True),
+            dtmf_map=flow_config.get("dtmf_map", None),
+            # B-10: gather_using_ai
+            gather_ai_enabled=flow_config.get("gather_ai_enabled", False),
+            gather_ai_greeting=flow_config.get("gather_ai_greeting", "¿Con quién tengo el gusto de hablar?"),
+            gather_ai_schema=flow_config.get("gather_ai_schema", None),
+            gather_ai_voice=flow_config.get("gather_ai_voice", None),
             # Analysis
             analysis_prompt=analysis_config.get("analysis_prompt", None),
             success_rubric=analysis_config.get("success_rubric", None),

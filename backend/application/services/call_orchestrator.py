@@ -584,7 +584,100 @@ class CallOrchestrator:
         await self.fsm.reset()
         
         logger.info("✅ Orchestrator stopped")
-    
+
+    async def handle_dtmf(self, digit: str) -> None:
+        """
+        B-09: Process DTMF signal from caller.
+
+        Default digit actions:
+          "0" → Bridge/transfer to human agent
+          "#" → End the call
+          "9" → Replay last assistant message (if available)
+          "1", "2" → Inject as confirmation intent to LLM
+          others   → Log only
+
+        Custom routing can be added by overriding self._dtmf_map (dict).
+        """
+        custom_map = getattr(self, "_dtmf_map", {})
+        effective_digit = digit
+
+        if custom_map and digit in custom_map:
+            action = custom_map[digit]
+        elif digit == "0":
+            action = "transfer"
+        elif digit == "#":
+            action = "hangup"
+        elif digit == "9":
+            action = "replay"
+        elif digit in ("1", "2"):
+            action = "intent"
+        else:
+            action = "log"
+
+        logger.info(f"[Orchestrator] 🔢 DTMF {digit!r} → action={action}")
+
+        if action == "transfer":
+            await self._trigger_human_transfer()
+        elif action == "hangup":
+            await self.end_session(reason="dtmf_hangup")
+        elif action == "replay":
+            await self._replay_last_message()
+        elif action == "intent":
+            # Inject DTMF as spoken intent for the LLM to process
+            intent_text = "Sí" if digit == "1" else "No"
+            logger.info(f"[Orchestrator] Injecting DTMF intent: {intent_text!r}")
+            # Route via pipeline as if the user spoke the word
+            if self.pipeline:
+                asyncio.create_task(
+                    self._inject_text_to_pipeline(intent_text)
+                )
+        else:
+            logger.debug(f"[Orchestrator] DTMF {digit!r} logged (no action)")
+
+    async def _trigger_human_transfer(self) -> None:
+        """Transfer call to a human agent. Reads transfer number from agent config."""
+        try:
+            transfer_target = getattr(
+                getattr(self, "_config", None), "transfer_whitelist", None
+            )
+            if transfer_target:
+                logger.info(f"[Orchestrator] 📞 Transferring to {transfer_target}")
+                # end_call_uc handles the actual telephony transfer command
+                await self.end_session(reason="dtmf_transfer")
+            else:
+                logger.warning("[Orchestrator] DTMF transfer requested but no whitelist configured")
+        except Exception as exc:
+            logger.error(f"[Orchestrator] Transfer error: {exc}")
+
+    async def _replay_last_message(self) -> None:
+        """Replay the last TTS message (from stored state if available)."""
+        last_msg = getattr(self, "_last_assistant_text", None)
+        if last_msg and self._audio_output_callback and self.synthesize_text_uc:
+            try:
+                audio = await self.synthesize_text_uc.execute(
+                    text=last_msg, config=self._config
+                )
+                if audio:
+                    await self._audio_output_callback(audio)
+                    logger.info(f"[Orchestrator] 🔁 Replayed last message ({len(last_msg)} chars)")
+            except Exception as exc:
+                logger.error(f"[Orchestrator] Replay error: {exc}")
+        else:
+            logger.debug("[Orchestrator] No last message to replay")
+
+    async def _inject_text_to_pipeline(self, text: str) -> None:
+        """Inject a text string as if it were transcribed speech (for DTMF intent)."""
+        try:
+            if self.generate_response_uc and self._audio_output_callback:
+                async for audio_chunk in self.generate_response_uc.execute(
+                    text=text, config=self._config,
+                    audio_callback=self._audio_output_callback
+                ):
+                    pass  # audio sent via callback
+        except Exception as exc:
+            logger.error(f"[Orchestrator] DTMF intent injection error: {exc}")
+
+
     async def handle_interruption(self, text: str = "") -> None:
         """
         Handle user interruption (barge-in).

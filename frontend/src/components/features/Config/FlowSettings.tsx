@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { BrowserConfig } from '@/types/config'
-import { Disc, Clock, Voicemail, AlertCircle } from 'lucide-react'
+import { Disc, Clock, Voicemail, AlertCircle, Hash, Cpu } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Accordion } from '@/components/ui/Accordion'
 
@@ -311,6 +311,112 @@ export const FlowSettings = () => {
                     </div>
                 </div>
             </Accordion>
+
+            {/* 4. DTMF + Voice AI Gather (solo Telnyx) */}
+            {isTelnyx && (
+                <Accordion
+                    isOpen={openSection === 'dtmf'}
+                    onToggle={() => setOpenSection(openSection === 'dtmf' ? null : 'dtmf')}
+                    className="border-violet-500/30"
+                    headerClassName="hover:bg-violet-900/20"
+                    title={
+                        <div className="flex items-center gap-2">
+                            <Hash className="w-4 h-4 text-violet-400" />
+                            <span className="text-sm font-bold text-violet-400 tracking-wider">
+                                DTMF + VOICE AI GATHER (TELNYX)
+                            </span>
+                        </div>
+                    }
+                >
+                    <div className="space-y-6">
+
+                        {/* DTMF Pipeline */}
+                        <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Hash className="w-4 h-4 text-violet-400" />
+                                    <span className="text-xs font-bold text-slate-300">Pipeline DTMF Activo</span>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    aria-label="DTMF Enabled"
+                                    checked={browser.dtmfEnabled}
+                                    onChange={(e) => update('dtmfEnabled', e.target.checked)}
+                                    className="toggle-checkbox"
+                                />
+                            </div>
+                            <p className="text-[10px] text-slate-500 mb-3">
+                                Enruta señales de teclado del usuario al orquestador:
+                                <span className="text-violet-400 font-mono ml-1">0→Agente · #→Colgar · 9→Repetir</span>
+                            </p>
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                                    Mapa Custom (JSON)
+                                </label>
+                                <Input
+                                    aria-label="DTMF Map"
+                                    value={browser.dtmfMap}
+                                    onChange={(e) => update('dtmfMap', e.target.value)}
+                                    placeholder='{"1": "confirm", "2": "cancel"}'
+                                />
+                                <p className="text-[9px] text-slate-500 mt-1">Opcional — sobreescribe el mapa por defecto.</p>
+                            </div>
+                        </div>
+
+                        {/* gather_using_ai */}
+                        <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Cpu className="w-4 h-4 text-violet-400" />
+                                    <span className="text-xs font-bold text-slate-300">Voice AI Gather</span>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    aria-label="Gather AI Enabled"
+                                    checked={browser.gatherAiEnabled}
+                                    onChange={(e) => update('gatherAiEnabled', e.target.checked)}
+                                    className="toggle-checkbox"
+                                />
+                            </div>
+                            <p className="text-[10px] text-slate-500 mb-4">
+                                Telnyx captura datos estructurados (nombre, intención) antes de pasar al pipeline LLM.
+                                Solo activo al contestar la llamada.
+                            </p>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                                        Greeting del Gather
+                                    </label>
+                                    <Input
+                                        aria-label="Gather AI Greeting"
+                                        value={browser.gatherAiGreeting}
+                                        onChange={(e) => update('gatherAiGreeting', e.target.value)}
+                                        placeholder="¿Con quién tengo el gusto de hablar?"
+                                        disabled={!browser.gatherAiEnabled}
+                                        className={!browser.gatherAiEnabled ? 'opacity-40 cursor-not-allowed' : ''}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                                        Voz TTS del Gather
+                                    </label>
+                                    <Input
+                                        aria-label="Gather AI Voice"
+                                        value={browser.gatherAiVoice}
+                                        onChange={(e) => update('gatherAiVoice', e.target.value)}
+                                        placeholder="Polly.Lupe-Neural"
+                                        disabled={!browser.gatherAiEnabled}
+                                        className={!browser.gatherAiEnabled ? 'opacity-40 cursor-not-allowed' : ''}
+                                    />
+                                    <p className="text-[9px] text-slate-500 mt-1">
+                                        Vacío = voz del agente. Usa nombres Amazon Polly o Azure Neural.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Accordion>
+            )}
         </div>
     )
 }

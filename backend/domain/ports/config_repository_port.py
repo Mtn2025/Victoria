@@ -94,7 +94,7 @@ class ConfigDTO:
     # Advanced
     enable_denoising: bool = True
     noise_suppression_level: str = "balanced"
-    audio_codec: str = "PCMU"
+    audio_codec: str = "PCMU"          # "PCMU" (8kHz legacy) | "L16" (16kHz, Voice AI) — B-05
     enable_backchannel: bool = False
     max_duration: int = 300
     max_retries: int = 1
@@ -102,6 +102,16 @@ class ConfigDTO:
     end_call_enabled: bool = False
     end_call_phrases: list[str] = field(default_factory=list)
     end_call_instructions: Optional[str] = None
+
+    # DTMF routing (B-09) — mapa digit → action
+    dtmf_enabled: bool = True          # Enable DTMF signal routing to orchestrator
+    dtmf_map: Optional[dict] = None    # Custom digit→action map (overrides defaults)
+
+    # Gather using AI (B-10) — Telnyx native structured data collection
+    gather_ai_enabled: bool = False
+    gather_ai_greeting: str = "¿Con quién tengo el gusto de hablar?"
+    gather_ai_schema: Optional[Any] = None   # JSON Schema (properties/required)
+    gather_ai_voice: Optional[str] = None    # e.g. "Polly.Lupe-Neural"
 
     # Telephony
     silence_timeout_ms_phone: Optional[int] = None

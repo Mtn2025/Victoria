@@ -147,11 +147,10 @@ export const AdvancedSettings = () => {
                                     <Select
                                         aria-label="Codec Selection"
                                         value={browser.audioCodec}
-                                        onChange={(e) => update('audioCodec', e.target.value)}
+                                        onChange={(e) => update('audioCodec', e.target.value as 'PCMU' | 'L16')}
                                     >
-                                        <option value="PCMU">{t('advanced.audio_pcmu')}</option>
-                                        <option value="PCMA">{t('advanced.audio_pcma')}</option>
-                                        <option value="OPUS">{t('advanced.audio_opus')}</option>
+                                        <option value="PCMU">PCMU — G.711 8kHz (Estándar telefónico)</option>
+                                        <option value="L16">L16 — PCM 16kHz (Voice AI, menor latencia)</option>
                                     </Select>
                                     <p className="text-[10px] text-slate-500 mt-1">{t('advanced.audio_pstn_desc')}</p>
                                 </div>

@@ -137,7 +137,7 @@ const initialState: ConfigState = {
 
         // Advanced / Quality
         noiseSuppressionLevel: 'balanced',
-        audioCodec: 'PCMU',
+        audioCodec: 'PCMU' as 'PCMU' | 'L16',
         enableBackchannel: false,
         maxDuration: 600,
         maxRetries: 1,
@@ -146,6 +146,13 @@ const initialState: ConfigState = {
         endCallEnabled: false,
         endCallPhrases: '',
         endCallInstructions: '',
+
+        // Telephony Pipeline (Sprint 4)
+        dtmfEnabled: true,
+        dtmfMap: '{}',
+        gatherAiEnabled: false,
+        gatherAiGreeting: '¿Con quién tengo el gusto de hablar?',
+        gatherAiVoice: '',
 
         // Campaigns / Integrations
         crmEnabled: false,
@@ -436,6 +443,20 @@ export const configSlice = createSlice({
                 if (vc.voiceStyleDegree !== undefined) state.browser.voiceStyleDegree = vc.voiceStyleDegree
                 if (vc.voiceBgSound !== undefined) state.browser.voiceBgSound = vc.voiceBgSound
                 if (vc.voiceBgUrl !== undefined) state.browser.voiceBgUrl = vc.voiceBgUrl
+
+                // Advanced TTS & Humanization
+                if (vc.voiceFillerInjection !== undefined) state.browser.voiceFillerInjection = vc.voiceFillerInjection
+                if (vc.voiceBackchanneling !== undefined) state.browser.voiceBackchanneling = vc.voiceBackchanneling
+                if (vc.textNormalizationRule !== undefined) state.browser.textNormalizationRule = vc.textNormalizationRule
+                if (vc.ttsLatencyOptimization !== undefined) state.browser.ttsLatencyOptimization = vc.ttsLatencyOptimization
+                if (vc.ttsOutputFormat !== undefined) state.browser.ttsOutputFormat = vc.ttsOutputFormat
+
+                // ElevenLabs specifics
+                if (vc.voiceStability !== undefined) state.browser.voiceStability = vc.voiceStability
+                if (vc.voiceSimilarityBoost !== undefined) state.browser.voiceSimilarityBoost = vc.voiceSimilarityBoost
+                if (vc.voiceStyleExaggeration !== undefined) state.browser.voiceStyleExaggeration = vc.voiceStyleExaggeration
+                if (vc.voiceSpeakerBoost !== undefined) state.browser.voiceSpeakerBoost = vc.voiceSpeakerBoost
+                if (vc.voiceMultilingual !== undefined) state.browser.voiceMultilingual = vc.voiceMultilingual
             }
 
             if (data.stt_config) {
@@ -467,6 +488,12 @@ export const configSlice = createSlice({
                     state.browser.idleMessage = flow.idle_message
                     state.browser.useSameInactivityMessage = !Array.isArray(flow.idle_message)
                 }
+                // Sprint 4: DTMF + gather_using_ai
+                if (flow.dtmf_enabled !== undefined) state.browser.dtmfEnabled = flow.dtmf_enabled
+                if (flow.dtmf_map !== undefined) state.browser.dtmfMap = typeof flow.dtmf_map === 'string' ? flow.dtmf_map : JSON.stringify(flow.dtmf_map || {})
+                if (flow.gather_ai_enabled !== undefined) state.browser.gatherAiEnabled = flow.gather_ai_enabled
+                if (flow.gather_ai_greeting !== undefined) state.browser.gatherAiGreeting = flow.gather_ai_greeting
+                if (flow.gather_ai_voice !== undefined) state.browser.gatherAiVoice = flow.gather_ai_voice || ''
             }
 
             if (data.analysis_config) {
