@@ -12,6 +12,7 @@ export const AdvancedSettings = () => {
     const dispatch = useAppDispatch()
     const { t } = useTranslation()
     const { browser } = useAppSelector(state => state.config)
+    const { activeAgent } = useAppSelector(state => state.agents)
     const [openSection, setOpenSection] = useState<string | null>('quality')
 
     // Local state for "Patience" slider logic (maps to silenceTimeoutMs)
@@ -178,6 +179,72 @@ export const AdvancedSettings = () => {
                         </div>
                     </div>
                 </Accordion>
+
+                {/* TELNYX CORPORATE */}
+                {browser.provider === 'telnyx' || activeAgent?.provider === 'telnyx' ? (
+                    <Accordion
+                        isOpen={openSection === 'corporate'}
+                        onToggle={() => setOpenSection(openSection === 'corporate' ? null : 'corporate')}
+                        className="border-blue-500/30"
+                        headerClassName="hover:bg-blue-900/20"
+                        title={
+                            <span className="text-sm font-bold text-blue-400 tracking-wider uppercase flex items-center gap-2">
+                                <Shield className="w-4 h-4" />
+                                RED CORPORATIVA / CTI (TELNYX)
+                            </span>
+                        }
+                    >
+                        <div className="space-y-6 pt-2">
+                            {/* Recording S3 & Forking */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <label className="text-xs font-semibold text-blue-300 uppercase tracking-wider">Grabación S3 Directa</label>
+                                        <input
+                                            type="checkbox"
+                                            aria-label="Telnyx S3 Recording Toggle"
+                                            checked={browser.telnyxRecordS3}
+                                            onChange={(e) => update('telnyxRecordS3', e.target.checked)}
+                                            className="toggle-checkbox"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-1">Sube el WAV estereo directo a Amazon/GCP sin pasar por FastAPI.</p>
+                                </div>
+
+                                <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <label className="text-xs font-semibold text-blue-300 uppercase tracking-wider">SIPREC / Forking UDP</label>
+                                    </div>
+                                    <Input
+                                        aria-label="Telnyx SIPREC or UDP"
+                                        value={browser.telnyxSiprecDest}
+                                        onChange={(e) => update('telnyxSiprecDest', e.target.value)}
+                                        placeholder="sip:grabadora@banco.com:5060"
+                                        className="text-xs h-8"
+                                    />
+                                    <p className="text-[10px] text-slate-500 mt-1">Bifurcación de red en vivo para compliance gubernamental.</p>
+                                </div>
+                            </div>
+
+                            {/* Bridge Transfer */}
+                            <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                                <div className="flex justify-between items-start mb-2">
+                                    <label className="text-xs font-semibold text-blue-300 uppercase tracking-wider">Agent Handoff (Transferencia Bridge)</label>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <Input
+                                        aria-label="Telnyx Transfer Bridge target"
+                                        value={browser.telnyxTransferNumber}
+                                        onChange={(e) => update('telnyxTransferNumber', e.target.value)}
+                                        placeholder="+1234567890"
+                                        className="text-xs flex-1"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-2">La IA puenteará nativamente la llamada con este Humano al decidir transferir y liberará el Servidor.</p>
+                            </div>
+                        </div>
+                    </Accordion>
+                ) : null}
 
                 {/* 2. Safety Limits */}
                 <Accordion

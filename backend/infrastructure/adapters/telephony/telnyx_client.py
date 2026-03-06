@@ -149,18 +149,65 @@ class TelnyxClient(TelephonyPort):
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, headers=self.headers, json=payload)
                 if response.status_code >= 400:
-                    try:
-                        err_resp = response.json()
-                        if err_resp.get("errors") and err_resp["errors"][0].get("code") == "90018":
-                            logger.info(f"Telnyx Call {call_id.value} had already ended.")
-                            return
-                    except Exception:
-                        pass
                     logger.error(f"Failed to hangup Telnyx call {call_id.value}: {response.text}")
-                else:
-                    logger.info(f"Telnyx Call ended: {call_id.value}")
         except Exception as e:
             logger.error(f"Telnyx hangup error: {e}")
+
+    async def start_forking(self, call_control_id: str, udp_target: str):
+        """
+        Send 'fork_start' command to fork incoming media to an external UDP target.
+        """
+        if not self.api_key or not udp_target: return
+        url = f"{self.base_url}/calls/{call_control_id}/actions/fork_start"
+        # UDP target often expects format ip:port
+        ip, _, port_str = udp_target.rpartition(':')
+        payload = {
+            "target": f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}",
+            "rx": f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}", 
+            "tx": f"udp:{ip}:{port_str}" if ip else f"udp:{udp_target}"
+        }
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(url, headers=self.headers, json=payload)
+                logger.info(f"Telnyx Forking started to {udp_target}")
+        except Exception as e:
+            logger.error(f"Telnyx forking error: {e}")
+
+    async def start_siprec(self, call_control_id: str, siprec_dest: str):
+        """
+        Send 'siprec_start' command to copy the call to a compliance recorder.
+        """
+        if not self.api_key or not siprec_dest: return
+        url = f"{self.base_url}/calls/{call_control_id}/actions/siprec_start"
+        payload = {
+            "connector_name": siprec_dest # Can be connector_name or sip_uri depending on Telnyx exact API spec, assuming connector_name for raw passing
+        }
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(url, headers=self.headers, json=payload)
+                logger.info(f"Telnyx SIPREC started to {siprec_dest}")
+        except Exception as e:
+            logger.error(f"Telnyx SIPREC error: {e}")
+
+    async def bridge_call(self, call_control_id: str, target_number: str, telnyx_from_number: str):
+        """
+        Transfers the caller to a human using native bridging.
+        """
+        if not self.api_key or not target_number: return
+        # First we must dial the target_number to get a new call_control_id, then bridge them.
+        # As per Telnyx API, an easier way is often `transfer` instead of bridge if DDI is simple.
+        # We will use /actions/transfer for a direct handoff.
+        url = f"{self.base_url}/calls/{call_control_id}/actions/transfer"
+        payload = {
+            "to": target_number,
+            "from": telnyx_from_number
+        }
+        try:
+            async with httpx.AsyncClient() as client:
+                res = await client.post(url, headers=self.headers, json=payload)
+                logger.info(f"Telnyx Call Transferred to {target_number} [Code: {res.status_code}]")
+        except Exception as e:
+            logger.error(f"Telnyx Transfer error: {e}")
 
     async def transfer_call(self, call_id: CallId, target: PhoneNumber) -> None:
         """

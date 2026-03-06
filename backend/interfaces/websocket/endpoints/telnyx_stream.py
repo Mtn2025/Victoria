@@ -25,6 +25,7 @@ from backend.infrastructure.adapters.tts.azure_tts_adapter import AzureTTSAdapte
 from backend.infrastructure.factories.telephony_factory import TelephonyAdapterFactory
 from backend.interfaces.deps import get_agent_repository, get_call_repository
 from backend.interfaces.websocket.transports.telephony_protocol import TelephonyProtocol
+from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -81,6 +82,31 @@ async def handle_telnyx_stream(
     # Formato estrictamente telefónico dictaminado por infraestructura PSTN:
     audio_fmt = AudioFormat.for_client("telnyx") 
     
+    # Cargar agente para revisar flags de Telemetría Corporativa Telnyx
+    agent = await agent_repo.get_by_id(agent_id) if agent_id else await agent_repo.get_active()
+    flow_config = agent.flow_config if agent else {}
+    
+    telnyx_client = TelnyxClient()
+
+    # Disparadores Asíncronos Inmediatos para limpiar tráfico (No bloqueantes)
+    if flow_config.get("telnyx_noise_suppression", True):
+        logger.info(f"🎧 [TELNYX E2E] Activating Dynamic Noise Suppression for {call_control_id}")
+        asyncio.create_task(telnyx_client.start_noise_suppression(call_control_id))
+        
+    if flow_config.get("telnyx_record_s3", False):
+        logger.info(f"📼 [TELNYX E2E] Activating Dual Cloud Recording for {call_control_id}")
+        asyncio.create_task(telnyx_client.start_recording(call_control_id, channels="dual"))
+        
+    if flow_config.get("telnyx_fork_udp"):
+        target_udp = flow_config.get("telnyx_fork_udp")
+        logger.info(f"🔱 [TELNYX E2E] Activating Live Forking to {target_udp} for {call_control_id}")
+        asyncio.create_task(telnyx_client.start_forking(call_control_id, target_udp))
+        
+    if flow_config.get("telnyx_siprec_dest"):
+        siprec_dest = flow_config.get("telnyx_siprec_dest")
+        logger.info(f"🏛️ [TELNYX E2E] Activating SIPREC Compliance Tunnel to {siprec_dest}")
+        asyncio.create_task(telnyx_client.start_siprec(call_control_id, siprec_dest))
+
     stream_id = call_control_id
 
     try:
@@ -103,22 +129,21 @@ async def handle_telnyx_stream(
 
                     async def send_tts_audio(audio_bytes: bytes) -> None:
                         try:
-                            # PARTICIONAMIENTO ESTRICTO TELNYX:
-                            # Fragmentos de 160 bytes equivalentes a 20ms de audio MuLaw
-                            chunk_size = 160
-                            sleep_time = 0.02
-                            for i in range(0, len(audio_bytes), chunk_size):
-                                chunk = audio_bytes[i:i + chunk_size]
-                                msg = protocol.create_media_message(chunk)
+                            # E2E Nativo Telnyx: Enviar carga atómica completa, dejando que 
+                            # el PSTN remote Jitter Buffer pacifique el stream sin asfixiar a Python.
+                            if audio_bytes:
+                                msg = protocol.create_media_message(audio_bytes)
                                 await websocket.send_text(msg)
-                                await asyncio.sleep(sleep_time)
                         except Exception as ws_err:
                             logger.warning(f"[TELNYX E2E] Failed to send audio chunk: {ws_err}")
 
                     async def send_transcript_event(role: str, text: str) -> None:
-                        # Telnyx no tiene una interfaz gráfica para escupir JSON de transcripción
-                        # Se ignora pacíficamente, todo queda respaldado en base de datos.
-                        pass
+                        # Evento especial del Orchestrator para limpiar buffers remotos
+                        if role == "clear":
+                            logger.info(f"☎️ [TELNYX E2E/BARGE-IN] Dispatching CLEAR event to PSTN Jitter Buffer")
+                            clear_msg = protocol.create_clear_message()
+                            if clear_msg:
+                                await websocket.send_text(clear_msg)
 
                     async def disconnect_call() -> None:
                         logger.info(f"[TELNYX E2E] Closing stream {stream_id}")
@@ -141,13 +166,8 @@ async def handle_telnyx_stream(
                     
                     if greeting_audio:
                         logger.info(f"[TELNYX E2E] Sending initial greeting... ({len(greeting_audio)} bytes)")
-                        chunk_size = 160
-                        sleep_time = 0.02
-                        for i in range(0, len(greeting_audio), chunk_size):
-                            chunk = greeting_audio[i:i + chunk_size]
-                            resp_msg = protocol.create_media_message(chunk)
-                            await websocket.send_text(resp_msg)
-                            await asyncio.sleep(sleep_time)
+                        resp_msg = protocol.create_media_message(greeting_audio)
+                        await websocket.send_text(resp_msg)
 
                 elif event["type"] == "media":
                     raw_bytes = event.get("data", b"")

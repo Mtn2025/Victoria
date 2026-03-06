@@ -99,3 +99,20 @@ class TelephonyProtocol:
             })
             
         return ""
+
+    def create_clear_message(self) -> str:
+        """
+        Telnyx Native API: 'clear' event immediately stops audio
+        and empties the PSTN media queue for Barge-in scenarios.
+        """
+        if self.client_type == "telnyx":
+            return json.dumps({
+                "event": "clear",
+                "stream_id": self.stream_id
+            })
+        elif self.client_type == "twilio":
+            return json.dumps({
+                "event": "clear",
+                "streamSid": self.stream_id
+            })
+        return ""

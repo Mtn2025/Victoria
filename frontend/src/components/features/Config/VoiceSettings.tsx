@@ -33,12 +33,20 @@ export const VoiceSettings = () => {
 
     // Fetch Voices when Provider changes (Language is fixed to Agent's Base Language)
     const { activeAgent } = useAppSelector(state => state.agents)
+    const isTelnyx = activeAgent?.provider === 'telnyx'
 
     useEffect(() => {
         if (browser.voiceProvider && activeAgent?.language) {
             dispatch(fetchVoices({ provider: browser.voiceProvider, language: activeAgent.language }))
         }
     }, [dispatch, browser.voiceProvider, activeAgent?.language])
+
+    // Lock TTS format for Telnyx
+    useEffect(() => {
+        if (isTelnyx && browser.ttsOutputFormat !== 'pcm_8khz') {
+            dispatch(updateBrowserConfig({ ttsOutputFormat: 'pcm_8khz' }))
+        }
+    }, [isTelnyx, browser.ttsOutputFormat, dispatch])
 
     // Fetch Styles when Voice Changes
     useEffect(() => {
@@ -427,16 +435,28 @@ export const VoiceSettings = () => {
 
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{t('voice.format_label')}</label>
-                            <Select
-                                value={browser.ttsOutputFormat || 'pcm_16khz'}
-                                onChange={(e) => update('ttsOutputFormat', e.target.value)}
-                                className="w-full"
-                            >
-                                <option value="pcm_16khz">PCM 16kHz (WAV)</option>
-                                <option value="pcm_24khz">PCM 24kHz</option>
-                                <option value="pcm_8khz">PCM 8kHz (Telefónico)</option>
-                                <option value="mp3">MP3</option>
-                            </Select>
+                            {isTelnyx ? (
+                                <div>
+                                    <div className="w-full bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed">
+                                        PCM 8kHz (Telefónico)
+                                    </div>
+                                    <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
+                                        <AlertCircle size={10} />
+                                        Fijo por estándar de red Telnyx
+                                    </p>
+                                </div>
+                            ) : (
+                                <Select
+                                    value={browser.ttsOutputFormat || 'pcm_16khz'}
+                                    onChange={(e) => update('ttsOutputFormat', e.target.value)}
+                                    className="w-full"
+                                >
+                                    <option value="pcm_16khz">PCM 16kHz (WAV)</option>
+                                    <option value="pcm_24khz">PCM 24kHz</option>
+                                    <option value="pcm_8khz">PCM 8kHz (Telefónico)</option>
+                                    <option value="mp3">MP3</option>
+                                </Select>
+                            )}
                         </div>
                     </div>
                 </Accordion>

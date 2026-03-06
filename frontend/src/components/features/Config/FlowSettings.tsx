@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { BrowserConfig } from '@/types/config'
-import { Disc, Clock, Voicemail } from 'lucide-react'
+import { Disc, Clock, Voicemail, AlertCircle } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Accordion } from '@/components/ui/Accordion'
 
 export const FlowSettings = () => {
     const dispatch = useAppDispatch()
     const { browser } = useAppSelector(state => state.config)
+    const { activeAgent } = useAppSelector(state => state.agents)
+    const isTelnyx = activeAgent?.provider === 'telnyx'
 
     // Controlamos qué sección está abierta por defecto
     const [openSection, setOpenSection] = useState<string | null>('barge')
@@ -90,73 +92,154 @@ export const FlowSettings = () => {
             </Accordion>
 
             {/* 2. Detección de Buzón (AMD) */}
-            <Accordion
-                isOpen={openSection === 'amd'}
-                onToggle={() => setOpenSection(openSection === 'amd' ? null : 'amd')}
-                className="border-amber-500/30"
-                headerClassName="hover:bg-amber-900/20"
-                title={
-                    <div className="flex items-center gap-2">
-                        <Voicemail className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm font-bold text-amber-400 tracking-wider">
-                            DETECCIÓN DE BUZÓN (AMD)
-                        </span>
-                    </div>
-                }
-            >
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-                        <div>
-                            <span className="text-xs font-bold text-slate-300 block">Identificar Máquinas (Voicemail)</span>
-                            <span className="text-[10px] text-slate-500">Detecta si contestó una grabadora, deja el mensaje y cuelga.</span>
+            {isTelnyx ? (
+                <Accordion
+                    isOpen={openSection === 'amd'}
+                    onToggle={() => setOpenSection(openSection === 'amd' ? null : 'amd')}
+                    className="border-amber-500/30"
+                    headerClassName="hover:bg-amber-900/20"
+                    title={
+                        <div className="flex items-center gap-2">
+                            <Voicemail className="w-4 h-4 text-amber-400" />
+                            <span className="text-sm font-bold text-amber-400 tracking-wider">
+                                AMD PREMIUM (TELNYX)
+                            </span>
                         </div>
-                        <input
-                            type="checkbox"
-                            aria-label="Voicemail Detection"
-                            checked={browser.voicemailDetectionEnabled}
-                            onChange={(e) => update('voicemailDetectionEnabled', e.target.checked)}
-                            className="toggle-checkbox"
-                        />
-                    </div>
+                    }
+                >
+                    <div className="space-y-6">
+                        <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 text-center mb-4">
+                            <AlertCircle className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                            <h4 className="text-xs font-bold text-amber-400 mb-1">Motor Deep Learning Nativo</h4>
+                            <p className="text-[10px] text-amber-500/80">
+                                Evaluado directo en las antenas de Telnyx sin latencia hacia nuestro servidor.
+                            </p>
+                        </div>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Mensaje Fijo para el Buzón</label>
-                            <textarea
-                                aria-label="Voicemail Message"
-                                value={browser.voicemailMessage}
-                                onChange={(e) => update('voicemailMessage', e.target.value)}
-                                className="w-full h-20 bg-[#0B1121] text-xs text-slate-300 p-3 border border-amber-900/30 rounded-lg focus:outline-none focus:border-amber-500 resize-none custom-scrollbar"
-                                placeholder="Hola, te llamaba de Ubrokers para..."
+                        {/* Noise Suppression */}
+                        <div className="flex items-center justify-between bg-emerald-900/20 p-3 rounded-lg border border-emerald-700/50 mb-4">
+                            <div>
+                                <span className="text-xs font-bold text-emerald-400 block">Supresión de Ruido Dinámica</span>
+                                <span className="text-[10px] text-slate-500">Limpia tráfico y viento antes de que la IA escuche.</span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                aria-label="Telnyx Noise Suppression"
+                                checked={browser.telnyxNoiseSuppression}
+                                onChange={(e) => update('telnyxNoiseSuppression', e.target.checked)}
+                                className="toggle-checkbox"
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                            <div>
+                                <span className="text-xs font-bold text-slate-300 block">Activar AMD Premium</span>
+                                <span className="text-[10px] text-slate-500">Detecta buzones, pitidos y faxes con milisegundos de precisión.</span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                aria-label="Telnyx AMD Premium"
+                                checked={browser.telnyxAmdPremium}
+                                onChange={(e) => update('telnyxAmdPremium', e.target.checked)}
+                                className="toggle-checkbox"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Precisión AMD</label>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Silencio de Espera (ms)</label>
                                 <Input
                                     type="number"
-                                    aria-label="AMD Sensitivity"
-                                    step="0.1" min="0" max="1"
-                                    value={browser.amdSensitivity}
-                                    onChange={(e) => update('amdSensitivity', parseFloat(e.target.value))}
+                                    aria-label="AMD Premium Silence"
+                                    step="100" min="500" max="10000"
+                                    value={browser.telnyxAmdPremiumSilenceMs}
+                                    onChange={(e) => update('telnyxAmdPremiumSilenceMs', parseInt(e.target.value) || 2000)}
                                 />
+                                <p className="text-[9px] text-slate-500 mt-1">Tiempo tras el hola (Default 2000).</p>
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Acción Resolutiva</label>
-                                <select
-                                    className="w-full bg-[#0B1121] py-2 px-3 rounded-lg text-xs text-slate-300 border border-slate-700/50 focus:outline-none focus:border-amber-500"
-                                    value={browser.amdAction}
-                                    onChange={(e) => update('amdAction', e.target.value)}
-                                >
-                                    <option value="hangup">Cuelgue Inmediato</option>
-                                    <option value="leave_message">Dejar Mensaje y Colgar</option>
-                                </select>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Límite Saludo (ms)</label>
+                                <Input
+                                    type="number"
+                                    aria-label="AMD Premium Greeting"
+                                    step="100" min="1000" max="15000"
+                                    value={browser.telnyxAmdPremiumGreetingMs}
+                                    onChange={(e) => update('telnyxAmdPremiumGreetingMs', parseInt(e.target.value) || 5000)}
+                                />
+                                <p className="text-[9px] text-slate-500 mt-1">Max largo del contestador (Default 5000).</p>
                             </div>
                         </div>
                     </div>
-                </div>
-            </Accordion>
+                </Accordion>
+            ) : (
+                <Accordion
+                    isOpen={openSection === 'amd'}
+                    onToggle={() => setOpenSection(openSection === 'amd' ? null : 'amd')}
+                    className="border-amber-500/30"
+                    headerClassName="hover:bg-amber-900/20"
+                    title={
+                        <div className="flex items-center gap-2">
+                            <Voicemail className="w-4 h-4 text-amber-400" />
+                            <span className="text-sm font-bold text-amber-400 tracking-wider">
+                                DETECCIÓN DE BUZÓN (AMD)
+                            </span>
+                        </div>
+                    }
+                >
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                            <div>
+                                <span className="text-xs font-bold text-slate-300 block">Identificar Máquinas (Voicemail)</span>
+                                <span className="text-[10px] text-slate-500">Detecta si contestó una grabadora, deja el mensaje y cuelga.</span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                aria-label="Voicemail Detection"
+                                checked={browser.voicemailDetectionEnabled}
+                                onChange={(e) => update('voicemailDetectionEnabled', e.target.checked)}
+                                className="toggle-checkbox"
+                            />
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Mensaje Fijo para el Buzón</label>
+                                <textarea
+                                    aria-label="Voicemail Message"
+                                    value={browser.voicemailMessage}
+                                    onChange={(e) => update('voicemailMessage', e.target.value)}
+                                    className="w-full h-20 bg-[#0B1121] text-xs text-slate-300 p-3 border border-amber-900/30 rounded-lg focus:outline-none focus:border-amber-500 resize-none custom-scrollbar"
+                                    placeholder="Hola, te llamaba de Ubrokers para..."
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Precisión AMD</label>
+                                    <Input
+                                        type="number"
+                                        aria-label="AMD Sensitivity"
+                                        step="0.1" min="0" max="1"
+                                        value={browser.amdSensitivity}
+                                        onChange={(e) => update('amdSensitivity', parseFloat(e.target.value))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Acción Resolutiva</label>
+                                    <select
+                                        className="w-full bg-[#0B1121] py-2 px-3 rounded-lg text-xs text-slate-300 border border-slate-700/50 focus:outline-none focus:border-amber-500"
+                                        value={browser.amdAction}
+                                        onChange={(e) => update('amdAction', e.target.value)}
+                                    >
+                                        <option value="hangup">Cuelgue Inmediato</option>
+                                        <option value="leave_message">Dejar Mensaje y Colgar</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Accordion>
+            )}
 
             {/* 3. Ritmo y Naturalidad (Pacing) */}
             <Accordion

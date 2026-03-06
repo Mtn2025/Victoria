@@ -153,6 +153,16 @@ export interface BrowserConfig {
     redactParams: string
     transferWhitelist: string
     stateInjectionEnabled: boolean
+
+    // Telnyx Advanced Voice API
+    telnyxNoiseSuppression: boolean
+    telnyxAmdPremium: boolean
+    telnyxAmdPremiumSilenceMs: number
+    telnyxAmdPremiumGreetingMs: number
+    telnyxRecordS3: boolean
+    telnyxSiprecDest: string
+    telnyxTransferNumber: string
+    telnyxForkUdp: string
 }
 
 export interface TwilioConfig {

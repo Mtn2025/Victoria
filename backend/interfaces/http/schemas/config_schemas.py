@@ -114,6 +114,16 @@ class ConfigUpdate(BaseModel):
     end_call_phrases: Optional[List[str]] = None
     end_call_instructions: Optional[str] = None
 
+    # Telnyx Advanced Voice API
+    telnyx_noise_suppression: Optional[bool] = None
+    telnyx_amd_premium: Optional[bool] = None
+    telnyx_amd_premium_silence_ms: Optional[int] = None
+    telnyx_amd_premium_greeting_ms: Optional[int] = None
+    telnyx_record_s3: Optional[bool] = None
+    telnyx_siprec_dest: Optional[str] = None
+    telnyx_transfer_number: Optional[str] = None
+    telnyx_fork_udp: Optional[str] = None
+
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None
     connectivity_config: Optional[Dict[str, Any]] = None

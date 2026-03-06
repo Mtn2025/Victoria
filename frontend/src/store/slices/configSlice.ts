@@ -192,7 +192,17 @@ const initialState: ConfigState = {
         toolErrorMsg: "Lo siento, hubo un error con la herramienta.",
         redactParams: '[]',
         transferWhitelist: '[]',
-        stateInjectionEnabled: false
+        stateInjectionEnabled: false,
+
+        // Telnyx Advanced Voice API
+        telnyxNoiseSuppression: true,
+        telnyxAmdPremium: true,
+        telnyxAmdPremiumSilenceMs: 2000,
+        telnyxAmdPremiumGreetingMs: 5000,
+        telnyxRecordS3: false,
+        telnyxSiprecDest: '',
+        telnyxTransferNumber: '',
+        telnyxForkUdp: '',
     },
     twilio: {
         twilioAccountSid: '',
