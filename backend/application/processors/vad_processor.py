@@ -192,7 +192,10 @@ class VADProcessor(FrameProcessor):
                     silence_ms = self.silence_frames * self.chunk_duration_ms
                     
                     # Retrieve silence timeout from ConfigDTO (SSoT: DB → ConfigDTO → here)
-                    silence_timeout = getattr(self.config, 'silence_timeout_ms', 1000)
+                    silence_timeout = getattr(self.config, 'silence_timeout_ms', 1500)
+                    
+                    # Prevent aggressive truncations: force minimum 1200ms
+                    silence_timeout = max(silence_timeout, 1200)
                     
                     if self.detect_turn_end.execute(silence_ms, silence_timeout):
                         self.speaking = False

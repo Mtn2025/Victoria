@@ -51,7 +51,7 @@ class CreateAgentUseCase:
             system_prompt=_DEFAULT_SYSTEM_PROMPT,
             voice_config=VoiceConfig(name=_DEFAULT_VOICE_NAME),
             first_message=_DEFAULT_FIRST_MESSAGE,
-            silence_timeout_ms=600,
+            silence_timeout_ms=1500,
             provider=provider.strip(),
             agent_uuid=agent_uuid,
             is_active=False,

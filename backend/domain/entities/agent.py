@@ -30,7 +30,7 @@ class Agent:
     voice_config: VoiceConfig
     language: str = "es-MX"
     first_message: str = ""
-    silence_timeout_ms: int = 1000
+    silence_timeout_ms: int = 1500
     tools: List[Dict[str, Any]] = field(default_factory=list)
     llm_config: Dict[str, Any] = field(default_factory=dict)
 

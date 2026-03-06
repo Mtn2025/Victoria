@@ -35,7 +35,7 @@ class AgentModel(Base):
     voice_volume: Mapped[float] = mapped_column(Float, default=100.0)
 
     first_message: Mapped[str] = mapped_column(Text, default="")
-    silence_timeout_ms: Mapped[int] = mapped_column(Integer, default=1000)
+    silence_timeout_ms: Mapped[int] = mapped_column(Integer, default=1500)
 
     # JSON Fields for flexibility
     tools_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

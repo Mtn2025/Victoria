@@ -68,7 +68,7 @@ class ConfigDTO:
     # STT Config
     stt_provider: str = "azure"
     stt_language: str = "es-MX"
-    silence_timeout_ms: int = 1000
+    silence_timeout_ms: int = 1500
 
     # Flow Config (Barge-in, AMD, Pacing)
     barge_in_enabled: bool = True
