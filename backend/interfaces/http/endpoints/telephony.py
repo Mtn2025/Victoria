@@ -242,12 +242,10 @@ async def telnyx_call_control(
 
         # Telephony Network Status Events
         elif event_type == "call.hangup":
-            # Determine reason (Force strictly to string to avoid AttributeError on integer codes like 603)
             raw_cause = payload.get("sip_hangup_cause") or payload.get("hangup_cause") or ""
             cause = str(raw_cause).lower()
             mapped_reason = "completed"
             
-            # https://developers.telnyx.com/docs/api/v2/call-control/Call-Control-Concepts
             if "busy" in cause or cause in ["486", "600", "603"]:
                 mapped_reason = "busy"
             elif "no answer" in cause or "timeout" in cause or cause in ["408", "480"]:
@@ -257,97 +255,98 @@ async def telnyx_call_control(
             elif cause in ["normal_clearing", "200"]:
                 mapped_reason = "completed"
                 
-            from backend.domain.value_objects.call_id import CallId
-            try:
-                call = await call_repo.get_by_id(CallId(call_control_id))
-                if call and call.status.value not in ("voicemail", "failed", "busy", "no_answer", "completed"):
-                    call.end(reason=mapped_reason)
-                    await call_repo.save(call)
-                    logger.info(f"✅ DB Update: Telnyx Call {call_control_id} ended with {mapped_reason}")
-            except Exception as e:
-                logger.error(f"Failed to update Telnyx call {call_control_id}: {e}")
+            async def _mark_call_hungup(cid: str, mr: str):
+                from backend.domain.value_objects.call_id import CallId
+                try:
+                    call = await call_repo.get_by_id(CallId(cid))
+                    if call and call.status.value not in ("voicemail", "failed", "busy", "no_answer", "completed"):
+                        call.end(reason=mr)
+                        await call_repo.save(call)
+                        logger.info(f"✅ DB Update: Telnyx Call {cid} ended with {mr}")
+                except Exception as e:
+                    logger.error(f"Failed to update Telnyx call {cid}: {e}")
+                    
+            background_tasks.add_task(_mark_call_hungup, call_control_id, mapped_reason)
 
         # DTMF Gathering (Keypad)
         elif event_type == "call.dtmf.received":
             digit = payload.get("digit")
             logger.info(f"🔢 Telnyx DTMF Received on call {call_control_id}: {digit}")
-            # Here we can store the digit or pass it to a specialized processor if needed in the future
-            # For now, we capture it to prevent the orchestrator from being blind to keypad.
+
         # Answering Machine Detection (AMD)
         elif event_type in ("call.machine.greeting.ended", "call.machine.premium.greeting.ended", "call.machine.detect"):
-            # Telnyx AMD events all carry a 'result' field.
-            # We ONLY want to trigger Voicemail handling if the result is strictly 'machine'.
             amd_result = payload.get("result", "")
             if amd_result != "machine":
                 logger.info(f"🤖 Telnyx AMD triggered ({event_type}), but result is '{amd_result}'. NOT hanging up.")
-                pass
             else:
-                from backend.domain.value_objects.call_id import CallId
-                try:
-                    call = await call_repo.get_by_id(CallId(call_control_id))
-                    if call:
-                        import httpx
-                        from backend.infrastructure.database.session import AsyncSessionLocal
-                        from backend.infrastructure.adapters.persistence.config_repository import ConfigRepository
-                        
-                        # We need the config, extract from agent.
-                        # It is better to use the dependency but we are in webhook logic with only string agent_uuid maybe.
-                        agent_id = getattr(call.agent, "agent_uuid", None)
-                        if agent_id:
-                            # A simple ad-hoc session to fetch config outside the request deps since we need specific agent_id
-                            async with AsyncSessionLocal() as session:
-                                conf_repo = ConfigRepository(session)
-                                config_dto = await conf_repo.get_config(str(agent_id))
-                                action = getattr(config_dto, "amd_action", "hangup")
-                                amd_message = getattr(config_dto, "amd_message", "Hola, le llamábamos para darle información.")
-                                
-                                if action == "leave_message" and amd_message:
-                                    # Telnyx Playback audio_url pointing to our generator
-                                    host = request.headers.get('host', 'localhost')
-                                    scheme = request.headers.get('x-forwarded-proto', 'https')
-                                    base_url = f"{scheme}://{host}"
-                                    audio_url = f"{base_url}/api/telephony/voicemail-audio?agent_id={agent_id}"
+                host = request.headers.get('host', 'localhost')
+                scheme = request.headers.get('x-forwarded-proto', 'https')
+                
+                async def _handle_amd(cid: str, current_host: str, current_scheme: str):
+                    from backend.domain.value_objects.call_id import CallId
+                    try:
+                        call = await call_repo.get_by_id(CallId(cid))
+                        if call:
+                            import httpx
+                            from backend.infrastructure.database.session import AsyncSessionLocal
+                            from backend.infrastructure.adapters.persistence.config_repository import ConfigRepository
+                            
+                            agent_id = getattr(call.agent, "agent_uuid", None)
+                            if agent_id:
+                                async with AsyncSessionLocal() as session:
+                                    conf_repo = ConfigRepository(session)
+                                    config_dto = await conf_repo.get_config(str(agent_id))
+                                    action = getattr(config_dto, "amd_action", "hangup")
+                                    amd_message = getattr(config_dto, "amd_message", "Hola, le llamábamos para darle información.")
+                                    
+                                    if action == "leave_message" and amd_message:
+                                        base_url = f"{current_scheme}://{current_host}"
+                                        audio_url = f"{base_url}/api/telephony/voicemail-audio?agent_id={agent_id}"
 
-                                    url = f"{telnyx_adapter.base_url}/calls/{call_control_id}/actions/playback.start"
-                                    import base64, json
-                                    client_state = base64.b64encode(json.dumps({
-                                        "call_control_id": call_control_id, 
-                                        "action": "hangup_after_playback"
-                                    }).encode()).decode()
-                                    playback_payload = {
-                                        "audio_url": audio_url,
-                                        "client_state": client_state
-                                    }
-                                    async with httpx.AsyncClient() as client:
-                                        await client.post(url, headers=telnyx_adapter.headers, json=playback_payload)
-                                        logger.info(f"▶️ Sent Playback command to Telnyx call {call_control_id} with custom TTS audio.")
-                                else:
-                                    # Default hangup
-                                    url = f"{telnyx_adapter.base_url}/calls/{call_control_id}/actions/hangup"
-                                    async with httpx.AsyncClient() as client:
-                                        await client.post(url, headers=telnyx_adapter.headers)
-                                        logger.info(f"Hung up Telnyx call {call_control_id} due to machine detection")
+                                        url = f"{telnyx_adapter.base_url}/calls/{cid}/actions/playback.start"
+                                        import base64, json
+                                        client_state = base64.b64encode(json.dumps({
+                                            "call_control_id": cid, 
+                                            "action": "hangup_after_playback"
+                                        }).encode()).decode()
+                                        playback_payload = {
+                                            "audio_url": audio_url,
+                                            "client_state": client_state
+                                        }
+                                        async with httpx.AsyncClient() as client:
+                                            await client.post(url, headers=telnyx_adapter.headers, json=playback_payload)
+                                            logger.info(f"▶️ Sent Playback command to Telnyx call {cid} with custom TTS audio.")
+                                    else:
+                                        url = f"{telnyx_adapter.base_url}/calls/{cid}/actions/hangup"
+                                        async with httpx.AsyncClient() as client:
+                                            await client.post(url, headers=telnyx_adapter.headers)
+                                            logger.info(f"Hung up Telnyx call {cid} due to machine detection")
 
-                        call.end("voicemail")
-                        await call_repo.save(call)
-                        logger.info(f"✅ DB Update: Telnyx Call {call_control_id} marked as Voicemail")
-                except Exception as e:
-                    logger.error(f"Failed to save Telnyx AMD state for {call_control_id}: {e}")
-                    
+                            call.end("voicemail")
+                            await call_repo.save(call)
+                            logger.info(f"✅ DB Update: Telnyx Call {cid} marked as Voicemail")
+                    except Exception as e:
+                        logger.error(f"Failed to save Telnyx AMD state for {cid}: {e}")
+                
+                background_tasks.add_task(_handle_amd, call_control_id, host, scheme)
+
         # Handle end of playback if client_state has hangup_after_playback
         elif event_type == "call.playback.ended":
             client_state_b64 = payload.get("client_state", "")
             if client_state_b64:
-                try:
-                    import base64, json, httpx
-                    state_data = json.loads(base64.b64decode(client_state_b64).decode())
-                    if state_data.get("action") == "hangup_after_playback":
-                        url = f"{telnyx_adapter.base_url}/calls/{call_control_id}/actions/hangup"
-                        async with httpx.AsyncClient() as client:
-                            await client.post(url, headers=telnyx_adapter.headers)
-                            logger.info(f"📞 Hung up Telnyx call {call_control_id} after TTS playback")
-                except Exception as e:
-                    logger.error(f"Error handling speak.ended for {call_control_id}: {e}")
+                async def _handle_playback_ended(cid: str, state_b64: str):
+                    try:
+                        import base64, json, httpx
+                        state_data = json.loads(base64.b64decode(state_b64).decode())
+                        if state_data.get("action") == "hangup_after_playback":
+                            url = f"{telnyx_adapter.base_url}/calls/{cid}/actions/hangup"
+                            async with httpx.AsyncClient() as client:
+                                await client.post(url, headers=telnyx_adapter.headers)
+                                logger.info(f"📞 Hung up Telnyx call {cid} after TTS playback")
+                    except Exception as e:
+                        logger.error(f"Error handling speak.ended for {cid}: {e}")
+                
+                background_tasks.add_task(_handle_playback_ended, call_control_id, client_state_b64)
 
         return {"status": "received", "event_type": event_type}
 
