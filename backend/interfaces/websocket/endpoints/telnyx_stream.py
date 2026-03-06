@@ -7,7 +7,6 @@ import base64
 import json
 import logging
 import asyncio
-import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -130,79 +129,21 @@ async def handle_telnyx_stream(
                     
                     protocol.set_stream_id(stream_id)
 
-                    # FASE 4: Asynchronous RTP Pacing
-                    media_queue = asyncio.Queue()
-                    clear_event = asyncio.Event()
-
-                    async def pacing_worker():
-                        """Background task that sends queued audio and chunk-paces it for Telnyx RTP"""
-                        logger.info(f"☎️ [TELNYX E2E] Pacing Worker started for {stream_id}")
-                        chunk_size = 160  # 20ms of 8000Hz 8-bit mulaw
-                        sleep_time = 0.02 # 20ms sleep
-                        
-                        while True:
-                            try:
-                                audio_bytes = await media_queue.get()
-                                
-                                logger.info(f"☎️ [TELNYX E2E] Dispensing {len(audio_bytes)} bytes of media to PSTN queue in {chunk_size}-byte chunks")
-                                
-                                next_tick = time.time()
-                                for i in range(0, len(audio_bytes), chunk_size):
-                                    if clear_event.is_set():
-                                        logger.info("☎️ [TELNYX E2E] Pacing Worker cleanly interrupted (Barge-In)")
-                                        clear_event.clear()
-                                        break
-                                        
-                                    chunk = audio_bytes[i:i + chunk_size]
-                                    msg = protocol.create_media_message(chunk)
-                                    await websocket.send_text(msg)
-                                    
-                                    next_tick += sleep_time
-                                    delay = next_tick - time.time()
-                                    if delay > 0:
-                                        # await wait_for an event allows cancelling sleep instantly
-                                        try:
-                                            await asyncio.wait_for(clear_event.wait(), timeout=delay)
-                                            # If wait_for returns instead of raising TimeoutError, event was set
-                                            logger.info("☎️ [TELNYX E2E] Pacing Worker interrupted during sleep (Barge-In)")
-                                            clear_event.clear()
-                                            break
-                                        except (asyncio.TimeoutError, TimeoutError):
-                                            pass
-                                    else:
-                                        await asyncio.sleep(0)  # Yield loop, we are lagging slightly
-                                        
-                                media_queue.task_done()
-                            except asyncio.CancelledError:
-                                logger.info(f"☎️ [TELNYX E2E] Pacing Worker cancelled for {stream_id}")
-                                break
-                            except Exception as e:
-                                logger.error(f"[TELNYX E2E] Pacing Worker error: {e}")
-
-                    worker_task = asyncio.create_task(pacing_worker())
-
                     async def send_tts_audio(audio_bytes: bytes) -> None:
                         try:
+                            # E2E Nativo Telnyx: Enviar carga atómica completa, dejando que 
+                            # el PSTN remote Jitter Buffer pacifique el stream sin asfixiar a Python.
                             if audio_bytes:
-                                # Put in queue instead of sending directly to WS
-                                media_queue.put_nowait(audio_bytes)
+                                logger.info(f"☎️ [TELNYX E2E] Sending {len(audio_bytes)} bytes of media to remote PSTN queue")
+                                msg = protocol.create_media_message(audio_bytes)
+                                await websocket.send_text(msg)
                         except Exception as ws_err:
-                            logger.warning(f"[TELNYX E2E] Failed to queue audio chunk: {ws_err}")
+                            logger.warning(f"[TELNYX E2E] Failed to send audio chunk: {ws_err}")
 
                     async def send_transcript_event(role: str, text: str) -> None:
                         # Evento especial del Orchestrator para limpiar buffers remotos
                         if role == "clear":
                             logger.info(f"☎️ [TELNYX E2E/BARGE-IN] Dispatching CLEAR event to PSTN Jitter Buffer")
-                            # 1. Empty the queue
-                            while not media_queue.empty():
-                                try:
-                                    media_queue.get_nowait()
-                                except asyncio.QueueEmpty:
-                                    break
-                            # 2. Wake up pacing worker to cancel sleep
-                            clear_event.set()
-                            
-                            # 3. Send clear to PSTN Jitter Buffer
                             clear_msg = protocol.create_clear_message()
                             if clear_msg:
                                 await websocket.send_text(clear_msg)
@@ -210,8 +151,6 @@ async def handle_telnyx_stream(
 
                     async def disconnect_call() -> None:
                         logger.info(f"[TELNYX E2E] Closing stream {stream_id}")
-                        if worker_task:
-                            worker_task.cancel()
                         try:
                             await websocket.close()
                         except Exception:
@@ -230,8 +169,9 @@ async def handle_telnyx_stream(
                     )
                     
                     if greeting_audio:
-                        logger.info(f"[TELNYX E2E] Queueing initial greeting... ({len(greeting_audio)} bytes)")
-                        media_queue.put_nowait(greeting_audio)
+                        logger.info(f"[TELNYX E2E] Sending initial greeting... ({len(greeting_audio)} bytes)")
+                        resp_msg = protocol.create_media_message(greeting_audio)
+                        await websocket.send_text(resp_msg)
 
                 elif event["type"] == "media":
                     raw_bytes = event.get("data", b"")
@@ -252,8 +192,5 @@ async def handle_telnyx_stream(
     except Exception as e:
         logger.error(f"[TELNYX E2E] Fatal WS Error: {e}", exc_info=True)
     finally:
-        # Guarantee worker task is cancelled on drop
-        if 'worker_task' in locals() and worker_task:
-            worker_task.cancel()
         if orchestrator.active:
             await orchestrator.end_session(reason="disconnected")

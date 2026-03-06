@@ -77,7 +77,7 @@ class TelnyxClient(TelephonyPort):
         
         payload = {
             "stream_url": stream_url,
-            "stream_track": "inbound_track",
+            "stream_track": "both_tracks",
             "stream_bidirectional_mode": "rtp",
             "stream_bidirectional_codec": "PCMU",
             "client_state": client_state
