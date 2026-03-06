@@ -43,8 +43,9 @@ class TelephonyPort(ABC):
         pass
 
     @abstractmethod
-    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: Optional[str] = None) -> None:
+    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: Optional[str] = None, codec: str = "PCMU") -> None:
         """
         Start media streaming.
+        codec: 'PCMU' (G.711 8kHz, default) or 'L16' (PCM 16kHz, Voice AI).
         """
         pass

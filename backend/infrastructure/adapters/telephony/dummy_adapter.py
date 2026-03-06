@@ -27,5 +27,5 @@ class DummyTelephonyAdapter(TelephonyPort):
     async def answer_call(self, call_control_id: str) -> None:
         logger.info(f"[Telephony] ANSWER CALL {call_control_id}")
 
-    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: str = None) -> None:
+    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: str = None, codec: str = "PCMU") -> None:
         logger.info(f"[Telephony] START STREAMING {call_control_id} -> {stream_url}")

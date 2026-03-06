@@ -17,7 +17,7 @@ class TwilioAdapter(TelephonyPort):
         # Twilio usually answers via TwiML, but API can also modify live calls.
         logger.info(f"[Twilio] Answer Call: {call_control_id}")
 
-    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: Optional[str] = None) -> None:
+    async def start_streaming(self, call_control_id: str, stream_url: str, client_state: Optional[str] = None, codec: str = "PCMU") -> None:
         # Twilio starts streaming via TwiML <Connect><Stream> usually.
         # But if mid-call, we might update the call.
         logger.info(f"[Twilio] Start Streaming: {call_control_id} -> {stream_url}")
