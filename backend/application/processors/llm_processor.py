@@ -269,17 +269,23 @@ class LLMProcessor(FrameProcessor):
                 
                 sentence_buffer += text
                 
-                # Splits
-                if len(sentence_buffer) > 10 and re.search(r'[.?!]\s+$', sentence_buffer):
-                     tts_text = sentence_buffer
-                     await self.push_frame(TextFrame(text=tts_text, role="assistant", is_final=True), FrameDirection.DOWNSTREAM)
-                     # Notify Simulator: assistant sentence (real-time)
-                     if self.transcript_callback:
-                         try:
-                             await self.transcript_callback("assistant", tts_text)
-                         except Exception:
-                             pass  # non-fatal
-                     sentence_buffer = ""
+                # Splits - Encuentra el primer límite de oración válido seguido de un espacio
+                match = re.search(r'([.?!]+)\s+', sentence_buffer)
+                if match:
+                     split_index = match.end()
+                     tts_text = sentence_buffer[:split_index].strip()
+                     
+                     if len(tts_text) > 10:
+                         await self.push_frame(TextFrame(text=tts_text, role="assistant", is_final=True), FrameDirection.DOWNSTREAM)
+                         # Notify Simulator: assistant sentence (real-time)
+                         if self.transcript_callback:
+                             try:
+                                 await self.transcript_callback("assistant", tts_text)
+                             except Exception:
+                                 pass
+                     
+                     # Retener el resto de las palabras en el buffer para la siguiente oración
+                     sentence_buffer = sentence_buffer[split_index:]
                      
         # Flush remaining
         if sentence_buffer.strip():

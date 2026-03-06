@@ -78,19 +78,63 @@ class AzureTTSAdapter(TTSPort):
 
     async def synthesize_stream(self, text: str, voice: VoiceConfig, format: AudioFormat) -> AsyncIterator[bytes]:
         """
-        Stream synthesized audio.
+        Stream synthesized audio in real-time (Event-Driven).
         """
-        # For now, we reuse the implementation effectively buffering logic 
-        # because true streaming requires handling pull streams or push streams carefully.
-        # To respect the interface, we yield chunks.
+        self._configure_format(self.speech_config, format)
         
-        full_audio = await self.synthesize(text, voice, format)
+        # Use a pull stream to prevent Azure from playing audio to the server's default speaker.
+        # We don't read from it; we intercept the raw bytes via the 'synthesizing' event.
+        pull_stream = speechsdk.audio.PullAudioOutputStream()
+        audio_config = speechsdk.audio.AudioConfig(stream=pull_stream)
         
-        chunk_size = 4096
-        for i in range(0, len(full_audio), chunk_size):
-            yield full_audio[i:i+chunk_size]
-            # Simulate async yield if needed, but not strictly required if data is already here.
-            # await asyncio.sleep(0) 
+        synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=self.speech_config, 
+            audio_config=audio_config
+        )
+        
+        ssml = self._build_ssml(text, voice)
+        loop = asyncio.get_running_loop()
+        
+        audio_queue: asyncio.Queue[bytes] = asyncio.Queue()
+        is_finished = asyncio.Event()
+
+        def on_synthesizing(evt: speechsdk.SessionEventArgs):
+            """Fired by Azure C++ thread as soon as a chunk of audio is ready."""
+            chunk = evt.result.audio_data
+            if chunk:
+                loop.call_soon_threadsafe(audio_queue.put_nowait, chunk)
+                
+        def on_synthesis_completed(evt: speechsdk.SessionEventArgs):
+            """Synthesis successfully finished."""
+            loop.call_soon_threadsafe(is_finished.set)
+            
+        def on_synthesis_canceled(evt: speechsdk.SessionEventArgs):
+            """Synthesis canceled or errored."""
+            reason = evt.result.cancellation_details.reason
+            logger.error(f"[AzureTTS] Synthesis Stream Canceled: {reason}")
+            loop.call_soon_threadsafe(is_finished.set)
+            
+        # Hook up events
+        synthesizer.synthesizing.connect(on_synthesizing)
+        synthesizer.synthesis_completed.connect(on_synthesis_completed)
+        synthesizer.synthesis_canceled.connect(on_synthesis_canceled)
+        
+        # Trigger generation (non-blocking in Python, runs on Azure C++ thread)
+        result_future = synthesizer.speak_ssml_async(ssml)
+        
+        try:
+            # Yield chunks as they arrive in the queue
+            while not is_finished.is_set() or not audio_queue.empty():
+                try:
+                    chunk = await asyncio.wait_for(audio_queue.get(), timeout=0.1)
+                    if chunk:
+                        yield chunk
+                except asyncio.TimeoutError:
+                    continue
+        finally:
+            # Ensure future completes or gets garbage collected cleanly
+            if not is_finished.is_set():
+                result_future.get()
 
     def _configure_format(self, speech_config, format: AudioFormat):
         """
