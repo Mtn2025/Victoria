@@ -104,6 +104,15 @@ class PromptBuilder:
         language_instruction = f"- Idioma Obligatorio de Respuesta: Debes responder ESTRICTAMENTE en el idioma correspondiente al código '{agent_lang}'."
         style_block.append(language_instruction)
 
+        # --- SPOKEN LANGUAGE FORCING (ANTI-MARKDOWN) ---
+        anti_markdown_instruction = (
+            "- FORMATO DE SALIDA (VOZ HABLADA): NO USES FORMATO MARKDOWN EN ABSOLUTO. "
+            "Prohibido usar asteriscos (**), plecas, corchetes, viñetas con guiones (-), signos matemáticos o barras diagonales (/). "
+            "Estás conectado a un sintetizador de voz (TTS) que leerá literalmente cada símbolo ortográfico que escribas y arruinará la experiencia. "
+            "Usa texto plano conversacional, enumera con palabras (Primero, Segundo) y escribe los números, URLs o símbolos de forma orgánica y fluida como los diría un humano."
+        )
+        style_block.append(anti_markdown_instruction)
+
         dynamic_instructions = "\n".join(style_block)
 
         final_prompt = f"""{base_prompt}
