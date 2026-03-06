@@ -309,7 +309,7 @@ class CallOrchestrator:
                     on_interruption_callback=self.handle_interruption,
                     on_end_call_callback=self.stop,  # FASE 14 Smart Hangup
                     stream_id=stream_id,
-                    output_callback=audio_output_callback,       # TTS → WebSocket return path
+                    output_callback=self._audio_output_callback, # FASE 4: Wrapper for sync FSM
                     transcript_callback=transcript_callback,     # STT/LLM → simulator panel
                 )
                 logger.info("✅ Pipeline built")
@@ -351,6 +351,17 @@ class CallOrchestrator:
                         audio_format=target_format
                     )
                     logger.info(f"✅ Greeting synthesized ({len(greeting_audio)} bytes)")
+                    
+                    # FASE 4: Mathematical Tracking for Greeting
+                    duration_sec = len(greeting_audio) / bytes_per_second
+                    current_time = time.time()
+                    if self.playback_end_time < current_time:
+                        self.playback_end_time = current_time
+                    self.playback_end_time += duration_sec
+                    
+                    logger.info(f"📐 [PLAYBACK TRACKER] Encoded GREETING {len(greeting_audio)} bytes. Duration: {duration_sec:.2f}s. Target end: {self.playback_end_time:.2f} (Now: {current_time:.2f})")
+                    if self.fsm.state != ConversationState.SPEAKING:
+                        await self.fsm.transition(ConversationState.SPEAKING, "playback_buffer_filled")
                     
                     # Notify Simulator front-end about the greeting transcript
                     if transcript_callback:
