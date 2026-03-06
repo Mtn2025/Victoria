@@ -83,8 +83,10 @@ async def handle_telnyx_stream(
     audio_fmt = AudioFormat.for_client("telnyx") 
     
     # Cargar agente para revisar flags de Telemetría Corporativa Telnyx
-    agent = await agent_repo.get_by_id(agent_id) if agent_id else await agent_repo.get_active()
-    flow_config = agent.flow_config if agent else {}
+    agent = await agent_repo.get_agent_by_uuid(agent_id) if agent_id else await agent_repo.get_active_agent()
+    
+    # flow_config se guarda como blob JSON en el diccionario metadata de la entidad Agent
+    flow_config = agent.metadata.get("flow_config", {}) if agent and agent.metadata else {}
     
     telnyx_client = TelnyxClient()
 

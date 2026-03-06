@@ -116,7 +116,11 @@ class UpdateAgentConfigUseCase:
             "amd_enabled", "amd_sensitivity", "amd_action", "amd_message",
             "pacing_response_delay_ms", "pacing_wait_for_greeting",
             "pacing_hyphenation", "pacing_end_call_phrases",
-            "enable_backchannel", "idle_message"
+            "enable_backchannel", "idle_message",
+            "telnyx_noise_suppression", "telnyx_amd_premium", 
+            "telnyx_amd_premium_silence_ms", "telnyx_amd_premium_greeting_ms",
+            "telnyx_record_s3", "telnyx_siprec_dest", 
+            "telnyx_transfer_number", "telnyx_fork_udp"
         ]
         for field in flow_fields:
             val = getattr(update, field, None)
