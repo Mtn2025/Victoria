@@ -2,7 +2,7 @@
 Configuration Schemas.
 Part of the Interfaces Layer.
 """
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Dict, Any, Union, List
 
 class ConfigUpdate(BaseModel):
@@ -10,11 +10,10 @@ class ConfigUpdate(BaseModel):
     Unified configuration update schema.
     Supports partial updates for various profiles.
 
-    extra='ignore': campos adicionales del frontend son silenciados (no 422).
-    populate_by_name=True: acepta tanto snake_case como campos extras.
+    NOTA: No usar extra='ignore'. Si el frontend envía un campo desconocido
+    y produce 422, la solución es declararlo aquí explícitamente (workflow
+    add-agent-config-field.md Paso 2 y 3).
     """
-    model_config = ConfigDict(extra='ignore', populate_by_name=True)
-
     # LLM
     llm_provider: Optional[str] = None
     llm_model: Optional[str] = None
