@@ -6,6 +6,9 @@ from backend.domain.entities.call import Call
 from backend.domain.ports.persistence_port import CallRepository
 from backend.domain.ports.telephony_port import TelephonyPort
 
+# Razones donde el backend ES quien inicia el cuelgue (Telnyx no lo sabe aún)
+_BACKEND_INITIATED_HANGUP = {"timeout", "idle_disconnect", "error", "transfer"}
+
 class EndCallUseCase:
     """
     Orchestrates the termination of a call session.
@@ -23,18 +26,20 @@ class EndCallUseCase:
     async def execute(self, call: Call, reason: str = "completed") -> None:
         """
         End the call.
-        
+
         Args:
             call: The active call entity.
-            reason: Reason for termination (e.g., "completed", "timeout", "user_hangup").
+            reason: Reason for termination.
+                - 'completed'/'disconnected'/'voicemail': Telnyx ya colgó — no enviar hangup
+                - 'timeout'/'idle_disconnect'/'error': backend inicia el cuelgue → sí enviar
         """
         # 1. Update Domain State
         call.end(reason)
-        
+
         # 2. Persist Final State
         await self.call_repo.save(call)
-        
-        # 3. Trigger Telephony Hangup (Side Effect)
-        # Note: In some scenarios, telephony might already be disconnected (e.g. user hangup).
-        # The port implementation should handle idempotency or specific error codes.
-        await self.telephony_port.end_call(call.id)
+
+        # 3. Trigger Telephony Hangup — SOLO si el backend inicia el cuelgue
+        # Para 'completed'/'disconnected', Telnyx ya envió call.hangup → no duplicar (422)
+        if reason in _BACKEND_INITIATED_HANGUP:
+            await self.telephony_port.end_call(call.id)
