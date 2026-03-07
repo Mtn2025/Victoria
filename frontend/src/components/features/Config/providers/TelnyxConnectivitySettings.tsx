@@ -403,25 +403,90 @@ export const TelnyxConnectivitySettings = () => {
                                     />
                                     <p className="text-[9px] text-slate-500 mt-1">La IA puenteará la llamada a este número cuando decida transferir. Configura en el LLM system prompt la herramienta <code className="text-violet-400">transfer_call</code>.</p>
                                 </div>
-
-                                {/* Failover URL info */}
-                                <div className="mt-2 pt-2 border-t border-white/5">
-                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-2">⚡ Failover Webhook URL</label>
-                                    <div className="p-2 bg-slate-800/60 border border-slate-700/50 rounded text-[9px] text-slate-400">
-                                        El Failover URL se configura en el
-                                        <a
-                                            href="https://portal.telnyx.com/#/app/messaging/applications"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-indigo-400 hover:text-indigo-300 underline mx-1"
-                                        >
-                                            Mission Control Portal
-                                        </a>
-                                        → Voice Applications → tu app → Failover URL. Apúntalo a tu servidor de respaldo.
-                                    </div>
-                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </Accordion>
+
+            {/* 4. Producción & Seguridad */}
+            <Accordion
+                isOpen={openSection === 'production'}
+                onToggle={() => setOpenSection(openSection === 'production' ? null : 'production')}
+                className="border-rose-500/30"
+                headerClassName="hover:bg-rose-900/20"
+                title={
+                    <span className="text-sm font-bold text-rose-400 uppercase tracking-wider">
+                        🛡️ Producción & Seguridad
+                    </span>
+                }
+            >
+                <div className="space-y-4">
+                    {/* Failover URL */}
+                    <div className="bg-slate-900/50 p-4 rounded-xl border border-rose-500/20 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 opacity-5 text-5xl">⚡</div>
+                        <h5 className="text-xs font-bold text-rose-300 mb-1">Failover Webhook URL</h5>
+                        <p className="text-[10px] text-slate-400 mb-3">
+                            Si tu servidor principal cae, Telnyx redirige los webhooks al URL de respaldo.
+                            Esto evita que las llamadas activas se pierdan en producción.
+                        </p>
+                        <a
+                            href="https://portal.telnyx.com/#/app/call-control/applications"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 rounded-lg text-xs font-bold text-rose-300 transition-all"
+                        >
+                            <span>🔗</span> Configurar en Mission Control Portal
+                        </a>
+                        <div className="mt-3 p-2 bg-slate-800/50 border border-slate-700/40 rounded text-[9px] text-slate-400 font-mono">
+                            Voice Applications → <strong>[tu app]</strong> → Failover URL
+                        </div>
+                    </div>
+
+                    {/* Checklist de Producción */}
+                    <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                        <h5 className="text-xs font-bold text-white mb-3 flex items-center gap-2">
+                            <span>✅</span> Checklist Pre-Producción
+                        </h5>
+                        <div className="space-y-2">
+                            {[
+                                { ok: true, label: 'Firma Ed25519 verificada en todos los webhooks' },
+                                { ok: true, label: 'command_id en todos los comandos (idempotencia)' },
+                                { ok: true, label: 'asyncio.create_task() → respuesta webhook < 2s' },
+                                { ok: true, label: 'SDK oficial telnyx-python 4.x (sin httpx crudo)' },
+                                { ok: true, label: 'Codec L16 disponible (AdvancedSettings → Audio)' },
+                                { ok: true, label: 'stream_track="both_tracks" (audio bidireccional)' },
+                                { ok: false, label: 'Failover URL configurado en Mission Control Portal' },
+                                { ok: false, label: 'IPs Telnyx en whitelist del firewall del servidor' },
+                                { ok: false, label: 'API Key fuera de logs (verificar en producción)' },
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-2">
+                                    <span className={`text-xs ${item.ok ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                        {item.ok ? '✅' : '⚠️'}
+                                    </span>
+                                    <span className={`text-[10px] ${item.ok ? 'text-slate-400' : 'text-amber-300/80'}`}>
+                                        {item.label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-[9px] text-slate-500 mt-3 italic">
+                            Los ✅ son implementados automáticamente por Victoria. Los ⚠️ requieren configuración manual.
+                        </p>
+                    </div>
+
+                    {/* IPs Telnyx */}
+                    <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                        <h5 className="text-xs font-bold text-white mb-2">IPs de Telnyx (Whitelist)</h5>
+                        <p className="text-[10px] text-slate-400 mb-2">Asegúrate de que tu firewall permite las IPs de Telnyx para los webhooks entrantes:</p>
+                        <a
+                            href="https://developers.telnyx.com/docs/voice/call-control/webhook-best-practices#ip-whitelisting"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+                        >
+                            Ver lista oficial de IPs Telnyx →
+                        </a>
                     </div>
                 </div>
             </Accordion>

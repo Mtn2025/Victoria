@@ -107,37 +107,46 @@ export const AdvancedSettings = () => {
                                     <Zap className="w-4 h-4 text-emerald-400" />
                                     {t('advanced.noise_label')}
                                 </h4>
-                                <div className="space-y-3">
-                                    <label className="block text-xs text-slate-500 mb-1">{t('advanced.noise_krisp')}</label>
-                                    <div className="flex flex-col gap-2">
-                                        {(['off', 'balanced', 'high'] as const).map(level => {
-                                            const labelMap = {
-                                                off: t('advanced.noise_off'),
-                                                balanced: t('advanced.noise_balanced'),
-                                                high: t('advanced.noise_high')
-                                            };
-                                            return (
-                                                <button
-                                                    key={level}
-                                                    aria-label={`Noise Suppression ${level}`}
-                                                    onClick={() => update('noiseSuppressionLevel', level)}
-                                                    className={`px-2 py-2 rounded text-xs font-bold border transition-all uppercase ${browser.noiseSuppressionLevel === level
-                                                        ? level === 'balanced' ? 'bg-emerald-600 text-white border-emerald-500' :
-                                                            level === 'high' ? 'bg-indigo-600 text-white border-indigo-500' :
-                                                                'bg-slate-600 text-white border-slate-500'
-                                                        : 'bg-slate-900 text-slate-500 border-slate-800'
-                                                        }`}
-                                                >
-                                                    {labelMap[level]}
-                                                </button>
-                                            )
-                                        })}
+                                {activeAgent?.provider === 'telnyx' ? (
+                                    /* Telnyx: supresión nativa siempre activa — no usar Krisp */
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between p-3 bg-emerald-900/20 border border-emerald-600/40 rounded-lg">
+                                            <div>
+                                                <span className="text-xs font-bold text-emerald-400 block">Supresión Nativa Telnyx</span>
+                                                <span className="text-[10px] text-slate-400">Motor de red propietario Telnyx — siempre activo, sin configuración adicional.</span>
+                                            </div>
+                                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-900/50 px-2 py-1 rounded shrink-0">ACTIVO</span>
+                                        </div>
+                                        <p className="text-[9px] text-slate-500 italic">Telnyx procesa el ruido en su red MPLS antes de enviarte el audio. No se usa Krisp en este proveedor.</p>
                                     </div>
-                                </div>
-                                {/* Nota Telnyx: la supresión nativa siempre está activa */}
-                                {activeAgent?.provider === 'telnyx' && (
-                                    <div className="mt-2 p-2 bg-emerald-900/20 border border-emerald-700/40 rounded text-[9px] text-emerald-400">
-                                        ✅ Telnyx activa su filtro de ruido nativo automáticamente. Krisp funciona como capa adicional en el pipeline STT.
+                                ) : (
+                                    /* Otros providers: control Krisp estándar */
+                                    <div className="space-y-3">
+                                        <label className="block text-xs text-slate-500 mb-1">{t('advanced.noise_krisp')}</label>
+                                        <div className="flex flex-col gap-2">
+                                            {(['off', 'balanced', 'high'] as const).map(level => {
+                                                const labelMap = {
+                                                    off: t('advanced.noise_off'),
+                                                    balanced: t('advanced.noise_balanced'),
+                                                    high: t('advanced.noise_high')
+                                                };
+                                                return (
+                                                    <button
+                                                        key={level}
+                                                        aria-label={`Noise Suppression ${level}`}
+                                                        onClick={() => update('noiseSuppressionLevel', level)}
+                                                        className={`px-2 py-2 rounded text-xs font-bold border transition-all uppercase ${browser.noiseSuppressionLevel === level
+                                                            ? level === 'balanced' ? 'bg-emerald-600 text-white border-emerald-500' :
+                                                                level === 'high' ? 'bg-indigo-600 text-white border-indigo-500' :
+                                                                    'bg-slate-600 text-white border-slate-500'
+                                                            : 'bg-slate-900 text-slate-500 border-slate-800'
+                                                            }`}
+                                                    >
+                                                        {labelMap[level]}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
                                 )}
                             </div>
