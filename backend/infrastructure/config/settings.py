@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     TELNYX_CONNECTION_ID: Optional[str] = None
     TELNYX_PHONE_NUMBER: Optional[str] = None
     BASE_URL: Optional[str] = None               # https://tu-dominio.com — requerido para webhooks
+    VICTORIA_API_KEY: Optional[str] = None       # ⚠️ CRÍTICO: fuente única — no eliminar, usado en security/core.py
     WS_MEDIA_STREAM_PATH: str = "/ws/media-stream"
     
     # --- Database config (Punto A6) ---
