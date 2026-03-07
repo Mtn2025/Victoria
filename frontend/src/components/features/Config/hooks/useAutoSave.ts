@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce'
 
 export const useAutoSave = (debounceMs = 800) => {
     const dispatch = useAppDispatch()
-    const { browser, twilio, telnyx, saveStatus, lastSaved } = useAppSelector(state => state.config)
+    const { browser, twilio, telnyx, saveStatus, lastSaved, isLoadingOptions } = useAppSelector(state => state.config)
     const activeProfile = useAppSelector(state => state.ui.activeProfile)
 
     const initialLoadDone = useRef(false)
@@ -16,10 +16,8 @@ export const useAutoSave = (debounceMs = 800) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         debounce((payload: any, profile: string) => {
             if (profile === 'telnyx') {
-                // Telnyx connectivity / tools / system fields go via dedicated thunk
                 dispatch(saveTelnyxConfig(payload))
             } else {
-                // Browser or Twilio: send via updateBrowserConfig (includes connectivity_config for twilio)
                 dispatch(saveAgentConfig(payload))
             }
         }, debounceMs),
@@ -27,7 +25,7 @@ export const useAutoSave = (debounceMs = 800) => {
     )
 
     useEffect(() => {
-        // Skip first render/hydration
+        // Skip first render
         if (!initialLoadDone.current) {
             initialLoadDone.current = true
             return
@@ -35,13 +33,21 @@ export const useAutoSave = (debounceMs = 800) => {
 
         const currentString = JSON.stringify({ browser, twilio, telnyx })
 
-        // If config changed, trigger debounced save
+        // FIX CRÍTICO: Si fetchAgentConfig está hidratando el estado desde el servidor,
+        // solo actualizar prevJSON — NO disparar ningún PATCH.
+        // Sin este guard, cada recarga dispara un PATCH que sobreescribe los valores de la BD
+        // con el estado transitorio de hidratación (loop destructivo).
+        if (isLoadingOptions) {
+            prevJSON.current = currentString
+            return
+        }
+
+        // Si el estado cambió (por acción del USUARIO, no por hidratación), guardar
         if (currentString !== prevJSON.current) {
             prevJSON.current = currentString
             dispatch(setSaveStatus('saving'))
 
             if (activeProfile === 'telnyx') {
-                // Save only the telnyx slice fields
                 saveChanges(telnyx, 'telnyx')
             } else if (activeProfile === 'twilio') {
                 const payload: any = { ...browser }
@@ -49,13 +55,12 @@ export const useAutoSave = (debounceMs = 800) => {
                 payload.connectivity_config = twilio
                 saveChanges(payload, 'twilio')
             } else {
-                // Browser profile: send browser config
                 const payload: any = { ...browser }
                 payload.agent_provider = activeProfile
                 saveChanges(payload, 'browser')
             }
         }
-    }, [browser, twilio, telnyx, activeProfile, dispatch, saveChanges])
+    }, [browser, twilio, telnyx, activeProfile, isLoadingOptions, dispatch, saveChanges])
 
     // Cleanup pending debounces on unmount
     useEffect(() => {
@@ -66,4 +71,3 @@ export const useAutoSave = (debounceMs = 800) => {
 
     return { saveStatus, lastSaved }
 }
-

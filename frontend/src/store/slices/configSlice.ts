@@ -472,11 +472,15 @@ export const configSlice = createSlice({
                 })
 
                 // Retrocompatibilidad: agentes creados antes del fix tienen el modo de inicio
-                // en 'mode' con valores 'speak-first'/'listen-first'. Migrar a 'startMode'.
+                // en 'mode' con valores 'speak-first'/'listen-first'.
+                // IMPORTANTE: Solo migrar si 'startMode' NO está ya en la BD.
+                // Sin esta condición, cada recarga sobreescribiía el valor guardado del usuario.
                 const legacyMode = data.llm_config.mode
-                if (legacyMode === 'speak-first' || legacyMode === 'listen-first') {
+                if (
+                    (legacyMode === 'speak-first' || legacyMode === 'listen-first') &&
+                    data.llm_config.startMode === undefined  // ← solo si startMode aún no existe en BD
+                ) {
                     state.browser.startMode = legacyMode
-                    // Limpiar mode de ese valor para no contaminar (el modo LLM es markdown/text)
                     state.browser.mode = 'markdown'
                 }
 
