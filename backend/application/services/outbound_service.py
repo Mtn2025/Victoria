@@ -98,23 +98,23 @@ class OutboundDialerService:
 
     async def _create_telnyx_call(self, to_number: str, config_dto: Any, amd_enabled: bool, agent_id: str) -> Dict[str, Any]:
         """
-        Crea una llamada outbound Telnyx vía SDK oficial.
+        Crea una llamada outbound Telnyx vía SDK oficial (telnyx 4.60.0).
 
-        Lee de connectivity_config:
-          - amdConfig       → answering_machine_detection (4 opciones Telnyx)
-          - geoRegionTelnyx → geo_region del punto de presencia
-          - callerIdTelnyx  → from number override del agente
-          - telnyxConnectionId → connection_id override del agente
+        SDK 4.x usa calls.dial() (no calls.create).
+        Parámetros clave:
+          - from_          → nota el underscore (Python keyword avoidance)
+          - connection_id  → requerido
+          - sip_region     → 'US' | 'Europe' | 'Canada' | 'Australia' | 'Middle East'
+          - answering_machine_detection → 'detect' | 'detect_beep' | 'detect_words' | 'greeting_end' | 'disabled' | 'premium'
         """
         from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
-        import telnyx
+        import uuid as _uuid
 
         api_key = settings.TELNYX_API_KEY
         if not api_key:
             raise ValueError("Telnyx API Key not configured")
 
         # ── Resolver credenciales ──────────────────────────────────────────────
-        # connectivity_config es un dict JSON del agente
         conn_cfg: dict = getattr(config_dto, "connectivity_config", None) or {}
 
         from_number = (
@@ -130,47 +130,71 @@ class OutboundDialerService:
         if connection_id:
             connection_id = str(connection_id).strip()
 
-        # ── Payload base ───────────────────────────────────────────────────────
-        payload: dict = {
-            "to": to_number,
-            "from": from_number,
-            "connection_id": connection_id,
+        # ── AMD (normalizar valores al catálogo real del SDK 4.x) ─────────────
+        # SDK acepta: 'detect' | 'detect_beep' | 'detect_words' | 'greeting_end' | 'disabled' | 'premium'
+        # El UI guardaba 'detect_hangup' y 'detect_message_end' que ya no existen → mapear
+        AMD_MAP = {
+            "detect":           "detect",
+            "detect_hangup":    "detect",          # deprecated alias → detect
+            "detect_message_end": "detect_words",  # deprecated alias → detect_words
+            "detect_beep":      "detect_beep",
+            "detect_words":     "detect_words",
+            "greeting_end":     "greeting_end",
+            "premium":          "premium",
+            "disabled":         "disabled",
         }
+        amd_raw = conn_cfg.get("amdConfig", "disabled") or "disabled"
+        amd_sdk  = AMD_MAP.get(amd_raw, "detect") if amd_raw != "disabled" else None
+        if not amd_sdk and amd_enabled:
+            amd_sdk = "detect"
 
-        # ── AMD granular (P0) ──────────────────────────────────────────────────
-        # Lee amdConfig de connectivity_config (4 opciones Telnyx reales):
-        # "disabled" | "detect" | "detect_hangup" | "detect_message_end"
-        amd_config = conn_cfg.get("amdConfig", "disabled")
-        if amd_config and amd_config != "disabled":
-            payload["answering_machine_detection"] = amd_config
-            logger.info(f"TELNYX OUTBOUND: AMD={amd_config!r}")
-        elif amd_enabled:
-            # Backward-compat: legacy flag booleano → detect básico
-            payload["answering_machine_detection"] = "detect"
+        # ── Geo Region → sip_region ────────────────────────────────────────────
+        # SDK 4.x: sip_region acepta 'US' | 'Europe' | 'Canada' | 'Australia' | 'Middle East'
+        GEO_MAP = {
+            "us-central": "US", "us-east": "US", "us-west": "US",
+            "europe":     "Europe", "eu":   "Europe",
+            "canada":     "Canada", "ca":   "Canada",
+            "australia":  "Australia", "au": "Australia",
+            "middle-east": "Middle East",
+        }
+        geo_raw    = conn_cfg.get("geoRegionTelnyx", "").lower().strip()
+        sip_region = GEO_MAP.get(geo_raw) if geo_raw and geo_raw != "global" else None
 
-        # ── Geo Region (P0) ─────────────────────────────────────────────────────
-        geo_region = conn_cfg.get("geoRegionTelnyx")
-        if geo_region and geo_region != "global":
-            # Telnyx acepta: "us-central", "us-east", etc.
-            payload["media_region"] = geo_region
-            logger.info(f"TELNYX OUTBOUND: geo_region={geo_region!r}")
+        logger.info(
+            f"TELNYX DIAL: to={to_number} from={from_number!r} "
+            f"conn={connection_id!r} amd={amd_sdk!r} region={sip_region!r}"
+        )
 
-        logger.info(f"TELNYX PAYLOAD GENERATED: { {k: v for k, v in payload.items() if k != 'from'} }")
-
-        # ── Crear llamada vía SDK oficial (evita httpx crudo) ─────────────────
+        # ── Crear llamada vía SDK 4.x calls.dial() ────────────────────────────
         try:
             client = TelnyxClient(api_key=api_key)
+
+            # Construir kwargs explícitos (type-safe, sin **dict con claves Python-keyword)
+            dial_kwargs: Dict[str, Any] = {
+                "to":            to_number,
+                "from_":         from_number,   # NOTE: underscore obligatorio en SDK 4.x
+                "connection_id": connection_id,
+                "command_id":    f"dial-{_uuid.uuid4().hex[:12]}",
+            }
+            if amd_sdk:
+                dial_kwargs["answering_machine_detection"] = amd_sdk
+            if sip_region:
+                dial_kwargs["sip_region"] = sip_region
+
             result = await client._run(
-                client._sdk.calls.create(**payload),
-                label=f"calls.create({to_number})",
+                client._sdk.calls.dial(**dial_kwargs),
+                label=f"calls.dial({to_number})",
             )
             await client.close()
 
             if result is None:
-                raise RuntimeError("Telnyx SDK calls.create() returned None — check API key/connection_id")
+                raise RuntimeError("Telnyx SDK calls.dial() returned None — check API key/connection_id")
 
             tx_data = result.model_dump() if hasattr(result, "model_dump") else dict(result)
-            call_control_id = (tx_data.get("data") or {}).get("call_control_id") or getattr(result, "call_control_id", None)
+            call_control_id = (
+                (tx_data.get("data") or {}).get("call_control_id")
+                or getattr(result, "call_control_id", None)
+            )
 
         except Exception as exc:
             logger.error(f"Telnyx SDK call creation failed: {exc}")
@@ -189,3 +213,4 @@ class OutboundDialerService:
                 logger.error(f"Failed to record Telnyx outbound call {call_control_id} in DB: {e}")
 
         return tx_data if isinstance(tx_data, dict) else {"data": {"call_control_id": call_control_id}}
+
