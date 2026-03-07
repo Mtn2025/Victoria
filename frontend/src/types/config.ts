@@ -243,7 +243,7 @@ export interface TelnyxConfig {
     dtmfListeningEnabledTelnyx: boolean
 
     // Advanced
-    amdConfig: 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end'
+    amdConfig: 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end' | 'premium'
     interruptRMS: number // Duplicate of BrowserConfig but used here too
 
     // S3 Direct Recording (P1)

@@ -144,7 +144,7 @@ class ConfigUpdate(BaseModel):
     enableRecordingTelnyx: Optional[bool] = None
     hipaaEnabledTelnyx: Optional[bool] = None
     dtmfListeningEnabledTelnyx: Optional[bool] = None
-    amdConfig: Optional[str] = None  # 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end'
+    amdConfig: Optional[str] = None  # 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end' | 'premium'
     # S3 + SIPREC + Transfer (P0/P1 fields — en connectivity_config)
     telnyxRecordS3: Optional[bool] = None
     telnyxS3Bucket: Optional[str] = None      # e.g. 's3://mi-bucket/grabaciones/'
