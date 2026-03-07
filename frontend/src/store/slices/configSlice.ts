@@ -60,22 +60,6 @@ export const saveAgentConfig = createAsyncThunk(
     }
 )
 
-/**
- * saveTelnyxConfig — Persists TelnyxConfig slice to the backend.
- * Called by useAutoSave when activeProfile === 'telnyx'.
- */
-export const saveTelnyxConfig = createAsyncThunk(
-    'config/saveTelnyxConfig',
-    async (config: Partial<TelnyxConfig>, { getState, rejectWithValue }) => {
-        const state = getState() as { agents: { activeAgent: { agent_uuid: string } | null } }
-        const agentUuid = state.agents.activeAgent?.agent_uuid
-        if (!agentUuid) {
-            console.error('[saveTelnyxConfig] No active agent in Redux state. Aborting PATCH.')
-            return rejectWithValue('No active agent')
-        }
-        return await configService.updateTelnyxConfig(config, agentUuid)
-    }
-)
 
 // Agent config is ALWAYS fetched from GET /api/agents/active.
 // No agentId or name parameter needed — the backend resolves active agent from DB.
@@ -417,17 +401,6 @@ export const configSlice = createSlice({
             state.saveStatus = 'error'
         })
 
-        // Save Telnyx Config (TelnyxConnectivitySettings)
-        builder.addCase(saveTelnyxConfig.pending, (state) => {
-            state.saveStatus = 'saving'
-        })
-        builder.addCase(saveTelnyxConfig.fulfilled, (state) => {
-            state.saveStatus = 'saved'
-            state.lastSaved = new Date().toISOString()
-        })
-        builder.addCase(saveTelnyxConfig.rejected, (state) => {
-            state.saveStatus = 'error'
-        })
 
         // Fetch Agent Config (Hydration)
         builder.addCase(fetchAgentConfig.pending, (state) => {

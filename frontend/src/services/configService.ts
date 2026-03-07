@@ -125,6 +125,10 @@ export const configService = {
             payload.agent_provider = (config as any).agent_provider
         }
 
+        if ((config as any).connectivity_config !== undefined) {
+            payload.connectivity_config = { ...payload.connectivity_config, ...(config as any).connectivity_config }
+        }
+
         // LLM
         if (config.provider !== undefined) payload.llm_provider = config.provider
         if (config.model !== undefined) payload.llm_model = config.model
@@ -300,62 +304,6 @@ export const configService = {
         return api.patch(`/agents/${agentId}`, payload)
     },
 
-    /**
-     * PATCH /api/agents/{uuid}
-     * Updates TelnyxConfig connectivity fields (TelnyxConnectivitySettings slice).
-     * These fields are stored in the agent's connectivity_config JSON field.
-     */
-    updateTelnyxConfig: async (config: Partial<import('@/types/config').TelnyxConfig>, agentId: string) => {
-        if (!agentId) {
-            console.error('[configService] updateTelnyxConfig called without agentId. Aborting.')
-            return
-        }
-
-        // Build payload with all TelnyxConfig fields directly (backend schema accepts camelCase for these)
-        const payload: Record<string, unknown> = {}
-
-        if (config.telnyxConnectionId !== undefined) payload.telnyxConnectionId = config.telnyxConnectionId
-        if (config.callerIdTelnyx !== undefined) payload.callerIdTelnyx = config.callerIdTelnyx
-        if (config.sipTrunkUriTelnyx !== undefined) payload.sipTrunkUriTelnyx = config.sipTrunkUriTelnyx
-        if (config.sipAuthUserTelnyx !== undefined) payload.sipAuthUserTelnyx = config.sipAuthUserTelnyx
-        if (config.sipAuthPassTelnyx !== undefined) payload.sipAuthPassTelnyx = config.sipAuthPassTelnyx
-        if (config.fallbackNumberTelnyx !== undefined) payload.fallbackNumberTelnyx = config.fallbackNumberTelnyx
-        if (config.geoRegionTelnyx !== undefined) payload.geoRegionTelnyx = config.geoRegionTelnyx
-        if (config.recordingChannelsTelnyx !== undefined) payload.recordingChannelsTelnyx = config.recordingChannelsTelnyx
-        if (config.enableRecordingTelnyx !== undefined) payload.enableRecordingTelnyx = config.enableRecordingTelnyx
-        if (config.hipaaEnabledTelnyx !== undefined) payload.hipaaEnabledTelnyx = config.hipaaEnabledTelnyx
-        if (config.dtmfListeningEnabledTelnyx !== undefined) payload.dtmfListeningEnabledTelnyx = config.dtmfListeningEnabledTelnyx
-        if (config.amdConfig !== undefined) payload.amdConfig = config.amdConfig
-        // Tools fields shared with TelnyxConfig
-        if (config.toolServerUrl !== undefined) payload.tool_server_url = config.toolServerUrl
-        if (config.toolServerSecret !== undefined) payload.tool_server_secret = config.toolServerSecret
-        if (config.toolTimeoutMs !== undefined) payload.tool_timeout_ms = config.toolTimeoutMs
-        if (config.toolRetryCount !== undefined) payload.tool_retry_count = config.toolRetryCount
-        if (config.toolErrorMsg !== undefined) payload.tool_error_msg = config.toolErrorMsg
-        if (config.asyncTools !== undefined) payload.async_tools = config.asyncTools
-        if (config.clientToolsEnabled !== undefined) payload.client_tools_enabled = config.clientToolsEnabled
-        if (config.redactParams !== undefined) payload.redact_params = config.redactParams
-        if (config.transferWhitelist !== undefined) payload.transfer_whitelist = config.transferWhitelist
-        if (config.stateInjectionEnabled !== undefined) payload.state_injection_enabled = config.stateInjectionEnabled
-        if (config.toolsSchema !== undefined) {
-            // tools_schema en el backend es Optional[str] — enviar el string JSON crudo, o null si vacío
-            // NO parsear aquí: el backend almacena el string y lo parsea internamente
-            payload.tools_schema = config.toolsSchema || null
-        }
-        // System / Governance shared with TelnyxConfig
-        if (config.concurrencyLimit !== undefined) payload.concurrency_limit = config.concurrencyLimit
-        if (config.spendLimitDaily !== undefined) payload.spend_limit_daily = config.spendLimitDaily
-        if (config.environment !== undefined) payload.environment = config.environment
-        if (config.privacyMode !== undefined) payload.privacy_mode = config.privacyMode
-        if (config.auditLogEnabled !== undefined) payload.audit_log_enabled = config.auditLogEnabled
-        if (config.crmEnabled !== undefined) payload.crm_enabled = config.crmEnabled
-        if (config.webhookUrl !== undefined) payload.webhook_url = config.webhookUrl
-        if (config.webhookSecret !== undefined) payload.webhook_secret = config.webhookSecret
-
-        if (Object.keys(payload).length === 0) return
-
-        return api.patch(`/agents/${agentId}`, payload)
-    },
 
     // ── Catalogs ──────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
-import { saveAgentConfig, saveTelnyxConfig, setSaveStatus } from '@/store/slices/configSlice'
+import { saveAgentConfig, setSaveStatus } from '@/store/slices/configSlice'
 import debounce from 'lodash/debounce'
 
 export const useAutoSave = (debounceMs = 800) => {
@@ -14,12 +14,8 @@ export const useAutoSave = (debounceMs = 800) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const saveChanges = useCallback(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        debounce((payload: any, profile: string) => {
-            if (profile === 'telnyx') {
-                dispatch(saveTelnyxConfig(payload))
-            } else {
-                dispatch(saveAgentConfig(payload))
-            }
+        debounce((payload: any) => {
+            dispatch(saveAgentConfig(payload))
         }, debounceMs),
         [dispatch, debounceMs]
     )
@@ -48,16 +44,19 @@ export const useAutoSave = (debounceMs = 800) => {
             dispatch(setSaveStatus('saving'))
 
             if (activeProfile === 'telnyx') {
-                saveChanges(telnyx, 'telnyx')
+                const payload: any = { ...browser }
+                payload.agent_provider = activeProfile
+                payload.connectivity_config = telnyx
+                saveChanges(payload)
             } else if (activeProfile === 'twilio') {
                 const payload: any = { ...browser }
                 payload.agent_provider = activeProfile
                 payload.connectivity_config = twilio
-                saveChanges(payload, 'twilio')
+                saveChanges(payload)
             } else {
                 const payload: any = { ...browser }
                 payload.agent_provider = activeProfile
-                saveChanges(payload, 'browser')
+                saveChanges(payload)
             }
         }
     }, [browser, twilio, telnyx, activeProfile, isLoadingOptions, dispatch, saveChanges])
