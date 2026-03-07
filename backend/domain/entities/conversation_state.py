@@ -224,8 +224,8 @@ class ConversationFSM:
             
             return self._state in allowed_states
     
-    async def reset(self):
-        """Reset FSM to IDLE state."""
-        async with self._lock:
-            self._state = ConversationState.IDLE
-            logger.info("🔄 FSM reset to IDLE")
+    def reset(self):
+        """Reset FSM to IDLE state (synchronous — no I/O needed)."""
+        self._state = ConversationState.IDLE
+        self._can_late_interrupt = False
+        logger.info("🔄 FSM reset to IDLE")

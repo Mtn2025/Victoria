@@ -171,7 +171,20 @@ async def update_agent_config(
     from backend.domain.use_cases.update_agent_config import UpdateAgentConfigUseCase
     from backend.domain.ports.persistence_port import AgentNotFoundError
 
-    use_case = UpdateAgentConfigUseCase(repo)
+    # _apply_hipaa_to_telnyx vive aquí (interfaces), no en el dominio
+    # El use case recibe el callable como dependencia para mantener pureza hexagonal
+    async def _apply_hipaa_to_telnyx() -> None:
+        try:
+            from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
+            import logging
+            client = TelnyxClient()
+            await client.configure_hipaa()
+            await client.close()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error(f"HIPAA apply error: {exc}")
+
+    use_case = UpdateAgentConfigUseCase(repo, on_hipaa_enabled=_apply_hipaa_to_telnyx)
     try:
         await use_case.execute(agent_uuid, update)
     except AgentNotFoundError:

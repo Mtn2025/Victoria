@@ -1,9 +1,8 @@
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Callable, Optional
 
 from backend.domain.ports.persistence_port import AgentRepository, AgentNotFoundError
-from backend.interfaces.http.schemas.config_schemas import ConfigUpdate
 from backend.domain.value_objects.voice_config import VoiceConfig
 
 logger = logging.getLogger(__name__)
@@ -14,10 +13,18 @@ class UpdateAgentConfigUseCase:
     Handles the merging of partial configuration updates into the agent's JSON metadata fields,
     ensuring domain rules are respected and decoupling the HTTP interface from data mapping.
     """
-    def __init__(self, repository: AgentRepository):
+    def __init__(
+        self,
+        repository: AgentRepository,
+        on_hipaa_enabled: Optional[Callable] = None,
+    ):
         self.repository = repository
+        # Callback invoked (async, best-effort) when HIPAA is enabled.
+        # Injected from the interfaces layer to avoid infrastructure imports in the domain.
+        self._on_hipaa_enabled = on_hipaa_enabled
 
-    async def execute(self, agent_uuid: str, update: ConfigUpdate) -> None:
+    async def execute(self, agent_uuid: str, update: Any) -> None:
+        """Apply a partial config update to an agent."""
         agent = await self.repository.get_agent_by_uuid(agent_uuid)
         if not agent:
             raise AgentNotFoundError(f"Agent with UUID {agent_uuid} not found")
@@ -211,19 +218,8 @@ class UpdateAgentConfigUseCase:
             agent.metadata["connectivity_config"] = {**existing_conn, **conn_updates}
 
         # P2: HIPAA — si hipaaEnabledTelnyx cambia a True, notificar a Telnyx API
-        if conn_updates.get("hipaaEnabledTelnyx") is True:
-            asyncio.create_task(_apply_hipaa_to_telnyx())
+        # El callback se inyecta desde la capa de interfaces (nunca desde el dominio).
+        if conn_updates.get("hipaaEnabledTelnyx") is True and self._on_hipaa_enabled:
+            asyncio.create_task(self._on_hipaa_enabled())
 
         await self.repository.update_agent(agent)
-
-
-async def _apply_hipaa_to_telnyx() -> None:
-    """Aplica HIPAA mode en la cuenta Telnyx de forma async (best-effort)."""
-    try:
-        from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
-        client = TelnyxClient()
-        await client.configure_hipaa()
-        await client.close()
-    except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error(f"HIPAA apply error: {exc}")
