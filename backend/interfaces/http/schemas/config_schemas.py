@@ -34,6 +34,7 @@ class ConfigUpdate(BaseModel):
     dynamicVarsEnabled: Optional[bool] = None
     dynamicVars: Optional[str] = None
     mode: Optional[str] = None
+    startMode: Optional[str] = None  # 'speak-first' | 'listen-first' — quien inicia la conversación
     hallucination_blacklist: Optional[str] = None
     
     # Text-to-Speech

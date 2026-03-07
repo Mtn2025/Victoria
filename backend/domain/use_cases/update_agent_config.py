@@ -69,7 +69,7 @@ class UpdateAgentConfigUseCase:
             "max_tokens", "temperature", "responseLength", "conversationTone",
             "conversationFormality", "conversationPacing", "contextWindow",
             "frequencyPenalty", "presencePenalty", "toolChoice", "dynamicVarsEnabled",
-            "dynamicVars", "mode", "hallucination_blacklist",
+            "dynamicVars", "mode", "startMode", "hallucination_blacklist",
             "end_call_enabled", "end_call_phrases", "end_call_instructions"
         ]
         for field in llm_fields:

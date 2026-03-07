@@ -94,6 +94,7 @@ const initialState: ConfigState = {
         tokens: 1024,
         msg: 'Hola, ¿cómo estás?',
         mode: 'markdown',
+        startMode: 'speak-first',  // Modo de inicio de conversación
         prompt: 'Eres un asistente útil.',
 
         // Conversation Style
@@ -458,10 +459,12 @@ export const configSlice = createSlice({
                 if (data.llm_config.temperature !== undefined) state.browser.temp = data.llm_config.temperature
 
                 // Advanced LLM mapped fields (camelCase keys stored verbatim by backend)
+                // Note: 'mode' = LLM response mode ('markdown'/'text')
+                //       'startMode' = conversation start mode ('speak-first'/'listen-first')
                 const copyFields = ['responseLength', 'conversationTone', 'conversationFormality',
                     'conversationPacing', 'contextWindow', 'frequencyPenalty',
                     'presencePenalty', 'toolChoice', 'dynamicVarsEnabled',
-                    'dynamicVars', 'mode', 'hallucination_blacklist']
+                    'dynamicVars', 'mode', 'startMode', 'hallucination_blacklist']
                 copyFields.forEach(field => {
                     if (data.llm_config[field] !== undefined) {
                         (state.browser as any)[field] = data.llm_config[field]

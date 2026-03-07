@@ -34,7 +34,8 @@ export interface BrowserConfig {
     temp: number
     tokens: number
     msg: string
-    mode: 'markdown' | 'text' | 'speak-first' | 'listen-first'
+    mode: 'markdown' | 'text'      // Modo de respuesta del LLM
+    startMode: 'speak-first' | 'listen-first'  // Quién inicia la conversación
     prompt: string
 
     // Conversation Style

@@ -119,8 +119,8 @@ export const ModelSettings = () => {
                                 <div className="space-y-2">
                                     <Label>{t('model.start_mode_label')}</Label>
                                     <Select
-                                        value={config.mode}
-                                        onChange={(e) => handleChange('mode', e.target.value as 'speak-first' | 'listen-first')}
+                                        value={config.startMode}
+                                        onChange={(e) => handleChange('startMode', e.target.value as 'speak-first' | 'listen-first')}
                                     >
                                         <option value="speak-first">{t('model.start_mode_speak')}</option>
                                         <option value="listen-first">{t('model.start_mode_listen')}</option>

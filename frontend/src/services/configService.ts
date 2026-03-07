@@ -23,6 +23,7 @@ interface BackendConfigUpdate {
     dynamicVarsEnabled?: boolean
     dynamicVars?: string
     mode?: string
+    startMode?: 'speak-first' | 'listen-first'  // Modo de inicio de conversación
     hallucination_blacklist?: string
     // Voice
     voice_provider?: string
@@ -144,6 +145,7 @@ export const configService = {
         if (config.dynamicVarsEnabled !== undefined) payload.dynamicVarsEnabled = config.dynamicVarsEnabled
         if (config.dynamicVars !== undefined) payload.dynamicVars = config.dynamicVars
         if (config.mode !== undefined) payload.mode = config.mode
+        if ((config as any).startMode !== undefined) payload.startMode = (config as any).startMode
         if (config.hallucination_blacklist !== undefined) payload.hallucination_blacklist = config.hallucination_blacklist
 
         // Smart Hangup

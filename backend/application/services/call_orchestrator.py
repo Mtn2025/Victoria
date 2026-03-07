@@ -336,7 +336,10 @@ class CallOrchestrator:
             # STEP 7: Send initial greeting (FASE 3B)
             greeting_audio = None
             llm_config = getattr(agent, 'llm_config', {}) or {}
-            wait_for_greeting = llm_config.get('mode') == 'listen-first'
+            # 'startMode' es el campo canónico ('speak-first' | 'listen-first')
+            # Fallback a 'mode' para agentes creados antes del fix (retrocompatibilidad)
+            start_mode = llm_config.get('startMode') or llm_config.get('mode', 'speak-first')
+            wait_for_greeting = start_mode == 'listen-first'
 
             # Diagnostic: always log the first_message value at call start
             logger.info(
