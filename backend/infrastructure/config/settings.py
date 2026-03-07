@@ -18,17 +18,17 @@ class Settings(BaseSettings):
     AZURE_SPEECH_KEY: Optional[str] = None
     AZURE_SPEECH_REGION: str = "eastus"
 
-    # --- Telephony ---
+    # --- Telephony --- source of truth: variables de entorno, NUNCA hardcoded
     TWILIO_ACCOUNT_SID: Optional[str] = None
     TWILIO_AUTH_TOKEN: Optional[str] = None
-    
+    TWILIO_PHONE_NUMBER: Optional[str] = None   # +E.164 — ej: +15551234567
+
     TELNYX_API_KEY: Optional[str] = None
     TELNYX_API_BASE: str = "https://api.telnyx.com/v2"
     TELNYX_PUBLIC_KEY: Optional[str] = None
     TELNYX_CONNECTION_ID: Optional[str] = None
     TELNYX_PHONE_NUMBER: Optional[str] = None
-    # Webhook Security
-    VICTORIA_API_KEY: Optional[str] = None
+    BASE_URL: Optional[str] = None               # https://tu-dominio.com — requerido para webhooks
     WS_MEDIA_STREAM_PATH: str = "/ws/media-stream"
     
     # --- Database config (Punto A6) ---

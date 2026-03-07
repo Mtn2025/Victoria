@@ -36,20 +36,21 @@ class OutboundDialerService:
             raise ValueError(f"Unknown provider: {provider}")
 
     async def _create_twilio_call(self, to_number: str, config_dto: Any, amd_enabled: bool) -> Dict[str, Any]:
-        # Missing Twilio Account SID and Auth Token? Read from settings.
         account_sid = settings.TWILIO_ACCOUNT_SID
         auth_token = settings.TWILIO_AUTH_TOKEN
-        # Need a "from" number. Assuming TWILIO_PHONE_NUMBER exists or hardcode for now.
-        from_number = getattr(settings, "TWILIO_PHONE_NUMBER", "+1234567890")
+        from_number = settings.TWILIO_PHONE_NUMBER  # fuente única: env TWILIO_PHONE_NUMBER
 
         if not account_sid or not auth_token:
-            raise ValueError("Twilio credentials not configured")
+            raise ValueError("Twilio credentials not configured (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN)")
+        if not from_number:
+            raise ValueError("TWILIO_PHONE_NUMBER env var not configured")
+
+        base_url = settings.BASE_URL
+        if not base_url:
+            raise ValueError("BASE_URL env var not configured — required for Twilio webhooks")
+
 
         url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Calls.json"
-        
-        # The webhook that Twilio will hit when the call starts ringing/answered
-        # Important: Since it's outbound, when it's answered, it plays TwiML.
-        base_url = getattr(settings, "BASE_URL", "https://your-domain.ngrok.app")
         twiml_url = f"{base_url}/telephony/twilio/outbound-twiml?agent_id={config_dto.agent_id}"
 
         payload = {
@@ -120,8 +121,13 @@ class OutboundDialerService:
         from_number = (
             conn_cfg.get("callerIdTelnyx")
             or getattr(config_dto, "telnyx_phone_number", None)
-            or getattr(settings, "TELNYX_PHONE_NUMBER", "+1234567890")
+            or settings.TELNYX_PHONE_NUMBER  # fuente única: env TELNYX_PHONE_NUMBER
         )
+        if not from_number:
+            raise ValueError(
+                "Caller ID Telnyx no configurado: define TELNYX_PHONE_NUMBER en env "
+                "o callerIdTelnyx en la connectivity_config del agente"
+            )
         connection_id = (
             conn_cfg.get("telnyxConnectionId")
             or getattr(config_dto, "telnyx_connection_id", None)
