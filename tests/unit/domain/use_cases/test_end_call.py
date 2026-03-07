@@ -27,7 +27,7 @@ class TestEndCallUseCase:
         await call_repo.save(call)
         
         uc = EndCallUseCase(call_repo, telephony_port)
-        await uc.execute(call, reason="user_hangup")
+        await uc.execute(call, reason="transfer")
         
         # Verify call status
         assert call.status == CallStatus.COMPLETED

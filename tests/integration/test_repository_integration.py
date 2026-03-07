@@ -88,9 +88,9 @@ class TestConfigRepository:
     """Test config repository integration with AgentModel."""
     
     @pytest.mark.asyncio
-    async def test_get_config(self, mock_session_factory, seed_test_agent):
+    async def test_get_config(self, async_db_session, seed_test_agent):
         """Test retrieving config from database."""
-        repo = SQLAlchemyConfigRepository(mock_session_factory)
+        repo = SQLAlchemyConfigRepository(async_db_session)
         
         config = await repo.get_config(profile="test_agent")
         
@@ -102,17 +102,17 @@ class TestConfigRepository:
         assert config.async_tools is True
     
     @pytest.mark.asyncio
-    async def test_get_config_not_found(self, mock_session_factory):
+    async def test_get_config_not_found(self, async_db_session):
         """Test error when config profile doesn't exist."""
-        repo = SQLAlchemyConfigRepository(mock_session_factory)
+        repo = SQLAlchemyConfigRepository(async_db_session)
         
         with pytest.raises(ConfigNotFoundException):
             await repo.get_config(profile="nonexistent")
     
     @pytest.mark.asyncio
-    async def test_update_config(self, mock_session_factory, seed_test_agent):
+    async def test_update_config(self, async_db_session, seed_test_agent):
         """Test updating config in database."""
-        repo = SQLAlchemyConfigRepository(mock_session_factory)
+        repo = SQLAlchemyConfigRepository(async_db_session)
         
         updated = await repo.update_config(
             profile="test_agent",
@@ -127,9 +127,9 @@ class TestConfigRepository:
         assert config.voice_speed == 1.5
     
     @pytest.mark.asyncio
-    async def test_create_config(self, mock_session_factory):
+    async def test_create_config(self, async_db_session):
         """Test creating new config profile."""
-        repo = SQLAlchemyConfigRepository(mock_session_factory)
+        repo = SQLAlchemyConfigRepository(async_db_session)
         
         new_config = ConfigDTO(
             llm_provider="openai",

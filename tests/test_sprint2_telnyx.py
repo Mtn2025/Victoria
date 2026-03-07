@@ -99,7 +99,6 @@ class TestTelnyxDispatcher(unittest.TestCase):
                 "sess-1",
                 "cid-1",
                 self._make_request(),
-                None,
             )
         )
 
@@ -110,11 +109,11 @@ class TestTelnyxDispatcher(unittest.TestCase):
         The dispatcher map contains all events from the official Telnyx catalog
         (telnyx_call_architecture.md §4).
         """
-        # We inspect the _route_telnyx_event function source to check all events are
+        # We inspect the _dispatch_event function source to check all events are
         # mapped. Alternatively we can call the function and observe behavior.
         import inspect
-        from backend.interfaces.http.endpoints.telephony import _route_telnyx_event
-        source = inspect.getsource(_route_telnyx_event)
+        from backend.interfaces.http.endpoints.telephony import _dispatch_event
+        source = inspect.getsource(_dispatch_event)
 
         required_events = [
             "call.initiated",
@@ -138,7 +137,7 @@ class TestTelnyxDispatcher(unittest.TestCase):
             self.assertIn(
                 event,
                 source,
-                f"Event '{event}' not found in _route_telnyx_event dispatcher"
+                f"Event '{event}' not found in _dispatch_event dispatcher"
             )
 
     # ── call_session_id as correlator ────────────────────────────────────────

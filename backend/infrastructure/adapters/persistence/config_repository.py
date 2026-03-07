@@ -108,6 +108,15 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 current_analysis = dict(agent.analysis_config) if agent.analysis_config else {}
                 current_analysis[key] = value
                 agent.analysis_config = current_analysis
+            elif key in [
+                "responseLength", "conversationTone", "conversationFormality", "conversationPacing",
+                "contextWindow", "frequencyPenalty", "presencePenalty", "toolChoice",
+                "dynamicVarsEnabled", "dynamicVars", "mode", "startMode", "hallucination_blacklist",
+                "end_call_enabled", "end_call_phrases", "end_call_instructions"
+            ]:
+                current_llm = dict(agent.llm_config) if agent.llm_config else {}
+                current_llm[key] = value
+                agent.llm_config = current_llm
             elif key in ["concurrency_limit", "spend_limit_daily", "environment", "privacy_mode", "audit_log_enabled"]:
                 current_system = dict(agent.system_config) if agent.system_config else {}
                 current_system[key] = value
@@ -151,7 +160,8 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
                 "toolChoice": config.toolChoice,
                 "dynamicVarsEnabled": config.dynamicVarsEnabled,
                 "dynamicVars": config.dynamicVars,
-                "mode": config.mode,
+                "startMode": config.first_message_mode,
+                "mode": config.first_message_mode,
                 "hallucination_blacklist": config.hallucination_blacklist,
                 "end_call_enabled": config.end_call_enabled,
                 "end_call_phrases": config.end_call_phrases,
@@ -250,7 +260,7 @@ class SQLAlchemyConfigRepository(ConfigRepositoryPort):
             max_tokens=llm_config.get("max_tokens", 600),
             system_prompt=agent.system_prompt or "",
             first_message=agent.first_message or "",
-            first_message_mode=llm_config.get("mode", "text"),
+            first_message_mode=llm_config.get("startMode", llm_config.get("mode", "text")),
             responseLength=llm_config.get("responseLength"),
             conversationTone=llm_config.get("conversationTone"),
             conversationFormality=llm_config.get("conversationFormality"),

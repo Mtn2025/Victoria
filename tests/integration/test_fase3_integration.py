@@ -32,6 +32,11 @@ class TestFASE3Integration:
         mock_call = Mock()
         mock_agent = Mock()
         mock_agent.first_message = None
+        mock_agent.llm_config = {}
+        mock_agent.metadata = {}
+        mock_agent.flow_config = {}
+        mock_agent.analysis_config = {}
+        mock_agent.voice_config = Mock(provider="azure", name="en-US-JennyNeural", style="default", style_degree=1.0, speed=1.0, pitch=0, volume=100)
         mock_call.agent = mock_agent
         start_call_uc.execute = AsyncMock(return_value=mock_call)
         
@@ -81,6 +86,11 @@ class TestFASE3Integration:
         mock_call = Mock()
         mock_agent = Mock()
         mock_agent.first_message = None
+        mock_agent.llm_config = {}
+        mock_agent.metadata = {}
+        mock_agent.flow_config = {}
+        mock_agent.analysis_config = {}
+        mock_agent.voice_config = Mock(provider="azure", name="en-US-JennyNeural", style="default", style_degree=1.0, speed=1.0, pitch=0, volume=100)
         mock_call.agent = mock_agent
         start_call_uc.execute = AsyncMock(return_value=mock_call)
         
@@ -119,6 +129,11 @@ class TestFASE3Integration:
         mock_call = Mock()
         mock_agent = Mock()
         mock_agent.first_message = None
+        mock_agent.llm_config = {}
+        mock_agent.metadata = {}
+        mock_agent.flow_config = {}
+        mock_agent.analysis_config = {}
+        mock_agent.voice_config = Mock(provider="azure", name="en-US-JennyNeural", style="default", style_degree=1.0, speed=1.0, pitch=0, volume=100)
         mock_call.agent = mock_agent
         start_call_uc.execute = AsyncMock(return_value=mock_call)
         
@@ -156,6 +171,11 @@ class TestFASE3Integration:
         mock_call = Mock()
         mock_agent = Mock()
         mock_agent.first_message = None
+        mock_agent.llm_config = {}
+        mock_agent.metadata = {}
+        mock_agent.flow_config = {}
+        mock_agent.analysis_config = {}
+        mock_agent.voice_config = Mock(provider="azure", name="en-US-JennyNeural", style="default", style_degree=1.0, speed=1.0, pitch=0, volume=100)
         mock_call.agent = mock_agent
         start_call_uc.execute = AsyncMock(return_value=mock_call)
         
@@ -171,8 +191,12 @@ class TestFASE3Integration:
         
         await orchestrator.start_session("agent", "stream")
         
-        # Wait for idle timeout
-        await asyncio.sleep(2)
+        # Ensure we are in LISTENING state for idle ticks to count
+        await orchestrator.fsm.transition(ConversationState.LISTENING, "force_test")
+        orchestrator.last_interaction_time = 0
+        
+        # Wait for idle timeout and control loop dispatch (monitor runs every 0.5s, control loop polls every 1s)
+        await asyncio.sleep(3)
         
         # Verify orchestrator stopped automatically
         assert not orchestrator.active

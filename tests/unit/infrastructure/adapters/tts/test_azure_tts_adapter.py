@@ -55,7 +55,24 @@ class TestAzureTTSAdapter:
             
             mock_future = MagicMock()
             mock_future.get.return_value = mock_result
-            mock_synth_instance.speak_ssml_async.return_value = mock_future
+            
+            def side_effect_speak(*args, **kwargs):
+                # Retrieve the callbacks registered by the adapter
+                on_synthesizing = mock_synth_instance.synthesizing.connect.call_args[0][0]
+                on_completed = mock_synth_instance.synthesis_completed.connect.call_args[0][0]
+                
+                # Fire the synthesizing event
+                evt = MagicMock()
+                evt.result.audio_data = b"12345678" * 1000
+                on_synthesizing(evt)
+                
+                # Fire the completed event to break the loop
+                comp_evt = MagicMock()
+                on_completed(comp_evt)
+                
+                return mock_future
+                
+            mock_synth_instance.speak_ssml_async.side_effect = side_effect_speak
             
             adapter = AzureTTSAdapter()
             vc = VoiceConfig(name="test")

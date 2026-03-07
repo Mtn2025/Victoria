@@ -28,14 +28,15 @@ async def async_db_session() -> AsyncGenerator[AsyncSession, None]:
     Creates a fresh in-memory SQLite database for each test function.
     Yields an AsyncSession.
     """
-    # Use aiosqlite for async sqlite
-    from sqlalchemy.pool import StaticPool
-    # Use aiosqlite for async sqlite with StaticPool for shared memory state
+    from sqlalchemy.pool import NullPool
+    
+    # Use aiosqlite for async sqlite with file to avoid cross-thread sharing issues MemoryDB has
+    test_db_url = "sqlite+aiosqlite:///test_test_e2e.db"
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:", 
+        test_db_url,
         echo=False,
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool
+        poolclass=NullPool
     )
     
     # Create Tables
@@ -50,9 +51,10 @@ async def async_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         yield session
         await session.rollback() # Rollback to ensure clean slate if needed, though memory DB is fresh? 
-        # Actually with :memory:, each engine connect might be fresh IF we recreated engine.
-        # But we create engine inside fixture. Scope is function. 
-        # So each test gets a NEW engine = NEW in-memory DB.
+        
+    # Drop Tables to ensure isolation when using file-based DB
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         
     await engine.dispose()
 

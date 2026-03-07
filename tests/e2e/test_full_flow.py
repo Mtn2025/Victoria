@@ -15,7 +15,19 @@ def override_get_db_session(async_db_session: AsyncSession):
         yield async_db_session
     
     app.dependency_overrides[get_db_session] = _get_db_session_override
-    yield
+    
+    # Also patch AsyncSessionLocal for places that instantiate it directly (like endpoints)
+    class DummySessionContextManager:
+        def __init__(self, *args, **kwargs):
+            self.session = async_db_session
+        async def __aenter__(self):
+            return self.session
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    with patch("backend.infrastructure.database.session.AsyncSessionLocal", side_effect=DummySessionContextManager):
+        yield
+
     app.dependency_overrides.clear()
 
 @pytest.mark.asyncio
@@ -70,6 +82,10 @@ async def test_e2e_full_call_flow(async_db_session: AsyncSession, override_get_d
 
         # STT Mock
         mock_stt_instance = MockSTT.return_value
+        
+        mock_stt_session = MagicMock()
+        mock_stt_session.close = AsyncMock()
+        mock_stt_instance.start_stream = AsyncMock(return_value=mock_stt_session)
         
         async def mock_stt_stream():
             yield ("Hello World", True)

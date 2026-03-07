@@ -144,8 +144,11 @@ class TestTelephonyEndpoints:
     
     @pytest.fixture
     def mock_telnyx_adapter(self):
-        """Mock the global telnyx_adapter in telephony module."""
-        with patch("backend.interfaces.http.endpoints.telephony.telnyx_adapter") as mock_adapter:
+        """Mock the TelnyxClient in telephony module."""
+        with patch("backend.interfaces.http.endpoints.telephony.TelnyxClient") as MockClient, \
+             patch("backend.interfaces.http.endpoints.telephony.verify_telnyx_signature", new_callable=AsyncMock) as mock_verify:
+            mock_verify.return_value = True
+            mock_adapter = MockClient.return_value
             # Setup AsyncMock for methods
             mock_adapter.answer_call = AsyncMock()
             mock_adapter.start_streaming = AsyncMock()
@@ -153,30 +156,44 @@ class TestTelephonyEndpoints:
 
     def test_twilio_webhook(self, client):
         """Test Twilio incoming call webhook logic."""
-        response = client.post("/telephony/twilio/incoming-call", headers={"Host": "testserver"})
+        from backend.infrastructure.config.settings import settings
+        response = client.post("/api/telephony/twilio/incoming-call", headers={"Host": "testserver"})
         assert response.status_code == 200
         assert "application/xml" in response.headers["content-type"]
-        assert "<Stream url=\"wss://testserver/ws/media-stream\" />" in response.text
+        assert f"<Stream url=\"wss://testserver{settings.WS_MEDIA_STREAM_PATH}\" />" in response.text
 
-    def test_telnyx_webhook_initiated(self, client, mock_telnyx_adapter):
+    @pytest.mark.asyncio
+    @patch("backend.interfaces.http.endpoints.telephony.asyncio.create_task")
+    async def test_telnyx_webhook_initiated(self, mock_create_task, client, mock_telnyx_adapter, async_db_session):
         """Test Telnyx call.initiated event triggers answer."""
         payload = {
             "data": {
                 "event_type": "call.initiated",
-                "payload": {"call_control_id": "call-123"}
+                "payload": {
+                    "call_control_id": "call-123",
+                    "direction": "inbound"
+                }
             }
         }
-        # Authorized request
         headers = {"X-Victoria-Key": "victoria-secret-key-change-me"} # Default secret
-        response = client.post("/telephony/telnyx/call-control", json=payload, headers=headers)
-        
+        response = client.post("/api/telephony/telnyx/call-control", json=payload, headers=headers)
         assert response.status_code == 200
-        # Check if background task was added. 
-        # Integration tests with TestClient usually execute background tasks?
-        # Starlette/FastAPI TestClient runs background tasks synchronously after response.
+        
+        # Manually run the dispatched coroutine
+        coro = mock_create_task.call_args[0][0]
+
+        class MockSessionMaker:
+            async def __aenter__(self): return async_db_session
+            async def __aexit__(self, exc_type, exc_val, exc_tb): pass
+
+        with patch("backend.infrastructure.database.session.AsyncSessionLocal", return_value=MockSessionMaker()):
+            await coro
+            
         mock_telnyx_adapter.answer_call.assert_called_once_with("call-123")
 
-    def test_telnyx_webhook_answered(self, client, mock_telnyx_adapter):
+    @pytest.mark.asyncio
+    @patch("backend.interfaces.http.endpoints.telephony.asyncio.create_task")
+    async def test_telnyx_webhook_answered(self, mock_create_task, client, mock_telnyx_adapter, async_db_session):
         """Test Telnyx call.answered event triggers streaming."""
         payload = {
             "data": {
@@ -188,9 +205,19 @@ class TestTelephonyEndpoints:
             }
         }
         headers = {"X-Victoria-Key": "victoria-secret-key-change-me"}
-        response = client.post("/telephony/telnyx/call-control", json=payload, headers=headers)
-        
+        response = client.post("/api/telephony/telnyx/call-control", json=payload, headers=headers)
         assert response.status_code == 200
+        
+        # Manually run the dispatched coroutine
+        coro = mock_create_task.call_args[0][0]
+        
+        class MockSessionMaker:
+            async def __aenter__(self): return async_db_session
+            async def __aexit__(self, exc_type, exc_val, exc_tb): pass
+            
+        with patch("backend.infrastructure.database.session.AsyncSessionLocal", return_value=MockSessionMaker()):
+            await coro
+        
         mock_telnyx_adapter.start_streaming.assert_called_once()
         args = mock_telnyx_adapter.start_streaming.call_args
         assert args[0][0] == "call-123"
