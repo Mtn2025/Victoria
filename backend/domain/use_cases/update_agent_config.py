@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Dict, Any
 
@@ -117,10 +118,9 @@ class UpdateAgentConfigUseCase:
             "pacing_response_delay_ms", "pacing_wait_for_greeting",
             "pacing_hyphenation", "pacing_end_call_phrases",
             "enable_backchannel", "idle_message",
-            "telnyx_noise_suppression", "telnyx_amd_premium", 
-            "telnyx_amd_premium_silence_ms", "telnyx_amd_premium_greeting_ms",
-            "telnyx_record_s3", "telnyx_siprec_dest", 
-            "telnyx_transfer_number", "telnyx_fork_udp"
+            # DTMF + Gather (flow_config Telnyx)
+            "dtmf_enabled", "dtmf_map",
+            "gather_ai_enabled", "gather_ai_greeting", "gather_ai_voice",
         ]
         for field in flow_fields:
             val = getattr(update, field, None)
@@ -185,14 +185,18 @@ class UpdateAgentConfigUseCase:
             existing_tools = agent.metadata.get("tools_config") or {}
             agent.metadata["tools_config"] = {**existing_tools, **tools_updates}
 
-        # Connectivity / Provider Config (Twilio / Telnyx) — persists all 12 TelnyxConnectivity fields
+        # Connectivity / Provider Config (Twilio / Telnyx) — persists all TelnyxConnectivity fields
         conn_updates: Dict[str, Any] = {}
         connectivity_fields = [
-            # TelnyxConnectivity (12 fields from TelnyxConfig Redux slice)
+            # TelnyxConnectivity (credenciales + SIP + features — 15 fields)
             "telnyxConnectionId", "callerIdTelnyx", "sipTrunkUriTelnyx",
             "sipAuthUserTelnyx", "sipAuthPassTelnyx", "fallbackNumberTelnyx",
             "geoRegionTelnyx", "recordingChannelsTelnyx", "enableRecordingTelnyx",
             "hipaaEnabledTelnyx", "dtmfListeningEnabledTelnyx", "amdConfig",
+            # S3 Recording (P1)
+            "telnyxRecordS3", "telnyxS3Bucket",
+            # SIPREC / Fork / Transfer (P0 — pertenecen a connectivity, no a flow)
+            "telnyxSiprecDest", "telnyxTransferNumber",
         ]
         for field in connectivity_fields:
             val = getattr(update, field, None)
@@ -206,4 +210,20 @@ class UpdateAgentConfigUseCase:
             existing_conn = agent.metadata.get("connectivity_config") or {}
             agent.metadata["connectivity_config"] = {**existing_conn, **conn_updates}
 
+        # P2: HIPAA — si hipaaEnabledTelnyx cambia a True, notificar a Telnyx API
+        if conn_updates.get("hipaaEnabledTelnyx") is True:
+            asyncio.create_task(_apply_hipaa_to_telnyx())
+
         await self.repository.update_agent(agent)
+
+
+async def _apply_hipaa_to_telnyx() -> None:
+    """Aplica HIPAA mode en la cuenta Telnyx de forma async (best-effort)."""
+    try:
+        from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
+        client = TelnyxClient()
+        await client.configure_hipaa()
+        await client.close()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(f"HIPAA apply error: {exc}")

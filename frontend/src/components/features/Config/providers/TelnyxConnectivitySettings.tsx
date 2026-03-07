@@ -299,6 +299,31 @@ export const TelnyxConnectivitySettings = () => {
                                 />
                             </div>
                         </div>
+                        {/* S3 Direct Recording (P1) */}
+                        {telnyx.enableRecordingTelnyx && (
+                            <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
+                                <label className="flex items-center justify-between">
+                                    <span className="text-xs text-slate-300">Grab. Directa a S3</span>
+                                    <input
+                                        type="checkbox"
+                                        aria-label="Telnyx Record S3"
+                                        checked={telnyx.telnyxRecordS3}
+                                        onChange={(e) => updateTelnyx('telnyxRecordS3', e.target.checked)}
+                                        className="w-4 h-4 rounded border-white/10 bg-black/20 text-pink-500"
+                                    />
+                                </label>
+                                {telnyx.telnyxRecordS3 && (
+                                    <Input
+                                        aria-label="Telnyx S3 Bucket URL"
+                                        value={telnyx.telnyxS3Bucket}
+                                        onChange={(e) => updateTelnyx('telnyxS3Bucket', e.target.value)}
+                                        placeholder="s3://mi-bucket/grabaciones/"
+                                        className="text-xs font-mono"
+                                    />
+                                )}
+                                <p className="text-[9px] text-slate-500">Sube el WAV/MP3 a S3 directo sin pasar por FastAPI. Requiere IAM role configurado en Telnyx.</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -347,6 +372,32 @@ export const TelnyxConnectivitySettings = () => {
                                         <option value="detect_hangup">{t('connectivity.amd_detect_hangup')}</option>
                                         <option value="detect_message_end">{t('connectivity.amd_detect_message')}</option>
                                     </Select>
+                                </div>
+
+                                {/* SIPREC / Forking (P0) */}
+                                <div className="mt-2 pt-2 border-t border-white/5">
+                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-2">SIPREC / UDP Fork</label>
+                                    <Input
+                                        aria-label="Telnyx SIPREC Destination"
+                                        value={telnyx.telnyxSiprecDest}
+                                        onChange={(e) => updateTelnyx('telnyxSiprecDest', e.target.value)}
+                                        placeholder="sip:grabadora@banco.com:5060  ó  192.168.1.100:5004"
+                                        className="text-xs font-mono"
+                                    />
+                                    <p className="text-[9px] text-slate-500 mt-1">SIP URI → SIPREC compliance. IP:puerto → UDP forking para regulaciones bancarias.</p>
+                                </div>
+
+                                {/* Agent Transfer Bridge (P1) */}
+                                <div className="mt-2 pt-2 border-t border-white/5">
+                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-2">Agent Handoff (Transfer)</label>
+                                    <Input
+                                        aria-label="Telnyx Transfer Number"
+                                        value={telnyx.telnyxTransferNumber}
+                                        onChange={(e) => updateTelnyx('telnyxTransferNumber', e.target.value)}
+                                        placeholder="+1234567890"
+                                        className="text-xs font-mono"
+                                    />
+                                    <p className="text-[9px] text-slate-500 mt-1">La IA puenteará la llamada a este número cuando decida transferir.</p>
                                 </div>
                             </div>
                         </div>

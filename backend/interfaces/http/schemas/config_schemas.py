@@ -114,17 +114,20 @@ class ConfigUpdate(BaseModel):
     end_call_phrases: Optional[List[str]] = None
     end_call_instructions: Optional[str] = None
 
-    # Telnyx Advanced Voice API (BrowserConfig fields)
-    telnyx_noise_suppression: Optional[bool] = None
-    telnyx_amd_premium: Optional[bool] = None
-    telnyx_amd_premium_silence_ms: Optional[int] = None
-    telnyx_amd_premium_greeting_ms: Optional[int] = None
-    telnyx_record_s3: Optional[bool] = None
-    telnyx_siprec_dest: Optional[str] = None
-    telnyx_transfer_number: Optional[str] = None
-    telnyx_fork_udp: Optional[str] = None
+    # Telnyx Advanced Voice API (Legacy / Deprecated — kept for backward-compat)
+    # NOTE: telnyx_noise_suppression → siempre activo en telnyx_client.py (start_noise_suppression)
+    # NOTE: telnyx_amd_premium* → reemplazado por amdConfig en connectivity_config
+    telnyx_noise_suppression: Optional[bool] = None  # deprecated
+    telnyx_amd_premium: Optional[bool] = None         # deprecated
+    telnyx_amd_premium_silence_ms: Optional[int] = None  # deprecated
+    telnyx_amd_premium_greeting_ms: Optional[int] = None  # deprecated
+    # S3 Recording — ahora en connectivity_config
+    telnyx_record_s3: Optional[bool] = None           # legacy key (field→telnyxRecordS3)
+    telnyx_siprec_dest: Optional[str] = None          # legacy key (field→telnyxSiprecDest)
+    telnyx_transfer_number: Optional[str] = None      # legacy key (field→telnyxTransferNumber)
+    telnyx_fork_udp: Optional[str] = None             # legacy key
 
-    # Telnyx Connectivity Config (TelnyxConfig slice — 12 fields)
+    # Telnyx Connectivity Config (TelnyxConfig Redux slice — 16 fields)
     telnyxConnectionId: Optional[str] = None
     callerIdTelnyx: Optional[str] = None
     sipTrunkUriTelnyx: Optional[str] = None
@@ -137,6 +140,11 @@ class ConfigUpdate(BaseModel):
     hipaaEnabledTelnyx: Optional[bool] = None
     dtmfListeningEnabledTelnyx: Optional[bool] = None
     amdConfig: Optional[str] = None  # 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end'
+    # S3 + SIPREC + Transfer (P0/P1 fields — en connectivity_config)
+    telnyxRecordS3: Optional[bool] = None
+    telnyxS3Bucket: Optional[str] = None      # e.g. 's3://mi-bucket/grabaciones/'
+    telnyxSiprecDest: Optional[str] = None    # sip:... o ip:port
+    telnyxTransferNumber: Optional[str] = None  # número para bridge/transfer manual
 
     # Tools Config (shared across all profiles)
     tool_server_url: Optional[str] = None

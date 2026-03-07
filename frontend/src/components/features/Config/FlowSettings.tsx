@@ -102,72 +102,33 @@ export const FlowSettings = () => {
                         <div className="flex items-center gap-2">
                             <Voicemail className="w-4 h-4 text-amber-400" />
                             <span className="text-sm font-bold text-amber-400 tracking-wider">
-                                AMD PREMIUM (TELNYX)
+                                AMD / RUIDO (TELNYX)
                             </span>
                         </div>
                     }
                 >
-                    <div className="space-y-6">
-                        <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 text-center mb-4">
-                            <AlertCircle className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                            <h4 className="text-xs font-bold text-amber-400 mb-1">Motor Deep Learning Nativo</h4>
-                            <p className="text-[10px] text-amber-500/80">
-                                Evaluado directo en las antenas de Telnyx sin latencia hacia nuestro servidor.
-                            </p>
+                    <div className="space-y-3">
+                        {/* Info: AMD configurado en Connectivity */}
+                        <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                            <div className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="text-xs font-bold text-amber-400 mb-1">AMD gestionado en Conectividad</h4>
+                                    <p className="text-[10px] text-amber-500/80">
+                                        La detección de buzón (AMD) se configura en
+                                        <strong className="text-amber-300 mx-1">Conectividad → Features &amp; Call Options → AMD Config</strong>.
+                                        Ofrece 4 modos nativos de Telnyx: detect, detect_hangup, detect_message_end.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-
-                        {/* Noise Suppression */}
-                        <div className="flex items-center justify-between bg-emerald-900/20 p-3 rounded-lg border border-emerald-700/50 mb-4">
+                        {/* Info: Noise Suppression automático */}
+                        <div className="flex items-center justify-between bg-emerald-900/20 p-3 rounded-lg border border-emerald-700/50">
                             <div>
-                                <span className="text-xs font-bold text-emerald-400 block">Supresión de Ruido Dinámica</span>
-                                <span className="text-[10px] text-slate-500">Limpia tráfico y viento antes de que la IA escuche.</span>
+                                <span className="text-xs font-bold text-emerald-400 block">Supresión de Ruido Automática</span>
+                                <span className="text-[10px] text-slate-500">Activa siempre en Telnyx gracias al motor nativo de red. Sin configuración adicional.</span>
                             </div>
-                            <input
-                                type="checkbox"
-                                aria-label="Telnyx Noise Suppression"
-                                checked={browser.telnyxNoiseSuppression}
-                                onChange={(e) => update('telnyxNoiseSuppression', e.target.checked)}
-                                className="toggle-checkbox"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-                            <div>
-                                <span className="text-xs font-bold text-slate-300 block">Activar AMD Premium</span>
-                                <span className="text-[10px] text-slate-500">Detecta buzones, pitidos y faxes con milisegundos de precisión.</span>
-                            </div>
-                            <input
-                                type="checkbox"
-                                aria-label="Telnyx AMD Premium"
-                                checked={browser.telnyxAmdPremium}
-                                onChange={(e) => update('telnyxAmdPremium', e.target.checked)}
-                                className="toggle-checkbox"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Silencio de Espera (ms)</label>
-                                <Input
-                                    type="number"
-                                    aria-label="AMD Premium Silence"
-                                    step="100" min="500" max="10000"
-                                    value={browser.telnyxAmdPremiumSilenceMs}
-                                    onChange={(e) => update('telnyxAmdPremiumSilenceMs', parseInt(e.target.value) || 2000)}
-                                />
-                                <p className="text-[9px] text-slate-500 mt-1">Tiempo tras el hola (Default 2000).</p>
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Límite Saludo (ms)</label>
-                                <Input
-                                    type="number"
-                                    aria-label="AMD Premium Greeting"
-                                    step="100" min="1000" max="15000"
-                                    value={browser.telnyxAmdPremiumGreetingMs}
-                                    onChange={(e) => update('telnyxAmdPremiumGreetingMs', parseInt(e.target.value) || 5000)}
-                                />
-                                <p className="text-[9px] text-slate-500 mt-1">Max largo del contestador (Default 5000).</p>
-                            </div>
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-900/40 px-2 py-1 rounded">ACTIVO</span>
                         </div>
                     </div>
                 </Accordion>

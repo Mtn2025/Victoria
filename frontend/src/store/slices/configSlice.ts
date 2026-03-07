@@ -258,6 +258,12 @@ const initialState: ConfigState = {
         amdConfig: 'disabled',
         interruptRMS: 1000,
 
+        // S3 Direct Recording + SIPREC/Transfer (P0/P1)
+        telnyxRecordS3: false,
+        telnyxS3Bucket: '',
+        telnyxSiprecDest: '',
+        telnyxTransferNumber: '',
+
         // Campaigns / Integrations
         crmEnabled: false,
         webhookUrl: '',
@@ -650,6 +656,12 @@ export const configSlice = createSlice({
 
                     if (conn.amdConfig !== undefined) state.telnyx.amdConfig = conn.amdConfig
                     if (conn.interruptRMS !== undefined) state.telnyx.interruptRMS = conn.interruptRMS
+
+                    // P0/P1: S3 Recording + SIPREC/Fork + Transfer
+                    if (conn.telnyxRecordS3 !== undefined) state.telnyx.telnyxRecordS3 = conn.telnyxRecordS3
+                    if (conn.telnyxS3Bucket !== undefined) state.telnyx.telnyxS3Bucket = conn.telnyxS3Bucket
+                    if (conn.telnyxSiprecDest !== undefined) state.telnyx.telnyxSiprecDest = conn.telnyxSiprecDest
+                    if (conn.telnyxTransferNumber !== undefined) state.telnyx.telnyxTransferNumber = conn.telnyxTransferNumber
                 }
             }
         })

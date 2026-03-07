@@ -97,54 +97,95 @@ class OutboundDialerService:
             return tw_data
 
     async def _create_telnyx_call(self, to_number: str, config_dto: Any, amd_enabled: bool, agent_id: str) -> Dict[str, Any]:
+        """
+        Crea una llamada outbound Telnyx vía SDK oficial.
+
+        Lee de connectivity_config:
+          - amdConfig       → answering_machine_detection (4 opciones Telnyx)
+          - geoRegionTelnyx → geo_region del punto de presencia
+          - callerIdTelnyx  → from number override del agente
+          - telnyxConnectionId → connection_id override del agente
+        """
+        from backend.infrastructure.adapters.telephony.telnyx_client import TelnyxClient
+        import telnyx
+
         api_key = settings.TELNYX_API_KEY
         if not api_key:
             raise ValueError("Telnyx API Key not configured")
 
-        url = f"{settings.TELNYX_API_BASE}/calls"
-        # 1. Prefer agent-specific config from DB, 2. Fallback to Global Settings
-        from_number = getattr(config_dto, "telnyx_phone_number", None) or getattr(settings, "TELNYX_PHONE_NUMBER", "+1234567890")
-        connection_id = getattr(config_dto, "telnyx_connection_id", None) or settings.TELNYX_CONNECTION_ID
-        
-        # Strip invisible characters or trailing spaces from UI copy-paste
+        # ── Resolver credenciales ──────────────────────────────────────────────
+        # connectivity_config es un dict JSON del agente
+        conn_cfg: dict = getattr(config_dto, "connectivity_config", None) or {}
+
+        from_number = (
+            conn_cfg.get("callerIdTelnyx")
+            or getattr(config_dto, "telnyx_phone_number", None)
+            or getattr(settings, "TELNYX_PHONE_NUMBER", "+1234567890")
+        )
+        connection_id = (
+            conn_cfg.get("telnyxConnectionId")
+            or getattr(config_dto, "telnyx_connection_id", None)
+            or settings.TELNYX_CONNECTION_ID
+        )
         if connection_id:
             connection_id = str(connection_id).strip()
 
-        payload = {
+        # ── Payload base ───────────────────────────────────────────────────────
+        payload: dict = {
             "to": to_number,
             "from": from_number,
             "connection_id": connection_id,
         }
-        
-        logger.info(f"TELNYX PAYLOAD GENERATED: {payload}")
 
-        # --- FLOW CONFIG: Telnyx AMD ---
-        if amd_enabled:
-            payload["answering_machine_detection"] = "detect" # or "detect_message_end"
-            # Could map sensitivity to `answering_machine_detection_config`
+        # ── AMD granular (P0) ──────────────────────────────────────────────────
+        # Lee amdConfig de connectivity_config (4 opciones Telnyx reales):
+        # "disabled" | "detect" | "detect_hangup" | "detect_message_end"
+        amd_config = conn_cfg.get("amdConfig", "disabled")
+        if amd_config and amd_config != "disabled":
+            payload["answering_machine_detection"] = amd_config
+            logger.info(f"TELNYX OUTBOUND: AMD={amd_config!r}")
+        elif amd_enabled:
+            # Backward-compat: legacy flag booleano → detect básico
+            payload["answering_machine_detection"] = "detect"
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        # ── Geo Region (P0) ─────────────────────────────────────────────────────
+        geo_region = conn_cfg.get("geoRegionTelnyx")
+        if geo_region and geo_region != "global":
+            # Telnyx acepta: "us-central", "us-east", etc.
+            payload["media_region"] = geo_region
+            logger.info(f"TELNYX OUTBOUND: geo_region={geo_region!r}")
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, headers=headers, json=payload)
-            if resp.status_code >= 400:
-                logger.error(f"Telnyx Call creation failed for Connection ID [{connection_id}]: {resp.text}")
-                raise RuntimeError(f"Telnyx API error: {resp.text}")
-                
-            tx_data = resp.json()
-            call_control_id = tx_data.get("data", {}).get("call_control_id")
-            if call_control_id:
-                try:
-                    await self.start_call_uc.execute(
-                        agent_id=agent_id,
-                        call_id_value=call_control_id,
-                        from_number=from_number,
-                        to_number=to_number
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to record Telnyx outbound call {call_control_id} in DB: {e}")
+        logger.info(f"TELNYX PAYLOAD GENERATED: { {k: v for k, v in payload.items() if k != 'from'} }")
 
-            return tx_data
+        # ── Crear llamada vía SDK oficial (evita httpx crudo) ─────────────────
+        try:
+            client = TelnyxClient(api_key=api_key)
+            result = await client._run(
+                client._sdk.calls.create(**payload),
+                label=f"calls.create({to_number})",
+            )
+            await client.close()
+
+            if result is None:
+                raise RuntimeError("Telnyx SDK calls.create() returned None — check API key/connection_id")
+
+            tx_data = result.model_dump() if hasattr(result, "model_dump") else dict(result)
+            call_control_id = (tx_data.get("data") or {}).get("call_control_id") or getattr(result, "call_control_id", None)
+
+        except Exception as exc:
+            logger.error(f"Telnyx SDK call creation failed: {exc}")
+            raise RuntimeError(f"Telnyx call creation error: {exc}") from exc
+
+        # ── Registrar en BD ───────────────────────────────────────────────────
+        if call_control_id:
+            try:
+                await self.start_call_uc.execute(
+                    agent_id=agent_id,
+                    call_id_value=str(call_control_id),
+                    from_number=from_number,
+                    to_number=to_number,
+                )
+            except Exception as e:
+                logger.error(f"Failed to record Telnyx outbound call {call_control_id} in DB: {e}")
+
+        return tx_data if isinstance(tx_data, dict) else {"data": {"call_control_id": call_control_id}}

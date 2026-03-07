@@ -179,24 +179,76 @@ class TelnyxClient(TelephonyPort):
             pass  # Non-critical — failure is silent
 
     async def start_recording(
-        self, call_control_id: str, channels: str = "dual"
+        self, call_control_id: str, channels: str = "dual",
+        s3_destination: Optional[str] = None,
     ) -> None:
-        """Start call recording in MP3 format."""
+        """Start call recording in MP3 format.
+
+        Args:
+            channels:        'mono' or 'dual'
+            s3_destination:  Optional S3 URL (s3://bucket/prefix/) for direct upload.
+                             When set, Telnyx writes directly to S3 without intermediary.
+        """
         if not self.api_key:
             return
+
+        kwargs: dict = {
+            "format": "mp3",
+            "channels": channels,
+            "play_beep": False,
+            "command_id": self._cid("rec", call_control_id),
+        }
+        if s3_destination:
+            kwargs["s3_destination"] = s3_destination
 
         result = await self._run(
             self._sdk.calls.actions.record_start(
                 call_control_id,
-                format="mp3",
-                channels=channels,
-                play_beep=False,
-                command_id=self._cid("rec", call_control_id),
+                **kwargs,
             ),
-            label=f"record_start({call_control_id})",
+            label=f"record_start({call_control_id}, s3={bool(s3_destination)})",
         )
         if result is not None:
-            logger.info(f"☎️ [TelnyxClient] Recording started: {call_control_id} [{channels}]")
+            logger.info(
+                f"☎️ [TelnyxClient] Recording started: {call_control_id} "
+                f"[{channels}]{'  → S3' if s3_destination else ''}"
+            )
+
+    async def configure_hipaa(self, profile_id: Optional[str] = None) -> None:
+        """
+        P2: Habilita HIPAA compliance en la cuenta/perfil Telnyx.
+        Llama a PUT /voice/settings para activar hipaa_mode.
+
+        IMPORTANT: Este es un cambio a nivel de cuenta, no de llamada individual.
+        Llama solo una vez cuando hipaaEnabledTelnyx cambia, no en cada llamada.
+
+        Reference: Telnyx Voice Settings API
+        """
+        if not self.api_key:
+            return
+
+        try:
+            # La API Telnyx de voz settings requiere httpx crudo porque
+            # el SDK 4.x no tiene binding para este endpoint todavía.
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
+            payload = {"data": {"type": "voice_settings", "attributes": {"hipaa_mode": True}}}
+            async with httpx.AsyncClient() as http_client:
+                resp = await http_client.put(
+                    f"{self.base_url}/voice/settings",
+                    headers=headers,
+                    json=payload,
+                    timeout=10.0,
+                )
+                if resp.status_code in (200, 201, 204):
+                    logger.info(f"☎️ [TelnyxClient] 🔒 HIPAA mode enabled on account")
+                else:
+                    logger.warning(f"☎️ [TelnyxClient] HIPAA settings returned {resp.status_code}: {resp.text[:200]}")
+        except Exception as exc:
+            logger.error(f"[TelnyxClient] configure_hipaa error: {exc}")
 
     async def end_call(self, call_id: CallId) -> None:
         """Hang up an active call (TelephonyPort interface)."""

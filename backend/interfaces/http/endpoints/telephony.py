@@ -348,6 +348,7 @@ async def _handle_answered(payload, session_id, cid, request, call_repo):
         logger.error(f"☄️ [TELNYX] [{session_id}] DB (answered) error: {exc}")
 
     await _start_recording_if_enabled(cid, session_id, call_repo)
+    await _start_siprec_if_enabled(cid, session_id, call_repo)
 
     # B-10: trigger gather_using_ai if enabled in agent config
     if config and getattr(config, "gather_ai_enabled", False):
@@ -380,10 +381,46 @@ async def _start_recording_if_enabled(cid: str, session_id: str, call_repo) -> N
             conn = getattr(call.agent, "connectivity_config", {}) or {}
             if conn.get("enableRecordingTelnyx", False):
                 channels = conn.get("recordingChannelsTelnyx", "dual")
-                logger.info(f"☎️ [TELNYX] [{session_id}] 📼 Starting recording ({channels})")
-                await TelnyxClient().start_recording(cid, channels)
+                # S3 direct upload si el agente lo tiene configurado
+                s3_destination = None
+                if conn.get("telnyxRecordS3", False):
+                    s3_bucket = conn.get("telnyxS3Bucket", "").strip()
+                    if s3_bucket:
+                        s3_destination = s3_bucket if s3_bucket.startswith("s3://") else f"s3://{s3_bucket}"
+                logger.info(
+                    f"☎️ [TELNYX] [{session_id}] 📼 Starting recording "
+                    f"({channels}){' → S3' if s3_destination else ''}"
+                )
+                await TelnyxClient().start_recording(cid, channels, s3_destination=s3_destination)
     except Exception as exc:
         logger.error(f"☎️ [TELNYX] [{session_id}] Recording start error: {exc}")
+
+
+
+async def _start_siprec_if_enabled(cid: str, session_id: str, call_repo) -> None:
+    """
+    P0: Si telnyxSiprecDest está configurado en el agente, dispara SIPREC/fork.
+    Admite tanto destinos SIPREC (sip:...) como UDP (ip:port).
+    """
+    from backend.domain.value_objects.call_id import CallId
+    try:
+        call = await call_repo.get_by_id(CallId(cid))
+        if call and hasattr(call, "agent") and call.agent:
+            conn = getattr(call.agent, "connectivity_config", {}) or {}
+            siprec_dest = conn.get("telnyxSiprecDest", "").strip()
+            if not siprec_dest:
+                return
+
+            client = TelnyxClient()
+            # Si el destino es una URI SIP → SIPREC; si es IP:port → UDP fork
+            if siprec_dest.lower().startswith("sip:"):
+                await client.start_siprec(cid, siprec_dest)
+                logger.info(f"☎️ [TELNYX] [{session_id}] 🎙️ SIPREC started → {siprec_dest}")
+            else:
+                await client.start_forking(cid, siprec_dest)
+                logger.info(f"☎️ [TELNYX] [{session_id}] 📡 UDP Fork started → {siprec_dest}")
+    except Exception as exc:
+        logger.error(f"☎️ [TELNYX] [{session_id}] SIPREC/Fork start error: {exc}")
 
 
 async def _handle_hangup(payload, session_id, cid, request, call_repo):
@@ -408,6 +445,71 @@ async def _handle_hangup(payload, session_id, cid, request, call_repo):
     except Exception as exc:
         logger.error(f"☎️ [TELNYX] [{session_id}] DB (hangup) error: {exc}")
 
+    # P1: Fallback transfer si la llamada falló y hay número configurado
+    if reason in ("failed", "busy", "no_answer"):
+        await _handle_fallback_if_configured(cid, session_id, call_repo)
+
+
+async def _handle_fallback_if_configured(cid: str, session_id: str, call_repo) -> None:
+    """
+    P1: Si fallbackNumberTelnyx está configurado y la llamada falló/no contestó,
+    inicia una nueva llamada al número de fallback.
+    Evita bucles: solo actúa en llamadas originadas (no en las de fallback mismas).
+    """
+    from backend.domain.value_objects.call_id import CallId
+    try:
+        call = await call_repo.get_by_id(CallId(cid))
+        if not call or not hasattr(call, "agent") or not call.agent:
+            return
+        conn = getattr(call.agent, "connectivity_config", {}) or {}
+        fallback_number = conn.get("fallbackNumberTelnyx", "").strip()
+        if not fallback_number:
+            return
+
+        # Evitar bucle: el metadata "is_fallback" debe estar ausente
+        metadata = getattr(call, "metadata", {}) or {}
+        if metadata.get("is_fallback"):
+            logger.info(f"☎️ [TELNYX] [{session_id}] Fallback skip (already a fallback call)")
+            return
+
+        agent_id = str(getattr(call.agent, "agent_uuid", ""))
+        caller_id = conn.get("callerIdTelnyx") or getattr(
+            getattr(call, "from_number", None), "value", ""
+        )
+        logger.info(f"☎️ [TELNYX] [{session_id}] 📲 Initiating fallback → {fallback_number}")
+
+        fb_client = TelnyxClient()
+        from backend.infrastructure.database.session import AsyncSessionLocal
+        from backend.infrastructure.adapters.persistence.config_repository import ConfigRepository
+        async with AsyncSessionLocal() as db:
+            config_dto = await ConfigRepository(db).get_config(agent_id)
+            conn_cfg = getattr(config_dto, "connectivity_config", {}) or {}
+            connection_id = (
+                conn_cfg.get("telnyxConnectionId")
+                or getattr(config_dto, "telnyx_connection_id", None)
+                or ""
+            )
+            if connection_id:
+                connection_id = str(connection_id).strip()
+
+        result = await fb_client._run(
+            fb_client._sdk.calls.create(
+                **{
+                    "to": fallback_number,
+                    "from": caller_id,
+                    "connection_id": connection_id,
+                    "client_state": __import__('base64').b64encode(
+                        __import__('json').dumps({"is_fallback": True, "original_call_id": cid}).encode()
+                    ).decode(),
+                }
+            ),
+            label=f"fallback.create({fallback_number})",
+        )
+        await fb_client.close()
+        if result:
+            logger.info(f"☎️ [TELNYX] [{session_id}] ✅ Fallback call initiated → {fallback_number}")
+    except Exception as exc:
+        logger.error(f"☎️ [TELNYX] [{session_id}] Fallback error: {exc}")
 
 async def _handle_bridged(payload, session_id, cid, request, call_repo):
     logger.info(f"☎️ [TELNYX] [{session_id}] 🔗 Call bridged")
@@ -506,9 +608,25 @@ async def _handle_recording_saved(payload, session_id, cid, request, call_repo):
 
 
 async def _handle_dtmf(payload, session_id, cid, request, call_repo):
-    """B-09: Route DTMF digit to the active orchestrator via DtmfRegistry."""
+    """
+    B-09: Route DTMF digit to orchestrator — only if dtmfListeningEnabledTelnyx is ON.
+    P1 fix: ahora condicional según connectivity_config del agente.
+    """
     digit = payload.get("digit", "")
     logger.info(f"☄️ [TELNYX] [{session_id}] 🔢 DTMF received: {digit!r}")
+
+    # Verificar que DTMF esté habilitado en el agente
+    from backend.domain.value_objects.call_id import CallId
+    try:
+        call = await call_repo.get_by_id(CallId(cid))
+        if call and hasattr(call, "agent") and call.agent:
+            conn = getattr(call.agent, "connectivity_config", {}) or {}
+            dtmf_enabled = conn.get("dtmfListeningEnabledTelnyx", True)  # Default True para backward-compat
+            if not dtmf_enabled:
+                logger.debug(f"☄️ [TELNYX] [{session_id}] DTMF {digit!r} ignored (dtmfListeningEnabledTelnyx=False)")
+                return
+    except Exception:
+        pass  # Si no se puede leer config, procesar de todas formas (safe default)
 
     orchestrator = DtmfRegistry.get(session_id)
     if orchestrator and hasattr(orchestrator, "handle_dtmf"):

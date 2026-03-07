@@ -245,6 +245,14 @@ export interface TelnyxConfig {
     amdConfig: 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end'
     interruptRMS: number // Duplicate of BrowserConfig but used here too
 
+    // S3 Direct Recording (P1)
+    telnyxRecordS3: boolean       // Graba directamente a S3 sin pasar por FastAPI
+    telnyxS3Bucket: string        // e.g. 's3://mi-bucket/grabaciones/'
+
+    // SIPREC / Fork / Transfer (P0)
+    telnyxSiprecDest: string      // sip:grabadora@... o ip:puerto (UDP forking)
+    telnyxTransferNumber: string  // número E.164 para bridge transfer manual
+
     // Campaigns / Integrations
     crmEnabled: boolean
     webhookUrl: string
