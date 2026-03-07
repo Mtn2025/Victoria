@@ -336,8 +336,9 @@ export const configService = {
         if (config.transferWhitelist !== undefined) payload.transfer_whitelist = config.transferWhitelist
         if (config.stateInjectionEnabled !== undefined) payload.state_injection_enabled = config.stateInjectionEnabled
         if (config.toolsSchema !== undefined) {
-            try { payload.tools_schema = config.toolsSchema ? JSON.parse(config.toolsSchema) : [] }
-            catch { payload.tools_schema = config.toolsSchema }
+            // tools_schema en el backend es Optional[str] — enviar el string JSON crudo, o null si vacío
+            // NO parsear aquí: el backend almacena el string y lo parsea internamente
+            payload.tools_schema = config.toolsSchema || null
         }
         // System / Governance shared with TelnyxConfig
         if (config.concurrencyLimit !== undefined) payload.concurrency_limit = config.concurrencyLimit
