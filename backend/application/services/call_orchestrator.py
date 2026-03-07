@@ -611,8 +611,8 @@ class CallOrchestrator:
         # Close control channel
         self.control_channel.close()
         
-        # Reset FSM
-        await self.fsm.reset()
+        # Reset FSM — sync method (reset() is not async)
+        self.fsm.reset()
         
         logger.info("✅ Orchestrator stopped")
 

@@ -226,8 +226,13 @@ async def handle_telnyx_stream(
 
                 # ── Callbacks for the orchestrator ────────────────────────────
 
+                # ── WS liveness guard — evita spam de warnings post-hangup ─────
+                _ws_open = True
+
                 async def send_tts_audio(audio_bytes: bytes) -> None:
                     """Push TTS audio chunk back to caller via WebSocket."""
+                    if not _ws_open:
+                        return  # WS ya cerrado — silencio, sin spam
                     try:
                         if audio_bytes:
                             msg = protocol.create_media_message(audio_bytes)
@@ -302,11 +307,7 @@ async def handle_telnyx_stream(
             # ── 'stop' — stream ended cleanly ────────────────────────────────
             elif event["type"] == "stop":
                 logger.info(f"☎️ [TELNYX] Stop event: stream_id={stream_id}")
-                # Grace period: give Azure STT time to flush the last recognized
-                # utterance that may still be in-flight at the moment Telnyx
-                # closes the media stream. Without this, the final recognition
-                # (e.g. user's last word) arrives AFTER pipeline teardown and
-                # the LLM never receives the text → assistant appears deaf.
+                _ws_open = False  # ← guard: detener TTS callbacks antes del teardown
                 await asyncio.sleep(1.5)
                 await orchestrator.end_session(reason="completed")
                 break

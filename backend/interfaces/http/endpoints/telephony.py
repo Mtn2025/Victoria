@@ -341,9 +341,14 @@ async def _handle_answered(payload, session_id, cid, request, call_repo):
     try:
         call = await call_repo.get_by_id(CallId(cid))
         if call:
-            call.start()
+            try:
+                call.start()  # no-op para outbound (ya in_progress desde outbound_service)
+            except Exception as state_exc:
+                # Outbound calls ya están en in_progress — ignorar error de transición
+                logger.info(f"☄️ [TELNYX] [{session_id}] Call state: {state_exc} (outbound, expected)")
+            else:
+                logger.info(f"☄️ [TELNYX] [{session_id}] ✅ DB: IN_PROGRESS (codec={codec})")
             await call_repo.save(call)
-            logger.info(f"☄️ [TELNYX] [{session_id}] ✅ DB: IN_PROGRESS (codec={codec})")
     except Exception as exc:
         logger.error(f"☄️ [TELNYX] [{session_id}] DB (answered) error: {exc}")
 
