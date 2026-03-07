@@ -14,6 +14,7 @@ export const SystemSettings = () => {
     const { browser } = useAppSelector(state => state.config)
     const [openSection, setOpenSection] = useState<string | null>('limits')
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update = (key: keyof BrowserConfig, value: any) => {
         dispatch(updateBrowserConfig({ [key]: value }))
     }

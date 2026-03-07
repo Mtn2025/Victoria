@@ -29,9 +29,13 @@ export const ToolsSettings = () => {
 
     const config = getConfig()
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update = (key: string, value: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (activeProfile === 'browser') dispatch(updateBrowserConfig({ [key]: value } as any))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (activeProfile === 'twilio') dispatch(updateTwilioConfigState({ [key]: value } as any))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (activeProfile === 'telnyx') dispatch(updateTelnyxConfigState({ [key]: value } as any))
     }
 

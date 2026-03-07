@@ -50,6 +50,7 @@ export const TranscriberSettings = () => {
         updatePhrasesGlobal(newArray)
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update = (key: keyof BrowserConfig, value: any) => {
         dispatch(updateBrowserConfig({ [key]: value }))
     }

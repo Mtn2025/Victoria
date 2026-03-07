@@ -1,4 +1,4 @@
-import { screen, fireEvent, act } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from '@/utils/test-utils'
 import { AdvancedSettings } from '@/components/features/Config/AdvancedSettings'
 

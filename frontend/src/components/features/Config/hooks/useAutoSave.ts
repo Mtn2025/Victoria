@@ -11,7 +11,9 @@ export const useAutoSave = (debounceMs = 800) => {
     const initialLoadDone = useRef(false)
     const prevJSON = useRef(JSON.stringify({ browser, twilio, telnyx }))
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const saveChanges = useCallback(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         debounce((payload: any, profile: string) => {
             if (profile === 'telnyx') {
                 // Telnyx connectivity / tools / system fields go via dedicated thunk

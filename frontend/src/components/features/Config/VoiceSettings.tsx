@@ -55,6 +55,7 @@ export const VoiceSettings = () => {
         }
     }, [dispatch, browser.voiceProvider, browser.voiceId])
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update = (key: keyof BrowserConfig, value: any) => {
         // Cascade Rules for Voice Configuration
         if (key === 'voiceProvider') {

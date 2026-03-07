@@ -60,8 +60,9 @@ export const CampaignSettings = () => {
             })
             setCampaignName('')
             setCampaignFile(null)
-        } catch (e: any) {
-            const detail = e?.response?.data?.detail || e?.message || 'Error al lanzar la campaña'
+        } catch (e: unknown) {
+            const err = e as { response?: { data?: { detail?: string } }; message?: string }
+            const detail = err?.response?.data?.detail || err?.message || 'Error al lanzar la campaña'
             setUploadResult({ status: 'error', message: detail })
         } finally {
             setIsUploading(false)
