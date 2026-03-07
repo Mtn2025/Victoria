@@ -4,19 +4,22 @@ import { updateBrowserConfig } from '@/store/slices/configSlice'
 import { Input } from '@/components/ui/Input'
 import { BrowserConfig } from '@/types/config'
 import { Accordion } from '@/components/ui/Accordion'
-import { Megaphone, Link, Database, Upload, FileText, Loader2 } from 'lucide-react'
+import { Megaphone, Link, Database, Upload, FileText, Loader2, CheckCircle, AlertTriangle } from 'lucide-react'
 import { useTranslation } from '@/i18n/I18nContext'
+import { api } from '@/services/api'
 
 export const CampaignSettings = () => {
     const dispatch = useAppDispatch()
     const { t } = useTranslation()
     const { browser } = useAppSelector(state => state.config)
+    const activeAgent = useAppSelector(state => state.agents.activeAgent)
 
     const [openSection, setOpenSection] = useState<string | null>('launcher')
 
     const [campaignName, setCampaignName] = useState('')
     const [campaignFile, setCampaignFile] = useState<File | null>(null)
     const [isUploading, setIsUploading] = useState(false)
+    const [uploadResult, setUploadResult] = useState<{ status: 'success' | 'error', message: string, queued?: number, total?: number } | null>(null)
 
     // Config Updates (Integrations)
     const update = <K extends keyof BrowserConfig>(key: K, value: BrowserConfig[K]) => {
@@ -26,20 +29,43 @@ export const CampaignSettings = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setCampaignFile(e.target.files[0])
+            setUploadResult(null)
         }
     }
 
     const handleUpload = async () => {
-        if (!campaignFile || !campaignName) return
+        if (!campaignFile || !campaignName || !activeAgent?.agent_uuid) return
         setIsUploading(true)
+        setUploadResult(null)
 
-        // Simulación de carga...
-        setTimeout(() => {
-            setIsUploading(false)
-            alert(t('campaigns.success_toast'))
+        try {
+            const formData = new FormData()
+            formData.append('campaign_name', campaignName)
+            formData.append('agent_id', activeAgent.agent_uuid)
+            formData.append('csv_file', campaignFile)
+
+            const result = await api.postForm<{
+                status: string
+                campaign_name: string
+                total_contacts: number
+                queued: number
+                message: string
+            }>('/campaigns/outbound', formData)
+
+            setUploadResult({
+                status: 'success',
+                message: result.message,
+                queued: result.queued,
+                total: result.total_contacts,
+            })
             setCampaignName('')
             setCampaignFile(null)
-        }, 1500)
+        } catch (e: any) {
+            const detail = e?.response?.data?.detail || e?.message || 'Error al lanzar la campaña'
+            setUploadResult({ status: 'error', message: detail })
+        } finally {
+            setIsUploading(false)
+        }
     }
 
     // La UI ya bloquea este tab en el Sidebar gracias a `isTelephonyOnly = true`.
@@ -110,8 +136,8 @@ export const CampaignSettings = () => {
 
                     <button
                         onClick={handleUpload}
-                        disabled={!campaignFile || !campaignName || isUploading}
-                        className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-2 ${!campaignFile || !campaignName || isUploading
+                        disabled={!campaignFile || !campaignName || isUploading || !activeAgent}
+                        className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-2 ${!campaignFile || !campaignName || isUploading || !activeAgent
                             ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                             : 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/20 hover:shadow-blue-500/40 hover:scale-[1.01]'
                             }`}
@@ -128,6 +154,31 @@ export const CampaignSettings = () => {
                             </>
                         )}
                     </button>
+
+                    {/* Campaign Result Feedback */}
+                    {uploadResult && (
+                        <div className={`mt-3 p-4 rounded-xl border flex items-start gap-3 ${uploadResult.status === 'success'
+                            ? 'bg-emerald-900/20 border-emerald-500/30'
+                            : 'bg-red-900/20 border-red-500/30'
+                            }`}>
+                            {uploadResult.status === 'success' ? (
+                                <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                            ) : (
+                                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                            )}
+                            <div>
+                                <p className={`text-sm font-bold ${uploadResult.status === 'success' ? 'text-emerald-300' : 'text-red-300'}`}>
+                                    {uploadResult.status === 'success' ? '¡Campaña lanzada!' : 'Error al lanzar'}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">{uploadResult.message}</p>
+                                {uploadResult.status === 'success' && uploadResult.queued !== undefined && (
+                                    <p className="text-[10px] text-slate-500 mt-1">
+                                        {uploadResult.queued}/{uploadResult.total} llamadas encoladas
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Accordion>
 

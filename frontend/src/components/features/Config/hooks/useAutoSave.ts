@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
-import { saveAgentConfig, setSaveStatus } from '@/store/slices/configSlice'
+import { saveAgentConfig, saveTelnyxConfig, setSaveStatus } from '@/store/slices/configSlice'
 import debounce from 'lodash/debounce'
 
 export const useAutoSave = (debounceMs = 800) => {
@@ -12,8 +12,14 @@ export const useAutoSave = (debounceMs = 800) => {
     const prevJSON = useRef(JSON.stringify({ browser, twilio, telnyx }))
 
     const saveChanges = useCallback(
-        debounce((payload: any) => {
-            dispatch(saveAgentConfig(payload))
+        debounce((payload: any, profile: string) => {
+            if (profile === 'telnyx') {
+                // Telnyx connectivity / tools / system fields go via dedicated thunk
+                dispatch(saveTelnyxConfig(payload))
+            } else {
+                // Browser or Twilio: send via updateBrowserConfig (includes connectivity_config for twilio)
+                dispatch(saveAgentConfig(payload))
+            }
         }, debounceMs),
         [dispatch, debounceMs]
     )
@@ -32,16 +38,20 @@ export const useAutoSave = (debounceMs = 800) => {
             prevJSON.current = currentString
             dispatch(setSaveStatus('saving'))
 
-            // Construct payload: base config + connectivity_config based on profile
-            const payload: any = { ...browser }
-            payload.agent_provider = activeProfile
-
-            if (activeProfile === 'twilio') {
+            if (activeProfile === 'telnyx') {
+                // Save only the telnyx slice fields
+                saveChanges(telnyx, 'telnyx')
+            } else if (activeProfile === 'twilio') {
+                const payload: any = { ...browser }
+                payload.agent_provider = activeProfile
                 payload.connectivity_config = twilio
-            } else if (activeProfile === 'telnyx') {
-                payload.connectivity_config = telnyx
+                saveChanges(payload, 'twilio')
+            } else {
+                // Browser profile: send browser config
+                const payload: any = { ...browser }
+                payload.agent_provider = activeProfile
+                saveChanges(payload, 'browser')
             }
-            saveChanges(payload)
         }
     }, [browser, twilio, telnyx, activeProfile, dispatch, saveChanges])
 
@@ -54,3 +64,4 @@ export const useAutoSave = (debounceMs = 800) => {
 
     return { saveStatus, lastSaved }
 }
+

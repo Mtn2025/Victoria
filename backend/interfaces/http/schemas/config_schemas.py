@@ -114,7 +114,7 @@ class ConfigUpdate(BaseModel):
     end_call_phrases: Optional[List[str]] = None
     end_call_instructions: Optional[str] = None
 
-    # Telnyx Advanced Voice API
+    # Telnyx Advanced Voice API (BrowserConfig fields)
     telnyx_noise_suppression: Optional[bool] = None
     telnyx_amd_premium: Optional[bool] = None
     telnyx_amd_premium_silence_ms: Optional[int] = None
@@ -123,6 +123,33 @@ class ConfigUpdate(BaseModel):
     telnyx_siprec_dest: Optional[str] = None
     telnyx_transfer_number: Optional[str] = None
     telnyx_fork_udp: Optional[str] = None
+
+    # Telnyx Connectivity Config (TelnyxConfig slice — 12 fields)
+    telnyxConnectionId: Optional[str] = None
+    callerIdTelnyx: Optional[str] = None
+    sipTrunkUriTelnyx: Optional[str] = None
+    sipAuthUserTelnyx: Optional[str] = None
+    sipAuthPassTelnyx: Optional[str] = None
+    fallbackNumberTelnyx: Optional[str] = None
+    geoRegionTelnyx: Optional[str] = None
+    recordingChannelsTelnyx: Optional[str] = None
+    enableRecordingTelnyx: Optional[bool] = None
+    hipaaEnabledTelnyx: Optional[bool] = None
+    dtmfListeningEnabledTelnyx: Optional[bool] = None
+    amdConfig: Optional[str] = None  # 'disabled' | 'detect' | 'detect_hangup' | 'detect_message_end'
+
+    # Tools Config (shared across all profiles)
+    tool_server_url: Optional[str] = None
+    tool_server_secret: Optional[str] = None
+    tool_timeout_ms: Optional[int] = None
+    tool_retry_count: Optional[int] = None
+    tool_error_msg: Optional[str] = None
+    tools_schema: Optional[str] = None
+    async_tools: Optional[bool] = None
+    client_tools_enabled: Optional[bool] = None
+    redact_params: Optional[str] = None
+    transfer_whitelist: Optional[str] = None
+    state_injection_enabled: Optional[bool] = None
 
     # Dynamic/Extra
     tools_config: Optional[Dict[str, Any]] = None

@@ -163,13 +163,47 @@ class UpdateAgentConfigUseCase:
             existing_system = agent.metadata.get("system_config") or {}
             agent.metadata["system_config"] = {**existing_system, **system_updates}
 
-        # Tools
-        if update.tools_config is not None:
-            agent.tools = [update.tools_config]
+        # Merge Tools Config (works for browser/twilio/telnyx profiles)
+        tools_updates: Dict[str, Any] = {}
+        tools_fields = [
+            "tool_server_url", "tool_server_secret", "tool_timeout_ms",
+            "tool_retry_count", "tool_error_msg", "tools_schema",
+            "async_tools", "client_tools_enabled", "redact_params",
+            "transfer_whitelist", "state_injection_enabled",
+            # Campaigns
+            "crm_enabled", "webhook_url", "webhook_secret", "retention_days"
+        ]
+        for field in tools_fields:
+            val = getattr(update, field, None)
+            if val is not None:
+                tools_updates[field] = val
 
-        # Connectivity / Provider Config (Twilio / Telnyx)
-        if hasattr(update, 'connectivity_config') and update.connectivity_config is not None:
-            existing_conn = getattr(agent, 'connectivity_config', None) or {}
-            agent.connectivity_config = {**existing_conn, **update.connectivity_config}
+        if update.tools_config is not None:
+            tools_updates.update(update.tools_config)
+
+        if tools_updates:
+            existing_tools = agent.metadata.get("tools_config") or {}
+            agent.metadata["tools_config"] = {**existing_tools, **tools_updates}
+
+        # Connectivity / Provider Config (Twilio / Telnyx) — persists all 12 TelnyxConnectivity fields
+        conn_updates: Dict[str, Any] = {}
+        connectivity_fields = [
+            # TelnyxConnectivity (12 fields from TelnyxConfig Redux slice)
+            "telnyxConnectionId", "callerIdTelnyx", "sipTrunkUriTelnyx",
+            "sipAuthUserTelnyx", "sipAuthPassTelnyx", "fallbackNumberTelnyx",
+            "geoRegionTelnyx", "recordingChannelsTelnyx", "enableRecordingTelnyx",
+            "hipaaEnabledTelnyx", "dtmfListeningEnabledTelnyx", "amdConfig",
+        ]
+        for field in connectivity_fields:
+            val = getattr(update, field, None)
+            if val is not None:
+                conn_updates[field] = val
+
+        if update.connectivity_config is not None:
+            conn_updates.update(update.connectivity_config)
+
+        if conn_updates:
+            existing_conn = agent.metadata.get("connectivity_config") or {}
+            agent.metadata["connectivity_config"] = {**existing_conn, **conn_updates}
 
         await self.repository.update_agent(agent)

@@ -17,6 +17,30 @@ export const api = {
         return request<T>('PATCH', url, body, config)
     },
 
+    /**
+     * postForm — Sends multipart/form-data (FileUpload + fields).
+     * Do NOT set Content-Type header — browser sets it automatically with the correct boundary.
+     */
+    postForm: async <T>(url: string, formData: FormData): Promise<T> => {
+        const apiKey = localStorage.getItem('api_key')
+        const headers: Record<string, string> = {
+            ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+        }
+        const fullUrl = '/api' + url
+        const response = await fetch(fullUrl, {
+            method: 'POST',
+            headers,
+            body: formData,
+        })
+        if (!response.ok) {
+            let errorData
+            try { errorData = await response.json() } catch { errorData = null }
+            const { ApiError } = await import('@/utils/ApiError')
+            throw new ApiError(`API Error: ${response.statusText}`, response.status, response.statusText, errorData)
+        }
+        return response.json()
+    },
+
     delete: async <T>(url: string, config: any = {}): Promise<T> => {
         return request<T>('DELETE', url, undefined, config)
     }

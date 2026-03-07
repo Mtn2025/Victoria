@@ -74,6 +74,10 @@ def create_app() -> FastAPI:
     app.include_router(history.router, prefix="/api", dependencies=[Depends(get_api_key)])
     app.include_router(agents.router, prefix="/api", dependencies=[Depends(get_api_key)])
     app.include_router(telephony.protected_router, prefix="/api", dependencies=[Depends(get_api_key)])
+
+    # Campaigns (outbound call campaigns via CSV)
+    from backend.interfaces.http.endpoints import campaigns
+    app.include_router(campaigns.router, prefix="/api", dependencies=[Depends(get_api_key)])
     
     # Monitoring
     from backend.interfaces.http.endpoints import health

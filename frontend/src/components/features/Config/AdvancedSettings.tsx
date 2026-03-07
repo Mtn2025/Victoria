@@ -180,7 +180,7 @@ export const AdvancedSettings = () => {
                 </Accordion>
 
                 {/* TELNYX CORPORATE */}
-                {browser.provider === 'telnyx' || activeAgent?.provider === 'telnyx' ? (
+                {activeAgent?.provider === 'telnyx' ? (
                     <Accordion
                         isOpen={openSection === 'corporate'}
                         onToggle={() => setOpenSection(openSection === 'corporate' ? null : 'corporate')}
