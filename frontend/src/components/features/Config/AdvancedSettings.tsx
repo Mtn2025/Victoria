@@ -134,6 +134,12 @@ export const AdvancedSettings = () => {
                                         })}
                                     </div>
                                 </div>
+                                {/* Nota Telnyx: la supresión nativa siempre está activa */}
+                                {activeAgent?.provider === 'telnyx' && (
+                                    <div className="mt-2 p-2 bg-emerald-900/20 border border-emerald-700/40 rounded text-[9px] text-emerald-400">
+                                        ✅ Telnyx activa su filtro de ruido nativo automáticamente. Krisp funciona como capa adicional en el pipeline STT.
+                                    </div>
+                                )}
                             </div>
 
                             {/* Calidad de Audio */}

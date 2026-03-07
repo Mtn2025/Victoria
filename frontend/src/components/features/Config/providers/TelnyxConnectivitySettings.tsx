@@ -202,6 +202,10 @@ export const TelnyxConnectivitySettings = () => {
                     <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
                         <h5 className="text-xs font-bold text-slate-300 mb-1 block">{t('connectivity.telnyx_sip_trunk')}</h5>
                         <span className="text-[10px] text-slate-400 block mb-3">{t('connectivity.sip_desc')}</span>
+                        {/* BYOC Info Banner */}
+                        <div className="mb-3 p-2 bg-indigo-500/10 border border-indigo-500/30 rounded text-[9px] text-indigo-300">
+                            ℹ️ <strong>BYOC (Bring Your Own Carrier):</strong> Estos campos son para configuración avanzada de SIP Trunk propio. En producción estándar de Telnyx se usa <em>Connection ID</em> (Credenciales ↑). Solo requerido si tienes un trunk SIP externo.
+                        </div>
                         <div className="space-y-3">
                             <Input
                                 aria-label="Telnyx SIP Trunk URI"
@@ -397,7 +401,24 @@ export const TelnyxConnectivitySettings = () => {
                                         placeholder="+1234567890"
                                         className="text-xs font-mono"
                                     />
-                                    <p className="text-[9px] text-slate-500 mt-1">La IA puenteará la llamada a este número cuando decida transferir.</p>
+                                    <p className="text-[9px] text-slate-500 mt-1">La IA puenteará la llamada a este número cuando decida transferir. Configura en el LLM system prompt la herramienta <code className="text-violet-400">transfer_call</code>.</p>
+                                </div>
+
+                                {/* Failover URL info */}
+                                <div className="mt-2 pt-2 border-t border-white/5">
+                                    <label className="text-[10px] uppercase text-slate-500 font-bold block mb-2">⚡ Failover Webhook URL</label>
+                                    <div className="p-2 bg-slate-800/60 border border-slate-700/50 rounded text-[9px] text-slate-400">
+                                        El Failover URL se configura en el
+                                        <a
+                                            href="https://portal.telnyx.com/#/app/messaging/applications"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-indigo-400 hover:text-indigo-300 underline mx-1"
+                                        >
+                                            Mission Control Portal
+                                        </a>
+                                        → Voice Applications → tu app → Failover URL. Apúntalo a tu servidor de respaldo.
+                                    </div>
                                 </div>
                             </div>
                         </div>
