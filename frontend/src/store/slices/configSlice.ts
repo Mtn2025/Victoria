@@ -471,6 +471,15 @@ export const configSlice = createSlice({
                     }
                 })
 
+                // Retrocompatibilidad: agentes creados antes del fix tienen el modo de inicio
+                // en 'mode' con valores 'speak-first'/'listen-first'. Migrar a 'startMode'.
+                const legacyMode = data.llm_config.mode
+                if (legacyMode === 'speak-first' || legacyMode === 'listen-first') {
+                    state.browser.startMode = legacyMode
+                    // Limpiar mode de ese valor para no contaminar (el modo LLM es markdown/text)
+                    state.browser.mode = 'markdown'
+                }
+
                 if (data.llm_config.end_call_enabled !== undefined) state.browser.endCallEnabled = data.llm_config.end_call_enabled
                 if (data.llm_config.end_call_phrases !== undefined) state.browser.endCallPhrases = (data.llm_config.end_call_phrases || []).join(', ')
                 if (data.llm_config.end_call_instructions !== undefined) state.browser.endCallInstructions = data.llm_config.end_call_instructions
