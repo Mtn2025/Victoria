@@ -4,7 +4,9 @@ Aggregates all migrated endpoints.
 """
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
@@ -40,6 +42,13 @@ def create_app() -> FastAPI:
         version="2.0.0",
         lifespan=lifespan,
     )
+
+    # ── Validation error handler — loguea el campo exacto que causa 422 ────────
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        errors = exc.errors()
+        logger.error(f"[422] RequestValidationError on {request.method} {request.url.path}: {errors}")
+        return JSONResponse(status_code=422, content={"detail": errors})
 
     # Middleware
     from backend.infrastructure.security.headers import SecurityHeadersMiddleware
