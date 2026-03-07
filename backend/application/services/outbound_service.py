@@ -214,6 +214,8 @@ class OutboundDialerService:
                     call_id_value=str(call_control_id),
                     from_number=from_number,
                     to_number=to_number,
+                    client_type="telnyx",
+                    direction="outbound",
                 )
             except Exception as e:
                 logger.error(f"Failed to record Telnyx outbound call {call_control_id} in DB: {e}")

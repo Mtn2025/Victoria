@@ -341,6 +341,13 @@ class CallOrchestrator:
             start_mode = llm_config.get('startMode') or llm_config.get('mode', 'speak-first')
             wait_for_greeting = start_mode == 'listen-first'
 
+            # Outbound logic override: Outbound bots MUST speak first regardless of agent defaults
+            call_metadata = getattr(self.current_call, "metadata", {})
+            direction = call_metadata.get("direction", "inbound")
+            if direction == "outbound":
+                wait_for_greeting = False
+                logger.info("☎️ [OUTBOUND DIALER] Overriding listen-first mode to speak-first (Outbound calls require greeting)")
+
             # Diagnostic: always log the first_message value at call start
             logger.info(
                 f"\U0001f50d [GREETING CHECK] agent={agent.name!r} "

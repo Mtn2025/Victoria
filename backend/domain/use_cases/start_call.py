@@ -30,7 +30,8 @@ class StartCallUseCase:
         call_id_value: str,
         from_number: Optional[str] = None,
         to_number: Optional[str] = None,
-        client_type: str = "unknown"
+        client_type: str = "unknown",
+        direction: str = "inbound"
     ) -> Call:
         """
         Initialize a new call session.
@@ -88,6 +89,7 @@ class StartCallUseCase:
         )
         call.update_metadata("to_number", to_number)
         call.update_metadata("client_type", client_type)
+        call.update_metadata("direction", direction)
 
         # 4. Persist (Call starts in RINGING state by default from constructor,
         #    then transitions to IN_PROGRESS to match domain semantics)
